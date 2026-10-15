@@ -144,6 +144,12 @@ public final class HealthKitHealthDataService: HealthDataService, @unchecked Sen
         }
     }
 
+    // MARK: - 睡眠详情
+
+    public func fetchSleepNights(in interval: DateInterval) async throws -> [SleepNight] {
+        try await sleepNights(in: interval).filter { $0.date >= interval.start && $0.date < interval.end }
+    }
+
     // MARK: - 趋势
 
     public func fetchDailyTrend(for kind: HealthMetricKind, in interval: DateInterval) async throws -> [MetricDataPoint] {

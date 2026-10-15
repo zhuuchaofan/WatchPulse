@@ -29,4 +29,7 @@ public protocol HealthDataService: Sendable {
 
     /// 按天聚合的趋势数据，只返回有数据的天。睡眠的数值单位为小时。
     func fetchDailyTrend(for kind: HealthMetricKind, in interval: DateInterval) async throws -> [MetricDataPoint]
+
+    /// 按夜聚合的睡眠详情（含分期、来源），只返回 `interval` 内醒来的、有记录的夜晚，按日期升序。
+    func fetchSleepNights(in interval: DateInterval) async throws -> [SleepNight]
 }

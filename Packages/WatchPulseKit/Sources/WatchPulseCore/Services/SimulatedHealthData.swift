@@ -107,10 +107,20 @@ public struct SimulatedHealthData: Sendable {
         }
     }
 
+    /// 截至今天（含）的 `days` 夜睡眠（确定性模拟数据；入睡 / 醒来时间每晚略有不同）。
+    public func sleepNights(days: Int) -> [SleepNight] {
+        let today = calendar.startOfDay(for: now)
+        let offsets = [0, 15, -10, 25, 5, -20, 10]
+        return (0..<days).reversed().compactMap { offset -> SleepNight? in
+            guard let day = calendar.date(byAdding: .day, value: -offset, to: today) else { return nil }
+            return sleepNight(for: day, shiftMinutes: offsets[offset % offsets.count])
+        }
+    }
+
     /// 某天醒来的那一夜（23:20 入睡，次日 06:50 醒来，含分期）。
-    public func sleepNight(for day: Date) -> SleepNight {
-        let wake = calendar.date(byAdding: .minute, value: 6 * 60 + 50, to: day)!
-        let bedtime = calendar.date(byAdding: .minute, value: -40, to: day)!
+    public func sleepNight(for day: Date, shiftMinutes: Int = 0) -> SleepNight {
+        let wake = calendar.date(byAdding: .minute, value: 6 * 60 + 50 + shiftMinutes, to: day)!
+        let bedtime = calendar.date(byAdding: .minute, value: -40 + shiftMinutes, to: day)!
         func at(_ minutes: Int) -> Date { bedtime.addingTimeInterval(TimeInterval(minutes * 60)) }
         let segments = [
             SleepSegment(start: bedtime, end: wake, stage: .inBed, sourceName: Self.sourceName),

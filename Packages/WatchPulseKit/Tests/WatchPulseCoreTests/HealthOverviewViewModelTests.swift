@@ -260,4 +260,5 @@ private final class FailingStatusService: HealthDataService {
     func fetchLatestHeartRate() async throws -> HeartRateSample? { nil }
     func fetchSummary(for kind: HealthMetricKind, on day: Date) async throws -> MetricSummaryValue? { nil }
     func fetchDailyTrend(for kind: HealthMetricKind, in interval: DateInterval) async throws -> [MetricDataPoint] { [] }
+    func fetchSleepNights(in interval: DateInterval) async throws -> [SleepNight] { [] }
 }

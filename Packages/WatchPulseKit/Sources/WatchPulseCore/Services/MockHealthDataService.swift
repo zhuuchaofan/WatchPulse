@@ -27,6 +27,7 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
     private var _fetchBehavior: FetchBehavior
     private var _summaries: [HealthMetricKind: Behavior<MetricSummaryValue>]
     private var _trends: [HealthMetricKind: Behavior<[MetricDataPoint]>]
+    private var _sleepNights: Behavior<[SleepNight]>
     private var _responseDelay: Duration?
     private var _authorizationRequestCount = 0
     private var _fetchCount = 0
@@ -40,6 +41,7 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
         fetchBehavior: FetchBehavior = .noData,
         summaries: [HealthMetricKind: Behavior<MetricSummaryValue>] = [:],
         trends: [HealthMetricKind: Behavior<[MetricDataPoint]>] = [:],
+        sleepNights: Behavior<[SleepNight]> = .noData,
         responseDelay: Duration? = nil
     ) {
         _isHealthDataAvailable = isHealthDataAvailable
@@ -48,6 +50,7 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
         _fetchBehavior = fetchBehavior
         _summaries = summaries
         _trends = trends
+        _sleepNights = sleepNights
         _responseDelay = responseDelay
     }
 
@@ -57,7 +60,8 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
         return MockHealthDataService(
             fetchBehavior: .sample(data.latestHeartRate),
             summaries: Dictionary(uniqueKeysWithValues: HealthMetricKind.allCases.map { ($0, .value(data.summary(for: $0))) }),
-            trends: Dictionary(uniqueKeysWithValues: HealthMetricKind.allCases.map { ($0, .value(data.trend(for: $0, days: 90))) })
+            trends: Dictionary(uniqueKeysWithValues: HealthMetricKind.allCases.map { ($0, .value(data.trend(for: $0, days: 90))) }),
+            sleepNights: .value(data.sleepNights(days: 30))
         )
     }
 
@@ -79,6 +83,10 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
 
     public func setTrend(_ behavior: Behavior<[MetricDataPoint]>, for kind: HealthMetricKind) {
         withLock { _trends[kind] = behavior }
+    }
+
+    public func setSleepNights(_ behavior: Behavior<[SleepNight]>) {
+        withLock { _sleepNights = behavior }
     }
 
     // MARK: - 调用记录
@@ -145,6 +153,13 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
         }
         let points = try Self.resolve(behavior) ?? []
         return points.filter { interval.contains($0.date) && $0.date < interval.end }
+    }
+
+    public func fetchSleepNights(in interval: DateInterval) async throws -> [SleepNight] {
+        try await simulateDelay()
+        let behavior = withLock { _sleepNights }
+        let nights = try Self.resolve(behavior) ?? []
+        return nights.filter { $0.date >= interval.start && $0.date < interval.end }.sorted { $0.date < $1.date }
     }
 
     // MARK: - Private
