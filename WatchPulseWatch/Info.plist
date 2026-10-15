@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>WKApplication</key>
+	<true/>
+	<key>WKCompanionAppBundleIdentifier</key>
+	<string>$(WATCHPULSE_BUNDLE_ID)</string>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
+	<key>NSHealthShareUsageDescription</key>
+	<string>WatchPulse 需要在运动时读取心率、活动能量和距离，用于实时显示运动数据。</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>WatchPulse 需要把你完成的运动保存到“健康”中。</string>
+</dict>
+</plist>

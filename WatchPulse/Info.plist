@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSHealthShareUsageDescription</key>
+	<string>WatchPulse 需要读取你的心率记录，用于在本机显示最新心率及其采样时间和来源。数据不会上传。</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>WatchPulse 将在后续版本中保存你在 Apple Watch 上完成的运动记录。当前版本不会写入任何健康数据。</string>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>healthkit</string>
+	</array>
+</dict>
+</plist>

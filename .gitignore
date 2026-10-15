@@ -1,0 +1,15 @@
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcuserstate
+build/
+
+# SwiftPM
+.build/
+.swiftpm/
+Packages/WatchPulseKit/Package.resolved
+
+# 本地签名配置
+Config/Signing.local.xcconfig
+
+.DS_Store

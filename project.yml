@@ -1,0 +1,119 @@
+# XcodeGen 工程定义。修改后运行 `xcodegen generate` 重新生成 WatchPulse.xcodeproj。
+name: WatchPulse
+
+options:
+  bundleIdPrefix: com.zhuuchaofan
+  deploymentTarget:
+    iOS: "17.0"
+    watchOS: "10.0"
+  developmentLanguage: zh-Hans
+  createIntermediateGroups: true
+  groupSortPosition: top
+  xcodeVersion: "16.0"
+
+configFiles:
+  Debug: Config/Signing.xcconfig
+  Release: Config/Signing.xcconfig
+
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    DEAD_CODE_STRIPPING: YES
+
+packages:
+  WatchPulseKit:
+    path: Packages/WatchPulseKit
+
+targets:
+  WatchPulse:
+    type: application
+    platform: iOS
+    sources:
+      - path: WatchPulse
+        excludes:
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_NAME: WatchPulse
+        PRODUCT_BUNDLE_IDENTIFIER: $(WATCHPULSE_BUNDLE_ID)
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: WatchPulse/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: WatchPulse
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.healthcare-fitness
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait
+        CODE_SIGN_ENTITLEMENTS: WatchPulse/WatchPulse.entitlements
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+    attributes:
+      SystemCapabilities:
+        com.apple.HealthKit:
+          enabled: 1
+    dependencies:
+      - target: WatchPulseWatch
+      - package: WatchPulseKit
+        product: WatchPulseShared
+      - package: WatchPulseKit
+        product: WatchPulseCore
+
+  WatchPulseWatch:
+    type: application
+    platform: watchOS
+    sources:
+      - path: WatchPulseWatch
+        excludes:
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_NAME: WatchPulseWatch
+        PRODUCT_BUNDLE_IDENTIFIER: $(WATCHPULSE_BUNDLE_ID).watchkitapp
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_FILE: WatchPulseWatch/Info.plist
+        INFOPLIST_KEY_CFBundleDisplayName: WatchPulse
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown"
+        CODE_SIGN_ENTITLEMENTS: WatchPulseWatch/WatchPulseWatch.entitlements
+        TARGETED_DEVICE_FAMILY: "4"
+        SKIP_INSTALL: YES
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ENABLE_PREVIEWS: YES
+    attributes:
+      SystemCapabilities:
+        com.apple.HealthKit:
+          enabled: 1
+    dependencies:
+      - package: WatchPulseKit
+        product: WatchPulseShared
+      - package: WatchPulseKit
+        product: WatchPulseCore
+
+schemes:
+  WatchPulse:
+    build:
+      targets:
+        WatchPulse: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - package: WatchPulseKit/WatchPulseSharedTests
+        - package: WatchPulseKit/WatchPulseCoreTests
+    archive:
+      config: Release
+
+  WatchPulseWatch:
+    build:
+      targets:
+        WatchPulseWatch: all
+    run:
+      config: Debug
+    archive:
+      config: Release

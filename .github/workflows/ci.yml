@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Swift package tests (macOS, includes HealthKit implementation compile)
+        run: swift test --package-path Packages/WatchPulseKit
+
+      - name: Build iOS app + embedded watchOS app (Simulator)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project WatchPulse.xcodeproj \
+            -scheme WatchPulse \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build iOS app + embedded watchOS app (Device, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project WatchPulse.xcodeproj \
+            -scheme WatchPulse \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build watchOS app standalone scheme (Simulator)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project WatchPulse.xcodeproj \
+            -scheme WatchPulseWatch \
+            -destination 'generic/platform=watchOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Inspect built app bundle
+        run: |
+          APP=build/DerivedData/Build/Products/Debug-iphoneos/WatchPulse.app
+          plutil -p "$APP/Info.plist" | grep -E "NSHealth|UIRequiredDeviceCapabilities|healthkit|CFBundleIdentifier"
+          test -d "$APP/Watch/WatchPulseWatch.app"
+          plutil -p "$APP/Watch/WatchPulseWatch.app/Info.plist" | grep -E "WKApplication|WKCompanionAppBundleIdentifier|NSHealth|workout-processing"
+
+      - name: Run package tests on iOS Simulator via Xcode scheme
+        run: |
+          set -o pipefail
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          data = json.load(sys.stdin)["devices"]
+          ios = [(rt, d) for rt, ds in data.items() if "iOS" in rt for d in ds if d["name"].startswith("iPhone")]
+          ios.sort(key=lambda x: x[0])
+          print(ios[-1][1]["udid"])
+          ')
+          echo "Using simulator $UDID"
+          xcodebuild test \
+            -project WatchPulse.xcodeproj \
+            -scheme WatchPulse \
+            -destination "id=$UDID" \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO

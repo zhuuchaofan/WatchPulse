@@ -1,0 +1,13 @@
+// 签名与 Bundle ID 配置。
+//
+// 真机运行前请在同目录创建 Signing.local.xcconfig（已被 .gitignore 忽略）覆盖以下值：
+//
+//   DEVELOPMENT_TEAM = ABCDE12345
+//   WATCHPULSE_BUNDLE_ID = com.yourname.WatchPulse
+//
+// Watch App 的 Bundle ID 自动为 $(WATCHPULSE_BUNDLE_ID).watchkitapp。
+
+DEVELOPMENT_TEAM =
+WATCHPULSE_BUNDLE_ID = com.zhuuchaofan.WatchPulse
+
+#include? "Signing.local.xcconfig"

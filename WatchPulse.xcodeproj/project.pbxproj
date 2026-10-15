@@ -1,0 +1,658 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		255BF8FF0DADAA11B3BE8B2C /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = D5DFAF353CBEF1ABFA96740D /* WatchPulseShared */; };
+		2CA33C70077B5ECB3CE06E14 /* PhoneWorkoutMirroringCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BDFA2D33AA59689696F81E1 /* PhoneWorkoutMirroringCoordinator.swift */; };
+		3D9F74A72D01FB62554EB24C /* WatchPulseWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		530177FFEC442E17F5E8EB1C /* WatchHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */; };
+		5D2B25860F6584B29EDC7F6C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D27B60D65C47BA37CBC75C9E /* Assets.xcassets */; };
+		64E007889CF320B777F1AFE3 /* HealthOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */; };
+		6E6EDB45070BA907E0BF468C /* WatchPulseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */; };
+		72998FC3C9A0EF87F6708179 /* HeartRateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC593086560A2F9EF04199F /* HeartRateCard.swift */; };
+		7677D911E53BA8F6CAC2A8E5 /* WatchPulseWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */; };
+		89FB024E94A4D613F8745939 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 228A296A6B9394F26F079ADA /* WatchPulseCore */; };
+		933E71BA2DA96ABE6C010334 /* WatchWorkoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6E6ABB60AB0911866A57FF /* WatchWorkoutManager.swift */; };
+		BE1DEAD9BFE99F0BCE31B85F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69285459661FE21B2ABB2CE6 /* Assets.xcassets */; };
+		C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */; };
+		C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = 755ED5EED151AA21F5F0A358 /* WatchPulseShared */; };
+		E298A17A99F403E3F41823C0 /* AppDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 668FBC4FE017638BEF6B1066 /* AppDependencies.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		FDCA6B71D0509D3C98027172 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 345D012C7895D3FA0BC3066F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0694CD5F05E4565C2C2493D1;
+			remoteInfo = WatchPulseWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F73EFDC0B701A9C66C2DE125 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				3D9F74A72D01FB62554EB24C /* WatchPulseWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
+		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
+		3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseWatchApp.swift; sourceTree = "<group>"; };
+		4EB377CC56184FEE411652BA /* WatchPulse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulse.entitlements; sourceTree = "<group>"; };
+		668FBC4FE017638BEF6B1066 /* AppDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDependencies.swift; sourceTree = "<group>"; };
+		69285459661FE21B2ABB2CE6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6EC593086560A2F9EF04199F /* HeartRateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateCard.swift; sourceTree = "<group>"; };
+		7232AB9E0CBD11A3430A9600 /* WatchPulse.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = WatchPulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthOverviewView.swift; sourceTree = "<group>"; };
+		88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchPulseWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9BDFA2D33AA59689696F81E1 /* PhoneWorkoutMirroringCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWorkoutMirroringCoordinator.swift; sourceTree = "<group>"; };
+		B7ED7F5C548F414307C59225 /* WatchPulseWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulseWatch.entitlements; sourceTree = "<group>"; };
+		CB6E6ABB60AB0911866A57FF /* WatchWorkoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutManager.swift; sourceTree = "<group>"; };
+		D27B60D65C47BA37CBC75C9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D722C04E39BD7DFA2EB0F85F /* WatchPulseKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WatchPulseKit; path = Packages/WatchPulseKit; sourceTree = SOURCE_ROOT; };
+		E56EEC85543EF543A0DF5446 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A4432A715AF959AA31C3F88A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				255BF8FF0DADAA11B3BE8B2C /* WatchPulseShared in Frameworks */,
+				C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0A2D75890213CD2FA156922 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */,
+				89FB024E94A4D613F8745939 /* WatchPulseCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0FA6416DBA9E57377538726A /* Workout */ = {
+			isa = PBXGroup;
+			children = (
+				CB6E6ABB60AB0911866A57FF /* WatchWorkoutManager.swift */,
+			);
+			path = Workout;
+			sourceTree = "<group>";
+		};
+		1522A92457AFD4BEDBBA2E17 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D27B60D65C47BA37CBC75C9E /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		186FD809F817F917DD106598 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		1C08006261FD1BA580B5E5A6 /* WatchPulseWatch */ = {
+			isa = PBXGroup;
+			children = (
+				359B432883B3EEB0394EFB24 /* App */,
+				A532C30D9D5E1CE10149465E /* Resources */,
+				186FD809F817F917DD106598 /* Views */,
+				0FA6416DBA9E57377538726A /* Workout */,
+				B7ED7F5C548F414307C59225 /* WatchPulseWatch.entitlements */,
+			);
+			path = WatchPulseWatch;
+			sourceTree = "<group>";
+		};
+		359B432883B3EEB0394EFB24 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		3C3223C9A3128C37B381CA0B /* App */ = {
+			isa = PBXGroup;
+			children = (
+				668FBC4FE017638BEF6B1066 /* AppDependencies.swift */,
+				00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		452908F0DC54C154588A2B69 /* Workout */ = {
+			isa = PBXGroup;
+			children = (
+				9BDFA2D33AA59689696F81E1 /* PhoneWorkoutMirroringCoordinator.swift */,
+			);
+			path = Workout;
+			sourceTree = "<group>";
+		};
+		4D81E7A49844866E332F4806 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				E56EEC85543EF543A0DF5446 /* Signing.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		503D716814CF7883470FB4A3 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				B9F7883F93A8C605ACF3D676 /* HealthOverview */,
+				452908F0DC54C154588A2B69 /* Workout */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		73A597B9DDDC2DF4BF59EB0F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				7232AB9E0CBD11A3430A9600 /* WatchPulse.app */,
+				88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7DAB9D4AAB0AB7BD63377453 /* WatchPulse */ = {
+			isa = PBXGroup;
+			children = (
+				3C3223C9A3128C37B381CA0B /* App */,
+				503D716814CF7883470FB4A3 /* Features */,
+				1522A92457AFD4BEDBBA2E17 /* Resources */,
+				4EB377CC56184FEE411652BA /* WatchPulse.entitlements */,
+			);
+			path = WatchPulse;
+			sourceTree = "<group>";
+		};
+		A3237228CE6064DCFD36BE3D /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				D722C04E39BD7DFA2EB0F85F /* WatchPulseKit */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		A532C30D9D5E1CE10149465E /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				69285459661FE21B2ABB2CE6 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		B9F7883F93A8C605ACF3D676 /* HealthOverview */ = {
+			isa = PBXGroup;
+			children = (
+				78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */,
+				6EC593086560A2F9EF04199F /* HeartRateCard.swift */,
+			);
+			path = HealthOverview;
+			sourceTree = "<group>";
+		};
+		BED6785B32DA0D69501691C9 = {
+			isa = PBXGroup;
+			children = (
+				4D81E7A49844866E332F4806 /* Config */,
+				A3237228CE6064DCFD36BE3D /* Packages */,
+				7DAB9D4AAB0AB7BD63377453 /* WatchPulse */,
+				1C08006261FD1BA580B5E5A6 /* WatchPulseWatch */,
+				73A597B9DDDC2DF4BF59EB0F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0694CD5F05E4565C2C2493D1 /* WatchPulseWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 37AD7B1EE1CB15056EDD9A56 /* Build configuration list for PBXNativeTarget "WatchPulseWatch" */;
+			buildPhases = (
+				7DB0FEB8599B018A13511D65 /* Sources */,
+				E1AAED36D31827B8094BECA1 /* Resources */,
+				A4432A715AF959AA31C3F88A /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = WatchPulseWatch;
+			packageProductDependencies = (
+				D5DFAF353CBEF1ABFA96740D /* WatchPulseShared */,
+				1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */,
+			);
+			productName = WatchPulseWatch;
+			productReference = 88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		883119ABAC881FAA89DDC4D5 /* WatchPulse */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2904E48BF6C5A86792C20989 /* Build configuration list for PBXNativeTarget "WatchPulse" */;
+			buildPhases = (
+				3727C579DEAB9E73502BEA11 /* Sources */,
+				5F55B2266028533EC96FAADA /* Resources */,
+				D0A2D75890213CD2FA156922 /* Frameworks */,
+				F73EFDC0B701A9C66C2DE125 /* Embed Watch Content */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A8EB854C6934EFDA9E1B5AA3 /* PBXTargetDependency */,
+			);
+			name = WatchPulse;
+			packageProductDependencies = (
+				755ED5EED151AA21F5F0A358 /* WatchPulseShared */,
+				228A296A6B9394F26F079ADA /* WatchPulseCore */,
+			);
+			productName = WatchPulse;
+			productReference = 7232AB9E0CBD11A3430A9600 /* WatchPulse.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		345D012C7895D3FA0BC3066F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					0694CD5F05E4565C2C2493D1 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
+					};
+					883119ABAC881FAA89DDC4D5 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.HealthKit = {
+								enabled = 1;
+							};
+						};
+					};
+				};
+			};
+			buildConfigurationList = FBD4EDB0A9535C4D2E0B4A70 /* Build configuration list for PBXProject "WatchPulse" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = "zh-Hans";
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = BED6785B32DA0D69501691C9;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DFA3B7389D457335E295E95B /* XCLocalSwiftPackageReference "Packages/WatchPulseKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				883119ABAC881FAA89DDC4D5 /* WatchPulse */,
+				0694CD5F05E4565C2C2493D1 /* WatchPulseWatch */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		5F55B2266028533EC96FAADA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5D2B25860F6584B29EDC7F6C /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E1AAED36D31827B8094BECA1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE1DEAD9BFE99F0BCE31B85F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3727C579DEAB9E73502BEA11 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E298A17A99F403E3F41823C0 /* AppDependencies.swift in Sources */,
+				64E007889CF320B777F1AFE3 /* HealthOverviewView.swift in Sources */,
+				72998FC3C9A0EF87F6708179 /* HeartRateCard.swift in Sources */,
+				2CA33C70077B5ECB3CE06E14 /* PhoneWorkoutMirroringCoordinator.swift in Sources */,
+				6E6EDB45070BA907E0BF468C /* WatchPulseApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		7DB0FEB8599B018A13511D65 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				530177FFEC442E17F5E8EB1C /* WatchHomeView.swift in Sources */,
+				7677D911E53BA8F6CAC2A8E5 /* WatchPulseWatchApp.swift in Sources */,
+				933E71BA2DA96ABE6C010334 /* WatchWorkoutManager.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A8EB854C6934EFDA9E1B5AA3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0694CD5F05E4565C2C2493D1 /* WatchPulseWatch */;
+			targetProxy = FDCA6B71D0509D3C98027172 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		716D6819871B1B7373BE0F85 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E56EEC85543EF543A0DF5446 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		8281730EE605B8905C5FFC69 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WatchPulse/WatchPulse.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WatchPulse/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WatchPulse;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WATCHPULSE_BUNDLE_ID)";
+				PRODUCT_NAME = WatchPulse;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		87D1AF6535888F0CCF63412F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WatchPulseWatch/WatchPulseWatch.entitlements;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WatchPulseWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WatchPulse;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WATCHPULSE_BUNDLE_ID).watchkitapp";
+				PRODUCT_NAME = WatchPulseWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Debug;
+		};
+		B6D8322C787FEEB8E1500B61 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WatchPulseWatch/WatchPulseWatch.entitlements;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WatchPulseWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WatchPulse;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WATCHPULSE_BUNDLE_ID).watchkitapp";
+				PRODUCT_NAME = WatchPulseWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Release;
+		};
+		C0932DB397D4FDD4614304A0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = E56EEC85543EF543A0DF5446 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		EFF07D514264CEA71437F520 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WatchPulse/WatchPulse.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = WatchPulse/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = WatchPulse;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WATCHPULSE_BUNDLE_ID)";
+				PRODUCT_NAME = WatchPulse;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2904E48BF6C5A86792C20989 /* Build configuration list for PBXNativeTarget "WatchPulse" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				8281730EE605B8905C5FFC69 /* Debug */,
+				EFF07D514264CEA71437F520 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		37AD7B1EE1CB15056EDD9A56 /* Build configuration list for PBXNativeTarget "WatchPulseWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				87D1AF6535888F0CCF63412F /* Debug */,
+				B6D8322C787FEEB8E1500B61 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		FBD4EDB0A9535C4D2E0B4A70 /* Build configuration list for PBXProject "WatchPulse" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				716D6819871B1B7373BE0F85 /* Debug */,
+				C0932DB397D4FDD4614304A0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		DFA3B7389D457335E295E95B /* XCLocalSwiftPackageReference "Packages/WatchPulseKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/WatchPulseKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WatchPulseCore;
+		};
+		228A296A6B9394F26F079ADA /* WatchPulseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WatchPulseCore;
+		};
+		755ED5EED151AA21F5F0A358 /* WatchPulseShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WatchPulseShared;
+		};
+		D5DFAF353CBEF1ABFA96740D /* WatchPulseShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WatchPulseShared;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 345D012C7895D3FA0BC3066F /* Project object */;
+}
