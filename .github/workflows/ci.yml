@@ -64,7 +64,9 @@ jobs:
           UDID=$(xcrun simctl list devices available -j | python3 -c '
           import json, sys
           data = json.load(sys.stdin)["devices"]
-          ios = [(rt, d) for rt, ds in data.items() if "iOS" in rt for d in ds if d["name"].startswith("iPhone")]
+          def version(rt):
+              return [int(p) for p in rt.rsplit("iOS-", 1)[-1].split("-") if p.isdigit()]
+          ios = [(version(rt), d) for rt, ds in data.items() if "iOS" in rt for d in ds if d["name"].startswith("iPhone")]
           ios.sort(key=lambda x: x[0])
           print(ios[-1][1]["udid"])
           ')
