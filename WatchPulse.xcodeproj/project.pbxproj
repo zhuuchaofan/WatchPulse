@@ -28,6 +28,7 @@
 		BE1DEAD9BFE99F0BCE31B85F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69285459661FE21B2ABB2CE6 /* Assets.xcassets */; };
 		C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */; };
 		C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = 755ED5EED151AA21F5F0A358 /* WatchPulseShared */; };
+		C73DCAECB4DA5A647E206721 /* InsightsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6F2272A87332167F94557A /* InsightsUITests.swift */; };
 		CA59D30A0CBBE053C148CFFC /* LoadStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */; };
 		CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */; };
 		CF1674B37409C0D8048C9E13 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8CB8C0ADE899B29375B141 /* InsightsView.swift */; };
@@ -73,6 +74,7 @@
 		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
 		02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WatchPulseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		15846F47C632321DC91AA219 /* WorkoutHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHomeView.swift; sourceTree = "<group>"; };
+		2A6F2272A87332167F94557A /* InsightsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsUITests.swift; sourceTree = "<group>"; };
 		3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryViews.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
 		3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseWatchApp.swift; sourceTree = "<group>"; };
@@ -146,6 +148,7 @@
 			isa = PBXGroup;
 			children = (
 				B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */,
+				2A6F2272A87332167F94557A /* InsightsUITests.swift */,
 				5F587BF96769682F11DCF6FA /* WatchPulseUITests.swift */,
 			);
 			path = WatchPulseUITests;
@@ -488,6 +491,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */,
+				C73DCAECB4DA5A647E206721 /* InsightsUITests.swift in Sources */,
 				8A1A9ED601C3719574137CC2 /* WatchPulseUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -544,7 +548,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -565,7 +569,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -713,7 +717,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
@@ -728,7 +732,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

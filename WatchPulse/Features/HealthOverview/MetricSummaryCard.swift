@@ -40,7 +40,6 @@ struct MetricSummaryCard: View {
                         .foregroundStyle(baseline.sufficiency == .sufficient ? Color.primary : Color.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .accessibilityIdentifier("card.baseline.\(card.kind.rawValue)")
                 }
 
             case .noData:
