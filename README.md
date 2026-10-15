@@ -5,7 +5,7 @@
 > **验证状态**：所有功能已在云端完成编译（iOS / watchOS 模拟器与真机架构）和自动化测试（单元、模拟端到端、稳定性、演示模式 UI 测试）。
 > iPhone 端已在真机上验证部分数据读取（最新心率、静息心率、HRV、步数、活动能量、运动详情与心率曲线）；**Apple Watch 运动、镜像与保存尚未在真机上验证**。
 > **v0.2（骑行增强 + 健康分析）全部功能尚未在真机上验证**，见清单中的 C.x / H.x 项。
-> 编译成功和模拟测试通过都不等于真机功能验收，逐项结果见 [docs/DEVICE_VALIDATION.md](docs/DEVICE_VALIDATION.md)。版本路线见 [docs/ROADMAP_V02_V10.md](docs/ROADMAP_V02_V10.md)。
+> 编译成功和模拟测试通过都不等于真机功能验收，逐项结果见 [docs/DEVICE_VALIDATION.md](docs/DEVICE_VALIDATION.md)。产品定位与验证计划见 [docs/PRODUCT_STRATEGY.md](docs/PRODUCT_STRATEGY.md)，版本路线见 [docs/ROADMAP_V02_V10.md](docs/ROADMAP_V02_V10.md)。
 
 架构与设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
