@@ -171,11 +171,13 @@ private struct WatchSummaryView: View {
                     if let heartRate = record.averageHeartRate {
                         Text("平均心率 \(Int(heartRate.rounded())) 次/分")
                     }
-                    if controller.dataOrigin.isSimulated {
-                        Text("模拟数据，未写入“健康”").font(.footnote).foregroundStyle(.orange)
-                    } else {
-                        Text("已保存到“健康”").font(.footnote).foregroundStyle(.secondary)
-                    }
+                }
+                if controller.dataOrigin.isSimulated {
+                    Text("模拟数据，未写入“健康”").font(.footnote).foregroundStyle(.orange)
+                } else if controller.saveStatus.isSaved {
+                    Text("已保存到“健康”").font(.footnote).foregroundStyle(.secondary)
+                } else if case .failed = controller.saveStatus {
+                    Text("未能保存到“健康”").font(.footnote).foregroundStyle(.red)
                 }
                 if let error = controller.lastError {
                     Text(error.localizedDescription).font(.footnote).foregroundStyle(.red)

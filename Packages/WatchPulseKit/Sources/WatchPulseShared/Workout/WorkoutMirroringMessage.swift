@@ -15,23 +15,42 @@ public enum WorkoutRemoteCommand: String, Codable, Sendable {
     }
 }
 
+/// 运动记录的保存状态。“运动结束”与“保存成功”是两件事，iPhone 只有收到 `.saved` 才能显示已保存。
+public enum WorkoutSaveStatus: Hashable, Codable, Sendable {
+    /// 运动尚未结束。
+    case pending
+    /// 已停止，正在写入 HealthKit。
+    case saving
+    /// HealthKit 返回了保存后的运动。
+    case saved(workoutID: UUID?)
+    case failed(reason: String)
+
+    public var isSaved: Bool {
+        if case .saved = self { return true }
+        return false
+    }
+}
+
 /// 运动会话的完整状态。用于连接建立、断线恢复后让 iPhone 一次性追上 Watch 的状态。
 public struct WorkoutStateSnapshot: Hashable, Codable, Sendable {
     public let configuration: WorkoutConfigurationRequest?
     public let phase: WorkoutSessionPhase
     public let startDate: Date?
     public let metrics: WorkoutMetricsSnapshot?
+    public let saveStatus: WorkoutSaveStatus
 
     public init(
         configuration: WorkoutConfigurationRequest?,
         phase: WorkoutSessionPhase,
         startDate: Date?,
-        metrics: WorkoutMetricsSnapshot?
+        metrics: WorkoutMetricsSnapshot?,
+        saveStatus: WorkoutSaveStatus = .pending
     ) {
         self.configuration = configuration
         self.phase = phase
         self.startDate = startDate
         self.metrics = metrics
+        self.saveStatus = saveStatus
     }
 }
 
@@ -51,6 +70,8 @@ public enum WorkoutMirroringMessage: Hashable, Codable, Sendable {
     case heartbeat(at: Date)
     /// Watch → iPhone：命令无法执行。
     case commandRejected(WorkoutRemoteCommand, reason: String)
+    /// Watch → iPhone：保存结果（在结束会话、关闭镜像之前发送）。
+    case saveResult(WorkoutSaveStatus)
     /// iPhone → Watch：控制命令。
     case command(WorkoutRemoteCommand)
     /// iPhone → Watch：请求完整状态。

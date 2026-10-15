@@ -18,8 +18,10 @@ public final class WorkoutSessionController {
     /// 是否正在后台重连 iPhone。
     public private(set) var isReconnecting = false
     public private(set) var lastError: WorkoutSessionError?
-    /// 最近一次结束并保存的运动。
+    /// 最近一次结束并保存的运动（仅当 HealthKit 确认保存后才有值）。
     public private(set) var completedWorkout: WorkoutRecord?
+    /// 运动记录的保存状态。结束运动 ≠ 保存成功。
+    public private(set) var saveStatus: WorkoutSaveStatus = .pending
     /// 正在开始或结束运动。
     public private(set) var isBusy = false
     public private(set) var sentMessageCount = 0
@@ -76,6 +78,7 @@ public final class WorkoutSessionController {
         defer { isBusy = false }
         lastError = nil
         completedWorkout = nil
+        saveStatus = .pending
 
         do {
             try await driver.requestAuthorization()
@@ -91,7 +94,8 @@ public final class WorkoutSessionController {
         self.configuration = configuration
         startDate = date
         latestMetrics = WorkoutMetricsSnapshot(timestamp: date, elapsedTime: 0)
-        isMirroringConnected = sender != nil
+        // 只有驱动上报 `.mirroringConnected` 后才算已连接；仅有发送器对象不代表镜像已建立。
+        isMirroringConnected = false
         phase = .prepared
 
         do {
@@ -132,6 +136,9 @@ public final class WorkoutSessionController {
         driver.resume(at: now())
     }
 
+    /// 结束运动：停止 → 保存（HealthKit 确认）→ 把保存结果发给 iPhone → 结束会话。
+    ///
+    /// 保存结果必须在 `endSession()` 之前发送，因为会话结束后镜像连接随之关闭。
     public func end() async {
         guard phase.isActive else {
             lastError = .invalidTransition(from: phase, action: "结束")
@@ -142,21 +149,23 @@ public final class WorkoutSessionController {
         defer { isBusy = false }
 
         let date = now()
-        // 先通知 iPhone：结束后镜像连接会随会话关闭。
-        send(.stateSync(WorkoutStateSnapshot(
-            configuration: configuration,
-            phase: .ended,
-            startDate: startDate,
-            metrics: latestMetrics
-        )))
+        saveStatus = .saving
+        sendStateSync()
 
         do {
-            completedWorkout = try await driver.end(at: date)
+            let record = try await driver.stopAndSave(at: date)
+            completedWorkout = record
+            saveStatus = .saved(workoutID: record.id)
         } catch {
-            // 会话已结束但保存失败：保留错误给用户看。
-            lastError = .saveFailed(reason: Self.map(error).localizedDescription)
+            let reason = Self.map(error).localizedDescription
+            lastError = .saveFailed(reason: reason)
+            saveStatus = .failed(reason: reason)
         }
+        send(.saveResult(saveStatus))
+
+        driver.endSession()
         phase = .ended
+        sendStateSync()
         cancelReconnect()
         isMirroringConnected = false
     }
@@ -169,16 +178,16 @@ public final class WorkoutSessionController {
         startDate = nil
         latestMetrics = nil
         completedWorkout = nil
+        saveStatus = .pending
         lastError = nil
     }
 
     /// App 启动或系统要求恢复时调用：恢复崩溃前进行中的运动。
     public func recoverIfNeeded() async {
         guard !phase.isActive, !isBusy else { return }
-        isMirroringConnected = sender != nil
+        isMirroringConnected = false
         do {
             guard let snapshot = try await driver.recoverActiveSession(), snapshot.phase.isActive else {
-                isMirroringConnected = false
                 return
             }
             sessionID = UUID()
@@ -187,6 +196,8 @@ public final class WorkoutSessionController {
             phase = snapshot.phase
             startDate = snapshot.startDate
             latestMetrics = snapshot.metrics
+            saveStatus = .pending
+            completedWorkout = nil
             sendStateSync()
             if sender != nil, !isMirroringConnected {
                 scheduleReconnect()
@@ -237,6 +248,15 @@ public final class WorkoutSessionController {
         case .remoteDataReceived(let data):
             handleRemote(data)
 
+        case .mirroringConnected:
+            guard sender != nil, !isMirroringConnected else { return }
+            isMirroringConnected = true
+            cancelReconnect()
+            if lastError == .mirroringUnavailable {
+                lastError = nil
+            }
+            sendStateSync()
+
         case .mirroringDisconnected:
             markDisconnected()
 
@@ -271,7 +291,7 @@ public final class WorkoutSessionController {
             apply(command)
         case .requestStateSync:
             sendStateSync()
-        case .phaseChanged, .metrics, .stateSync, .heartbeat, .commandRejected:
+        case .phaseChanged, .metrics, .stateSync, .heartbeat, .commandRejected, .saveResult:
             break
         }
     }
@@ -301,7 +321,8 @@ public final class WorkoutSessionController {
             configuration: configuration,
             phase: phase,
             startDate: startDate,
-            metrics: latestMetrics
+            metrics: latestMetrics,
+            saveStatus: saveStatus
         )))
     }
 

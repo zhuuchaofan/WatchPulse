@@ -38,6 +38,8 @@ public final class LiveWorkoutMonitor {
     public private(set) var lastMessageAt: Date?
     /// 已发送、等待 Watch 确认的命令。
     public private(set) var pendingCommand: WorkoutRemoteCommand?
+    /// Watch 报告的保存状态。只有 `.saved` 才能向用户显示“已保存”。
+    public private(set) var saveStatus: WorkoutSaveStatus = .pending
     public private(set) var commandError: String?
     public private(set) var droppedMessageCount = 0
     public private(set) var invalidMessageCount = 0
@@ -51,6 +53,7 @@ public final class LiveWorkoutMonitor {
     @ObservationIgnored private let now: () -> Date
     @ObservationIgnored public let staleInterval: TimeInterval
     @ObservationIgnored public let historyLimit: Int
+    @ObservationIgnored private var watchdogTask: Task<Void, Never>?
 
     public init(
         dataOrigin: HealthDataOrigin,
@@ -120,7 +123,33 @@ public final class LiveWorkoutMonitor {
         connection = .disconnected(reason: reason)
     }
 
-    /// 由界面定时器调用，检测长时间没有消息的情况。
+    /// 启动连接看门狗：定期调用 `evaluateConnection()`。在 App 层启动，不依赖任何页面是否打开。
+    /// 重复调用不会启动多个。
+    public func startConnectionWatchdog(
+        interval: Duration = .seconds(1),
+        sleep: @escaping @MainActor (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) {
+        guard watchdogTask == nil else { return }
+        watchdogTask = Task { [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await sleep(interval)
+                } catch {
+                    return
+                }
+                self?.evaluateConnection()
+            }
+        }
+    }
+
+    public func stopConnectionWatchdog() {
+        watchdogTask?.cancel()
+        watchdogTask = nil
+    }
+
+    public var isConnectionWatchdogRunning: Bool { watchdogTask != nil }
+
+    /// 检测长时间没有消息的情况（由看门狗定期调用；App 回到前台时也应立即调用一次）。
     public func evaluateConnection() {
         guard connection == .connected, phase.isActive, let lastMessageAt else { return }
         if now().timeIntervalSince(lastMessageAt) > staleInterval {
@@ -165,6 +194,7 @@ public final class LiveWorkoutMonitor {
         heartRateHistory = []
         pendingCommand = nil
         commandError = nil
+        saveStatus = .pending
     }
 
     // MARK: - Private
@@ -178,6 +208,7 @@ public final class LiveWorkoutMonitor {
             }
             configuration = snapshot.configuration
             startDate = snapshot.startDate
+            saveStatus = snapshot.saveStatus
             updatePhase(snapshot.phase)
             if let metrics = snapshot.metrics {
                 applyMetrics(metrics)
@@ -189,6 +220,8 @@ public final class LiveWorkoutMonitor {
             updatePhase(newPhase)
         case .metrics(let metrics):
             applyMetrics(metrics)
+        case .saveResult(let status):
+            saveStatus = status
         case .commandRejected(let command, let reason):
             pendingCommand = nil
             commandError = "Apple Watch 无法\(command.title)：\(reason)"

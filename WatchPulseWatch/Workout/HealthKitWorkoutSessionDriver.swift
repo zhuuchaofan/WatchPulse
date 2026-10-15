@@ -5,10 +5,12 @@ import WatchPulseShared
 
 /// 基于 `HKWorkoutSession` + `HKLiveWorkoutBuilder` 的真实运动驱动，同时负责把数据发送到 iPhone 镜像会话。
 ///
-/// 流程参考 Apple “Building a multidevice workout app”：
-/// 创建会话 → `startMirroringToCompanionDevice()` → `startActivity(with:)` → `beginCollection(at:)`；
-/// 数据通过 `sendToRemoteWorkoutSession(data:)` 发送，iPhone 数据从
-/// `workoutSession(_:didReceiveDataFromRemoteWorkoutSession:)` 收到。
+/// 流程参考 Apple “Building a multidevice workout app” 与 “Running workout sessions”：
+/// - 开始：创建会话 → `startMirroringToCompanionDevice()` → `startActivity(with:)` → `beginCollection(at:)`；
+/// - 结束：`stopActivity(with:)` → 等待 `.stopped` → `endCollection(at:)` → `finishWorkout()`（确认保存）
+///   → 状态机把保存结果发给 iPhone → `endSession()` 调用 `session.end()` 并释放引用；
+/// - 数据通过 `sendToRemoteWorkoutSession(data:)` 发送，iPhone 数据从
+///   `workoutSession(_:didReceiveDataFromRemoteWorkoutSession:)` 收到。
 ///
 /// HealthKit 回调发生在后台线程，统一经主队列（保持顺序）转交给状态机。
 @MainActor
@@ -19,6 +21,11 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
     private let healthStore: HKHealthStore
     private var session: HKWorkoutSession?
     private var builder: HKLiveWorkoutBuilder?
+    /// 会话进入 `.stopped` 的时间（由委托回调写入）。
+    private var stoppedDate: Date?
+    private var stoppedWaiter: CheckedContinuation<Date?, Never>?
+    /// 等待 `.stopped` 的上限，避免回调缺失时永久挂起。
+    private let stopTimeout: Duration = .seconds(10)
 
     init(healthStore: HKHealthStore = HKHealthStore()) {
         self.healthStore = healthStore
@@ -53,13 +60,10 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
         builder.delegate = self
         self.session = session
         self.builder = builder
+        stoppedDate = nil
 
         // 镜像失败不阻止运动：状态机会在后台重连。
-        do {
-            try await Self.startMirroring(UncheckedSendableBox(session))
-        } catch {
-            eventHandler?(.mirroringDisconnected(reason: error.localizedDescription))
-        }
+        await startMirroringAndReport(session)
 
         session.startActivity(with: date)
         do {
@@ -80,22 +84,43 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
         session?.resume()
     }
 
-    func end(at date: Date) async throws -> WorkoutRecord? {
+    func stopAndSave(at date: Date) async throws -> WorkoutRecord {
         guard let session, let builder else { throw WorkoutSessionError.noActiveSession }
-        session.end()
-        self.session = nil
-        self.builder = nil
+
+        let stopDate: Date
+        switch session.state {
+        case .stopped, .ended:
+            stopDate = stoppedDate ?? date
+        default:
+            session.stopActivity(with: date)
+            stopDate = await waitUntilStopped() ?? date
+        }
+
         do {
-            try await Self.endCollection(UncheckedSendableBox(builder), at: date)
-            return try await Self.finishWorkout(UncheckedSendableBox(builder))
+            try await Self.endCollection(UncheckedSendableBox(builder), at: stopDate)
+            guard let record = try await Self.finishWorkout(UncheckedSendableBox(builder)) else {
+                throw WorkoutSessionError.saveFailed(reason: "HealthKit 未返回运动记录")
+            }
+            return record
+        } catch let error as WorkoutSessionError {
+            throw error
         } catch {
             throw WorkoutSessionError.saveFailed(reason: error.localizedDescription)
         }
     }
 
+    func endSession() {
+        resumeStoppedWaiter(with: nil)
+        session?.end()
+        session = nil
+        builder = nil
+        stoppedDate = nil
+    }
+
     func reconnectMirroring() async throws {
         guard let session else { throw WorkoutSessionError.noActiveSession }
         try await Self.startMirroring(UncheckedSendableBox(session))
+        eventHandler?(.mirroringConnected)
     }
 
     func recoverActiveSession() async throws -> WorkoutStateSnapshot? {
@@ -112,12 +137,9 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
         builder.delegate = self
         session = recovered
         self.builder = builder
+        stoppedDate = nil
 
-        do {
-            try await Self.startMirroring(UncheckedSendableBox(recovered))
-        } catch {
-            eventHandler?(.mirroringDisconnected(reason: error.localizedDescription))
-        }
+        await startMirroringAndReport(recovered)
 
         return WorkoutStateSnapshot(
             configuration: HealthKitWorkoutMapping.request(from: recovered.workoutConfiguration),
@@ -137,6 +159,48 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
     }
 
     // MARK: - Private
+
+    /// 开始镜像，并把结果作为连接事件上报：只有成功后状态机才认为已连接。
+    private func startMirroringAndReport(_ session: HKWorkoutSession) async {
+        do {
+            try await Self.startMirroring(UncheckedSendableBox(session))
+            eventHandler?(.mirroringConnected)
+        } catch {
+            eventHandler?(.mirroringDisconnected(reason: error.localizedDescription))
+        }
+    }
+
+    /// 等待委托回调报告 `.stopped`；超时返回 `nil`。
+    private func waitUntilStopped() async -> Date? {
+        if let stoppedDate { return stoppedDate }
+        let timeout = stopTimeout
+        let timeoutTask = Task { [weak self] in
+            try? await Task.sleep(for: timeout)
+            self?.resumeStoppedWaiter(with: nil)
+        }
+        defer { timeoutTask.cancel() }
+        return await withCheckedContinuation { continuation in
+            if let stoppedDate {
+                continuation.resume(returning: stoppedDate)
+            } else {
+                stoppedWaiter = continuation
+            }
+        }
+    }
+
+    private func resumeStoppedWaiter(with date: Date?) {
+        guard let waiter = stoppedWaiter else { return }
+        stoppedWaiter = nil
+        waiter.resume(returning: date)
+    }
+
+    private func handleStateChange(_ state: HKWorkoutSessionState, at date: Date) {
+        if state == .stopped {
+            stoppedDate = date
+            resumeStoppedWaiter(with: date)
+        }
+        eventHandler?(.phaseChanged(HealthKitWorkoutMapping.phase(from: state), at: date))
+    }
 
     /// 按到达顺序把事件交给主线程上的状态机。
     nonisolated private func emit(_ event: WorkoutDriverEvent) {
@@ -270,7 +334,11 @@ extension HealthKitWorkoutSessionDriver: HKWorkoutSessionDelegate {
         from fromState: HKWorkoutSessionState,
         date: Date
     ) {
-        emit(.phaseChanged(HealthKitWorkoutMapping.phase(from: toState), at: date))
+        DispatchQueue.main.async {
+            MainActor.assumeIsolated {
+                self.handleStateChange(toState, at: date)
+            }
+        }
     }
 
     nonisolated func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {

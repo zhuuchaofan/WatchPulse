@@ -47,9 +47,10 @@ final class AppEnvironment {
         (workoutHistoryService as? MockWorkoutHistoryService)?.insert(workout, heartRates: heartRates)
     }
 
-    /// 在 App 启动早期调用，注册镜像会话回调。
+    /// 在 App 启动早期调用：注册镜像会话回调，并启动与页面无关的连接看门狗。
     func startWorkoutMirroring() {
         mirroringReceiver?.start()
+        liveWorkoutMonitor.startConnectionWatchdog()
     }
 }
 

@@ -19,6 +19,12 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
     public var endError: WorkoutSessionError?
     /// 开始时镜像失败（运动仍会开始）。
     public var failMirroringOnStart = false
+    /// 开始 / 恢复时是否自动确认镜像已建立。为 `false` 时需调用 `confirmMirroringConnected()`。
+    public var confirmsMirroringOnStart = true
+    /// 保存时 HealthKit 未返回记录。
+    public var returnsNoRecordOnSave = false
+    /// `endSession()` 被调用时的回调（测试用，检查调用时机）。
+    public var onEndSession: (() -> Void)?
     /// 重连镜像的实现；为 `nil` 时视为重连成功。演示模式中接到 `InMemoryMirroringLink.reconnect()`。
     public var mirroringReconnector: (() throws -> Void)?
     /// `recoverActiveSession()` 返回的快照，用于测试崩溃恢复。
@@ -28,6 +34,8 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
 
     public private(set) var phase: WorkoutSessionPhase = .notStarted
     public private(set) var reconnectAttempts = 0
+    /// 生命周期调用记录（测试用）。
+    public private(set) var lifecycleLog: [String] = []
     private var configuration: WorkoutConfigurationRequest?
     private var startDate: Date?
     private var activeTime: TimeInterval = 0
@@ -53,8 +61,11 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
         distance = 0
         heartRates = []
         lastAdvanceAt = date
+        lifecycleLog.append("start")
         if failMirroringOnStart {
             eventHandler?(.mirroringDisconnected(reason: "模拟：镜像启动失败"))
+        } else if confirmsMirroringOnStart {
+            eventHandler?(.mirroringConnected)
         }
         setPhase(.running, at: date)
     }
@@ -99,12 +110,14 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
         setPhase(.running, at: date)
     }
 
-    public func end(at date: Date) async throws -> WorkoutRecord? {
+    public func stopAndSave(at date: Date) async throws -> WorkoutRecord {
         guard phase.isActive, let configuration, let startDate else { throw WorkoutSessionError.noActiveSession }
+        lifecycleLog.append("stopAndSave")
         advance(to: date)
         lastAdvanceAt = nil
-        setPhase(.ended, at: date)
+        setPhase(.stopped, at: date)
         if let endError { throw endError }
+        if returnsNoRecordOnSave { throw WorkoutSessionError.saveFailed(reason: "HealthKit 未返回运动记录") }
         let statistics = HeartRateSeriesStatistics(points: heartRates.enumerated().map {
             HeartRatePoint(date: startDate.addingTimeInterval(Double($0.offset)), beatsPerMinute: $0.element)
         })
@@ -124,6 +137,18 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
         )
     }
 
+    public func endSession() {
+        lifecycleLog.append("endSession")
+        onEndSession?()
+        guard phase != .ended, phase != .notStarted else { return }
+        setPhase(.ended, at: lastAdvanceAt ?? Date())
+    }
+
+    /// 模拟系统稍后确认镜像已建立。
+    public func confirmMirroringConnected() {
+        eventHandler?(.mirroringConnected)
+    }
+
     public func reconnectMirroring() async throws {
         reconnectAttempts += 1
         try mirroringReconnector?()
@@ -139,6 +164,9 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
         distance = snapshot.metrics?.distanceMeters ?? 0
         phase = snapshot.phase
         lastAdvanceAt = snapshot.phase == .running ? snapshot.metrics?.timestamp : nil
+        if confirmsMirroringOnStart {
+            eventHandler?(.mirroringConnected)
+        }
         return snapshot
     }
 

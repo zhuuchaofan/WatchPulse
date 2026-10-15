@@ -171,6 +171,8 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
         confirm.tap()
         waitForLabel(phase, contains: "已结束")
+        // 只有收到 Watch 的保存结果才显示结束文案；演示模式明确说明未写入“健康”。
+        waitForLabel(element(app, "live.saveStatus"), contains: "模拟运动已结束")
         element(app, "live.done").tap()
 
         // 模拟运动加入了运动记录。

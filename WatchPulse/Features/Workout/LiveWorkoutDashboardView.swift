@@ -35,13 +35,6 @@ struct LiveWorkoutDashboardView: View {
         .background(Color(.systemGroupedBackground))
         .navigationTitle("实时运动")
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            // 定期检测“长时间没有数据”。
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                monitor.evaluateConnection()
-            }
-        }
         .confirmationDialog("结束 Apple Watch 上的运动？", isPresented: $isConfirmingEnd, titleVisibility: .visible) {
             Button("结束并保存", role: .destructive) {
                 monitor.send(.end)
@@ -173,21 +166,48 @@ struct LiveWorkoutDashboardView: View {
                     .accessibilityIdentifier("live.end")
                 }
                 .disabled(monitor.pendingCommand != nil)
+                if monitor.saveStatus == .saving {
+                    Label("Apple Watch 正在保存运动…", systemImage: "arrow.down.doc")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
                 if let pending = monitor.pendingCommand {
                     Text("正在请求 Apple Watch \(pending.title)…")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
             } else if monitor.phase == .ended {
-                Text("运动已在 Apple Watch 上结束并保存。")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                SaveStatusLabel(status: monitor.saveStatus, isSimulated: monitor.dataOrigin.isSimulated)
+                    .accessibilityIdentifier("live.saveStatus")
                 Button("完成") {
                     monitor.reset()
                 }
                 .buttonStyle(.borderedProminent)
                 .accessibilityIdentifier("live.done")
             }
+        }
+    }
+}
+
+/// 运动结束后的保存结果。只有收到 Watch 的“已保存”才显示保存成功。
+private struct SaveStatusLabel: View {
+    let status: WorkoutSaveStatus
+    let isSimulated: Bool
+
+    var body: some View {
+        switch status {
+        case .saved:
+            Label(
+                isSimulated ? "模拟运动已结束（模拟数据，未写入“健康”）" : "运动已结束，Apple Watch 已保存到“健康”",
+                systemImage: "checkmark.circle.fill"
+            )
+            .foregroundStyle(isSimulated ? .orange : .green)
+        case .failed(let reason):
+            Label("运动已结束，但保存失败：\(reason)", systemImage: "xmark.octagon.fill")
+                .foregroundStyle(.red)
+        case .saving, .pending:
+            Label("运动已结束，尚未收到保存结果。请在 Apple Watch 或「健康」App 中确认。", systemImage: "questionmark.circle")
+                .foregroundStyle(.orange)
         }
     }
 }
