@@ -45,6 +45,26 @@ final class HealthKitMirroringReceiver: NSObject, WorkoutMirroringSender {
 
     // MARK: - WorkoutMirroringSender
 
+    func sendAndConfirm(_ data: Data) async throws {
+        guard let session else { throw WorkoutSessionError.notConnected }
+        try await Self.sendToRemoteConfirmed(UncheckedSendableBox(session), data: data)
+    }
+
+    nonisolated private static func sendToRemoteConfirmed(
+        _ session: UncheckedSendableBox<HKWorkoutSession>,
+        data: Data
+    ) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            session.value.sendToRemoteWorkoutSession(data: data) { success, error in
+                if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: error ?? WorkoutSessionError.notConnected)
+                }
+            }
+        }
+    }
+
     func send(_ data: Data) throws {
         guard let session else { throw WorkoutSessionError.notConnected }
         Self.sendToRemote(UncheckedSendableBox(session), data: data) { [self] reason in
@@ -84,10 +104,12 @@ extension HealthKitMirroringReceiver: HKWorkoutSessionDelegate {
         from fromState: HKWorkoutSessionState,
         date: Date
     ) {
-        // 阶段以 Watch 发来的消息为准；镜像会话结束时释放引用。
+        // 阶段以 Watch 发来的消息为准；镜像会话结束时释放引用，并让仪表盘明确进入“已结束”
+        // （若最后一条消息丢失，保存结果保持未知，不显示已保存）。
         guard toState == .ended else { return }
         onMain { receiver in
             receiver.session = nil
+            receiver.monitor.remoteSessionEnded()
         }
     }
 

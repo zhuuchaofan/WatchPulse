@@ -59,11 +59,17 @@ final class WorkoutLifecycleTests: XCTestCase {
             if case .stateSync(let snapshot) = message { return snapshot.saveStatus == .saving }
             return false
         }
-        let resultIndex = messages.firstIndex(of: .saveResult(.saved(workoutID: record?.id)))
+        let resultIndex = messages.firstIndex { message in
+            if case .stateSync(let snapshot) = message {
+                return snapshot.phase == .ended && snapshot.saveStatus == .saved(workoutID: record?.id)
+            }
+            return false
+        }
         XCTAssertNotNil(savingIndex)
         XCTAssertNotNil(resultIndex)
         XCTAssertLessThan(savingIndex ?? .max, resultIndex ?? .min)
-        // 保存结果在结束会话（镜像关闭）之前已经发出。
+        // 最终“已结束 + 保存结果”在结束会话（镜像关闭）之前已经发出并确认。
+        XCTAssertEqual(controller.finalStateDelivered, true)
         XCTAssertLessThan(resultIndex ?? .max, messagesSentBeforeEndSession)
     }
 

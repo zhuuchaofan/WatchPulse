@@ -22,6 +22,8 @@ public final class WorkoutSessionController {
     public private(set) var completedWorkout: WorkoutRecord?
     /// 运动记录的保存状态。结束运动 ≠ 保存成功。
     public private(set) var saveStatus: WorkoutSaveStatus = .pending
+    /// 最终“已结束 + 保存结果”是否已确认送达 iPhone；没有镜像发送器时为 `nil`。
+    public private(set) var finalStateDelivered: Bool?
     /// 正在开始或结束运动。
     public private(set) var isBusy = false
     public private(set) var sentMessageCount = 0
@@ -41,6 +43,8 @@ public final class WorkoutSessionController {
     @ObservationIgnored private var lastSentAt: Date?
     @ObservationIgnored private var reconnectTask: Task<Void, Never>?
     @ObservationIgnored private var endTask: Task<Void, Never>?
+    /// 等待最终状态送达确认的上限。
+    @ObservationIgnored public let finalDeliveryTimeout: Duration
 
     public init(
         driver: any WorkoutSessionDriver,
@@ -49,7 +53,8 @@ public final class WorkoutSessionController {
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) },
         heartbeatInterval: TimeInterval = 5,
         reconnectDelays: [Duration] = [.seconds(2), .seconds(5), .seconds(10), .seconds(20), .seconds(30)],
-        slowRetryInterval: TimeInterval = 60
+        slowRetryInterval: TimeInterval = 60,
+        finalDeliveryTimeout: Duration = .seconds(5)
     ) {
         self.driver = driver
         self.sender = sender
@@ -58,6 +63,7 @@ public final class WorkoutSessionController {
         self.heartbeatInterval = heartbeatInterval
         self.reconnectDelays = reconnectDelays
         self.slowRetryInterval = slowRetryInterval
+        self.finalDeliveryTimeout = finalDeliveryTimeout
         driver.eventHandler = { [weak self] event in
             self?.handle(event)
         }
@@ -79,6 +85,7 @@ public final class WorkoutSessionController {
         lastError = nil
         completedWorkout = nil
         saveStatus = .pending
+        finalStateDelivered = nil
 
         do {
             try await driver.requestAuthorization()
@@ -136,9 +143,10 @@ public final class WorkoutSessionController {
         driver.resume(at: now())
     }
 
-    /// 结束运动：停止 → 保存（HealthKit 确认）→ 把保存结果发给 iPhone → 结束会话。
+    /// 结束运动：停止 → 保存（HealthKit 确认）→ 把“已结束 + 保存结果”发给 iPhone 并等待送达确认 → 结束会话。
     ///
-    /// 保存结果必须在 `endSession()` 之前发送，因为会话结束后镜像连接随之关闭。
+    /// 最终状态必须在 `endSession()` 之前送达，因为会话结束后镜像连接随之关闭，之后的发送都会失败。
+    /// 送达失败或超时时 `finalStateDelivered == false`；iPhone 会在镜像会话结束时进入“已结束、保存结果未知”。
     public func end() async {
         guard phase.isActive else {
             lastError = .invalidTransition(from: phase, action: "结束")
@@ -161,13 +169,16 @@ public final class WorkoutSessionController {
             lastError = .saveFailed(reason: reason)
             saveStatus = .failed(reason: reason)
         }
-        send(.saveResult(saveStatus))
 
-        driver.endSession()
-        phase = .ended
-        sendStateSync()
         cancelReconnect()
+        if sender != nil {
+            finalStateDelivered = await deliverFinalState()
+        }
+
+        // 此后镜像关闭，不再发送任何消息。
         isMirroringConnected = false
+        phase = .ended
+        driver.endSession()
     }
 
     /// 关闭“运动已结束”摘要，回到初始状态。
@@ -179,6 +190,7 @@ public final class WorkoutSessionController {
         latestMetrics = nil
         completedWorkout = nil
         saveStatus = .pending
+        finalStateDelivered = nil
         lastError = nil
     }
 
@@ -277,6 +289,43 @@ public final class WorkoutSessionController {
     }
 
     // MARK: - Private
+
+    /// 发送最终状态（阶段 `.ended` + 保存结果）并等待系统的送达确认，最多 `finalDeliveryTimeout`。
+    private func deliverFinalState() async -> Bool {
+        guard let sender, isMirroringConnected else { return false }
+        sequence += 1
+        let envelope = WorkoutMirroringEnvelope(
+            sessionID: sessionID,
+            sequence: sequence,
+            sentAt: now(),
+            message: .stateSync(WorkoutStateSnapshot(
+                configuration: configuration,
+                phase: .ended,
+                startDate: startDate,
+                metrics: latestMetrics,
+                saveStatus: saveStatus
+            ))
+        )
+        guard let data = try? WorkoutMirroringCodec.encode(envelope) else { return false }
+
+        let gate = ResumeGate()
+        let timeout = finalDeliveryTimeout
+        return await withCheckedContinuation { continuation in
+            let sendTask = Task {
+                do {
+                    try await sender.sendAndConfirm(data)
+                    gate.resume(continuation, with: true)
+                } catch {
+                    gate.resume(continuation, with: false)
+                }
+            }
+            Task {
+                try? await Task.sleep(for: timeout)
+                sendTask.cancel()
+                gate.resume(continuation, with: false)
+            }
+        }
+    }
 
     private func handleRemote(_ data: Data) {
         guard let envelope = try? WorkoutMirroringCodec.decode(data) else {
@@ -395,5 +444,17 @@ public final class WorkoutSessionController {
 
     static func map(_ error: Error) -> WorkoutSessionError {
         (error as? WorkoutSessionError) ?? .sessionFailed(reason: error.localizedDescription)
+    }
+}
+
+/// 保证 continuation 只被恢复一次（送达确认与超时竞争）。
+@MainActor
+private final class ResumeGate {
+    private var resumed = false
+
+    func resume(_ continuation: CheckedContinuation<Bool, Never>, with value: Bool) {
+        guard !resumed else { return }
+        resumed = true
+        continuation.resume(returning: value)
     }
 }

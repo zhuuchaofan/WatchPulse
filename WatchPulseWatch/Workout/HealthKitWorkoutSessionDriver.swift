@@ -87,14 +87,20 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
     func stopAndSave(at date: Date) async throws -> WorkoutRecord {
         guard let session, let builder else { throw WorkoutSessionError.noActiveSession }
 
-        let stopDate: Date
+        let observedStop: Date?
         switch session.state {
         case .stopped, .ended:
-            stopDate = stoppedDate ?? date
+            observedStop = stoppedDate
         default:
             session.stopActivity(with: date)
-            stopDate = await waitUntilStopped() ?? date
+            observedStop = await waitUntilStopped()
         }
+        // 超时后复核会话真实状态：仍未停止就明确失败，不当作已正常停止继续保存。
+        let stopDate = try WorkoutStopResolution.stopDate(
+            observed: observedStop,
+            stateAfterWait: HealthKitWorkoutMapping.phase(from: session.state),
+            requested: date
+        )
 
         do {
             try await Self.endCollection(UncheckedSendableBox(builder), at: stopDate)
@@ -156,6 +162,12 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
         Self.sendToRemote(UncheckedSendableBox(session), data: data) { [self] reason in
             emit(.mirroringDisconnected(reason: reason))
         }
+    }
+
+    /// 等待 `sendToRemoteWorkoutSession` 的完成回调，用于结束会话前的最后一条消息。
+    func sendAndConfirm(_ data: Data) async throws {
+        guard let session else { throw WorkoutSessionError.notConnected }
+        try await Self.sendToRemoteConfirmed(UncheckedSendableBox(session), data: data)
     }
 
     // MARK: - Private
@@ -307,6 +319,21 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
                     continuation.resume(throwing: error)
                 } else {
                     continuation.resume(returning: nil)
+                }
+            }
+        }
+    }
+
+    nonisolated private static func sendToRemoteConfirmed(
+        _ session: UncheckedSendableBox<HKWorkoutSession>,
+        data: Data
+    ) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            session.value.sendToRemoteWorkoutSession(data: data) { success, error in
+                if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: error ?? WorkoutSessionError.notConnected)
                 }
             }
         }

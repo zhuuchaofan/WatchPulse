@@ -84,9 +84,38 @@ public protocol WorkoutSessionDriver: AnyObject {
 
 /// 向对端设备发送镜像数据。
 ///
-/// 发送是“尽力而为”的同步调用：未连接时立即抛出 `WorkoutSessionError.notConnected`；
-/// 已交给系统但最终失败的情况由真实实现通过断线事件上报。这样状态机可以完全同步、可测试。
+/// - `send(_:)`：“尽力而为”的同步调用，用于高频的指标 / 心跳。未连接时立即抛出
+///   `WorkoutSessionError.notConnected`；已交给系统但最终失败的情况由真实实现通过断线事件上报。
+/// - `sendAndConfirm(_:)`：等待系统的发送完成回调（`sendToRemoteWorkoutSession(data:)` 的结果），
+///   用于关闭会话前的最后一条消息，确认送达后才能安全结束会话。
 @MainActor
 public protocol WorkoutMirroringSender: AnyObject {
     func send(_ data: Data) throws
+    func sendAndConfirm(_ data: Data) async throws
+}
+
+/// 结束运动时，等待会话进入 `.stopped` 之后如何确定结束时间。
+public enum WorkoutStopResolution {
+    /// - Parameters:
+    ///   - observed: 委托回调报告 `.stopped` 的时间；等待超时为 `nil`。
+    ///   - stateAfterWait: 等待结束后会话的实际状态。
+    ///   - requested: 用户请求结束的时间。
+    /// - Returns: 用于 `endCollection` 的结束时间。
+    /// - Throws: 超时且会话仍未停止时抛出 `.saveFailed`，不能当作已正常停止继续保存。
+    public static func stopDate(
+        observed: Date?,
+        stateAfterWait: WorkoutSessionPhase,
+        requested: Date
+    ) throws -> Date {
+        if let observed {
+            return observed
+        }
+        switch stateAfterWait {
+        case .stopped, .ended:
+            // 回调缺失但会话确实已停止：以请求时间结束。
+            return requested
+        case .notStarted, .prepared, .running, .paused:
+            throw WorkoutSessionError.saveFailed(reason: "运动会话在 10 秒内未能停止（当前：\(stateAfterWait.title)），未保存")
+        }
+    }
 }

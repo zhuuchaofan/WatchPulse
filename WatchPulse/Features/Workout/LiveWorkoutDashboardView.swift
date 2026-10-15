@@ -136,7 +136,12 @@ struct LiveWorkoutDashboardView: View {
                     .foregroundStyle(.orange)
                     .accessibilityIdentifier("live.commandError")
             }
-            if monitor.phase.isActive {
+            if monitor.phase == .stopped {
+                Label("Apple Watch 正在结束并保存运动…", systemImage: "hourglass")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("live.stopping")
+            } else if monitor.canSendCommands {
                 HStack(spacing: 12) {
                     if monitor.phase == .paused {
                         Button {

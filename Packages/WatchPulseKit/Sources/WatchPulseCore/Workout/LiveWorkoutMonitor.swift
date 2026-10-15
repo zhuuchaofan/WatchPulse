@@ -72,6 +72,9 @@ public final class LiveWorkoutMonitor {
 
     public var isConnected: Bool { connection == .connected }
 
+    /// 只有运动进行中或暂停时才能控制；`.stopped`（正在结束 / 保存）时不提供控制。
+    public var canSendCommands: Bool { phase == .running || phase == .paused }
+
     public func elapsedTime(at date: Date) -> TimeInterval {
         latestMetrics?.elapsedTime(at: date, isRunning: phase == .running) ?? 0
     }
@@ -118,6 +121,14 @@ public final class LiveWorkoutMonitor {
         }
     }
 
+    /// 镜像会话已结束（系统回调）。即使没收到最终消息，也明确进入“已结束”；
+    /// 保存状态保持原样——没收到 `.saved` 就不会显示已保存。
+    public func remoteSessionEnded() {
+        guard phase != .notStarted, phase != .ended else { return }
+        updatePhase(.ended)
+        pendingCommand = nil
+    }
+
     public func transportDidDisconnect(reason: String?) {
         guard phase != .ended else { return }
         connection = .disconnected(reason: reason)
@@ -162,8 +173,8 @@ public final class LiveWorkoutMonitor {
     @discardableResult
     public func send(_ command: WorkoutRemoteCommand) -> Bool {
         commandError = nil
-        guard phase.isActive else {
-            commandError = "当前没有进行中的运动"
+        guard canSendCommands else {
+            commandError = phase == .stopped ? "Apple Watch 正在结束运动" : "当前没有进行中的运动"
             return false
         }
         switch connection {

@@ -25,6 +25,10 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
     public var returnsNoRecordOnSave = false
     /// `endSession()` 被调用时的回调（测试用，检查调用时机）。
     public var onEndSession: (() -> Void)?
+    /// 保存完成、`stopAndSave` 返回前的回调（测试用，例如模拟此时断线）。
+    public var onStopAndSave: (() -> Void)?
+    /// 会话结束时关闭镜像（`SimulatedMirroredWorkout` 接到内存链路，模拟真实会话结束后镜像关闭）。
+    public var sessionEndedHandler: (() -> Void)?
     /// 重连镜像的实现；为 `nil` 时视为重连成功。演示模式中接到 `InMemoryMirroringLink.reconnect()`。
     public var mirroringReconnector: (() throws -> Void)?
     /// `recoverActiveSession()` 返回的快照，用于测试崩溃恢复。
@@ -116,6 +120,7 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
         advance(to: date)
         lastAdvanceAt = nil
         setPhase(.stopped, at: date)
+        defer { onStopAndSave?() }
         if let endError { throw endError }
         if returnsNoRecordOnSave { throw WorkoutSessionError.saveFailed(reason: "HealthKit 未返回运动记录") }
         let statistics = HeartRateSeriesStatistics(points: heartRates.enumerated().map {
@@ -140,8 +145,11 @@ public final class SimulatedWorkoutSessionDriver: WorkoutSessionDriver {
     public func endSession() {
         lifecycleLog.append("endSession")
         onEndSession?()
-        guard phase != .ended, phase != .notStarted else { return }
-        setPhase(.ended, at: lastAdvanceAt ?? Date())
+        let wasActive = phase != .ended && phase != .notStarted
+        if wasActive {
+            setPhase(.ended, at: lastAdvanceAt ?? Date())
+        }
+        sessionEndedHandler?()
     }
 
     /// 模拟系统稍后确认镜像已建立。

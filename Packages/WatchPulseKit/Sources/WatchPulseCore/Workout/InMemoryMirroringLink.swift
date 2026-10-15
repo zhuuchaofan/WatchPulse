@@ -23,6 +23,11 @@ public final class InMemoryMirroringLink {
         public func send(_ data: Data) throws {
             try link.transmit(data, direction)
         }
+
+        /// 内存链路同步送达，送达即确认；未连接时抛错。
+        public func sendAndConfirm(_ data: Data) async throws {
+            try link.transmit(data, direction)
+        }
     }
 
     public private(set) var isConnected = true
@@ -40,6 +45,9 @@ public final class InMemoryMirroringLink {
     public var onDisconnect: ((String?) -> Void)?
     /// 链路恢复时通知 iPhone（真实环境中相当于镜像会话重新建立）。
     public var onReconnect: (() -> Void)?
+    /// Watch 结束会话、镜像关闭时通知 iPhone（真实环境中相当于镜像会话进入 `.ended`）。
+    public var onSessionEnded: (() -> Void)?
+    public private(set) var isSessionClosed = false
 
     public private(set) lazy var watchEndpoint = Endpoint(link: self, direction: .toPhone)
     public private(set) lazy var phoneEndpoint = Endpoint(link: self, direction: .toWatch)
@@ -54,11 +62,27 @@ public final class InMemoryMirroringLink {
         onDisconnect?(reason)
     }
 
+    /// Watch 结束会话：镜像永久关闭，之后的发送与重连都会失败。
+    public func closeSession() {
+        guard !isSessionClosed else { return }
+        isSessionClosed = true
+        isConnected = false
+        droppedCount += pending.count
+        pending.removeAll()
+        onSessionEnded?()
+    }
+
     public func reconnect() throws {
-        guard isReachable else { throw WorkoutSessionError.notConnected }
+        guard isReachable, !isSessionClosed else { throw WorkoutSessionError.notConnected }
         guard !isConnected else { return }
         isConnected = true
         onReconnect?()
+    }
+
+    /// 新运动开始时建立新的镜像会话。
+    public func openNewSession() {
+        isSessionClosed = false
+        isConnected = isReachable
     }
 
     /// 送达积压的消息；`reversed` 为 `true` 时倒序送达，用于测试乱序。
@@ -136,11 +160,14 @@ public final class SimulatedMirroredWorkout {
             driver?.simulateMirroringDisconnect(reason: reason)
         }
         link.onReconnect = { [weak monitor] in monitor?.sessionDidStart() }
+        link.onSessionEnded = { [weak monitor] in monitor?.remoteSessionEnded() }
         driver.mirroringReconnector = { [weak link] in try link?.reconnect() }
+        driver.sessionEndedHandler = { [weak link] in link?.closeSession() }
     }
 
-    /// 在“Watch”上开始一次模拟运动。
+    /// 在“Watch”上开始一次模拟运动（每次运动都是新的镜像会话）。
     public func start(_ configuration: WorkoutConfigurationRequest) async {
+        link.openNewSession()
         monitor.sessionDidStart()
         await watch.start(configuration)
     }

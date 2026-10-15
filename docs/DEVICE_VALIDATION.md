@@ -65,7 +65,9 @@
 | # | 验证项 | 步骤 | 期望 | 结果 |
 | --- | --- | --- | --- | --- |
 | 4.1 | 运动保存 | 手表完成一次运动并结束 | 手表摘要显示“已保存到‘健康’”；iPhone 仪表盘显示“Apple Watch 已保存到‘健康’”；「健康」App › 体能训练中出现该记录，来源为 WatchPulse | ⬜ |
-| 4.1a | 结束流程时序 | 结束运动（手表或 iPhone 发起） | 手表依次经历“正在结束”→ 保存 → “已结束”；iPhone 先显示“正在保存…”再显示结果；不超过 10 秒卡住 | ⬜ |
+| 4.1a | 结束流程时序 | 结束运动（手表或 iPhone 发起） | 手表依次经历“正在结束”→ 保存 → “已结束”；iPhone 先显示“正在结束并保存…”（不显示暂停 / 结束按钮），再进入已结束并显示保存结果；不超过 10 秒卡住 | ⬜ |
+| 4.1b | 最终状态送达 | 结束运动 10 次 | 每次 iPhone 都进入“已结束”并显示“已保存”；手表摘要不出现“未能把结果同步到 iPhone” | ⬜ |
+| 4.1c | 结束瞬间断开 | 手表点结束后立即关闭 iPhone 蓝牙 | iPhone 最终显示“已结束，尚未收到保存结果”（不显示已保存）；手表提示未能同步；记录仍保存在「健康」 | ⬜ |
 | 4.2 | iPhone 历史列表 | 结束后打开 iPhone「运动」页（下拉刷新） | 新记录出现在最上方（iPhone 与手表的 HealthKit 同步可能有延迟） | ⬜ |
 | 4.3 | 历史中的其他来源 | 账号中已有体能训练 App 的记录 | 一并显示，类型映射正确（不支持的类型显示“其他运动”） | ⬜ |
 | 4.4 | 运动详情汇总 | 打开某次运动 | 时长、能量、距离、平均/最高心率与「健康」App 中该运动一致 | ⬜ |
@@ -97,7 +99,8 @@
 
 ## 已知风险（需真机确认）
 
-1. 结束流程已改为 Apple “Running workout sessions” 的顺序（`stopActivity` → 等待 `.stopped` → `endCollection` → `finishWorkout` → `session.end()`），等待 `.stopped` 有 10 秒超时兜底；真实时序与超时是否会触发需真机确认（4.1a）。
+1. 结束流程已改为 Apple “Running workout sessions” 的顺序（`stopActivity` → 等待 `.stopped` → `endCollection` → `finishWorkout` → 发送最终状态并等待 `sendToRemoteWorkoutSession` 完成回调（最多 5 秒）→ `session.end()`）。等待 `.stopped` 超时 10 秒后会复核会话状态：已停止则继续保存，仍在运行则明确报“保存失败”。真实时序、两个超时是否会触发需真机确认（4.1a / 4.1b）。
+5. iPhone 依赖镜像会话的 `.ended` 回调在最终消息丢失时进入“已结束、保存结果未知”；该回调在真机上的触发时机未验证（4.1c）。
 2. iPhone 被系统后台拉起投递镜像会话：已在 `application(_:didFinishLaunchingWithOptions:)` 中注册处理器，但未验证在 App 被杀后的行为（3.5）。
 3. 断线判断依赖 `didDisconnectFromRemoteDeviceWithError` 与发送失败回调；真实蓝牙抖动下的触发频率未知，可能需要调整 12 秒“信号弱”阈值与重连退避参数。
 4. HealthKit 回调的 Swift 6 并发处理（`nonisolated` 包装 + 主队列转交）只经过编译验证。

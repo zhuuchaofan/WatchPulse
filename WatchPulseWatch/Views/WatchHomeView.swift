@@ -179,6 +179,9 @@ private struct WatchSummaryView: View {
                 } else if case .failed = controller.saveStatus {
                     Text("未能保存到“健康”").font(.footnote).foregroundStyle(.red)
                 }
+                if controller.finalStateDelivered == false {
+                    Text("未能把结果同步到 iPhone，请在 iPhone 的「健康」App 中确认").font(.footnote).foregroundStyle(.orange)
+                }
                 if let error = controller.lastError {
                     Text(error.localizedDescription).font(.footnote).foregroundStyle(.red)
                 }

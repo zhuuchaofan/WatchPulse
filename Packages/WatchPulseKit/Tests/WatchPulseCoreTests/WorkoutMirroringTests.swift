@@ -24,6 +24,10 @@ final class RecordingSender: WorkoutMirroringSender {
         sent.append(try WorkoutMirroringCodec.decode(data))
     }
 
+    func sendAndConfirm(_ data: Data) async throws {
+        try send(data)
+    }
+
     var messages: [WorkoutMirroringMessage] { sent.map(\.message) }
 }
 
