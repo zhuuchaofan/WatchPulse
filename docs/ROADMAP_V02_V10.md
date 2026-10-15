@@ -1,0 +1,242 @@
+# WatchPulse v0.2–v1.0 双主线开发计划与 Codex 任务书
+
+**编制日期：** 2026-10-15  
+**项目：** https://github.com/zhuuchaofan/WatchPulse  
+**参考代码：** `claude/intelligent-mendel-ztg12j`，读取时 HEAD `5e4e4e7f2492258e8f58549eaaa0b7e8ac8db207`。开始执行前务必重新拉取 HEAD。  
+**基线：** SwiftUI、HealthKit、`HKWorkoutSession`、Workout Mirroring、XcodeGen、`Packages/WatchPulseKit` (WatchPulseShared / WatchPulseCore)、iOS/watchOS 应用、模拟器与 macOS CI。  
+**原则：** 本地优先、不上传健康数据、不引入第三方云服务、功能可降级、数据来源可追溯；保留所有现有行为、UI 测试与真机验证清单。
+
+> 用户反馈已进行真机试用并修复少量 bug，仓库 README 和设备验收文档的状态可能滞后。以用户真实测试记录为准；不能自行把未验证事项标成通过。
+
+## 0. 目标与非目标
+
+**产品定位：** iPhone 是健康趋势分析与骑行仪表盘，Apple Watch 是运动和实时心率的主要采集端。两个方向并行开发、统一集成，形成能日常使用的运动健康助手。
+
+**v0.2 完成时用户能做的事：** 室外骑行时看到有有效性标记的 GPS 速度、距离、均速和手表心率；设置个性化心率区间并获得克制的震动反馈；每日知道静息心率、HRV、睡眠相对自己平时发生了什么变化，不以医学诊断口吻解读。
+
+**非目标：** 不承诺医疗诊断、实时全天心率流、GPS 毫秒级精确速度、无传感器的踏频/功率、自动计算医学意义的恢复分数、未经许可的健康数据上传。路线地图放 v0.4，横屏码表放 v0.3，避免首版范围膨胀。
+
+## 1. 版本路线图
+
+| 版本 | Cycling Track | Health Track | 交付门槛 |
+|---|---|---|---|
+| **v0.2 实用增强** | 室外 GPS 速度、骑行均速、有效性/来源显示、Watch 心率区间及节制提醒、竖屏大字骑行页面 | 个人基线（静息心率/HRV）、睡眠基础分期、数据充足性、最近趋势解释 | 原有所有测试通过；新逻辑 Linux 单测；macOS iOS/watchOS 构建和 Demo UI 通过；关键真机验证 |
+| **v0.3 训练与洞察** | 训练目标（轻松/节奏/间歇）、分段统计、横屏码表、速度精度优化、可选传感器指标显示 | 入睡/醒来规律、完整每周报告、7 日与前 7 日比较、数据质量状态 | 长时骑行/锁屏/暂停恢复/断线测试、权限缺失退化 |
+| **v0.4 路线与复盘** | 使用 `HKWorkoutRouteBuilder` 存路线、地图、海拔/坡度基本分析、分段速度、GPX 导出 | 将运动、睡眠与基线叠加但不做因果诊断 | 路线权限、丢点、隐私、GPX 标准格式与离线验证 |
+| **v0.5 可触达** | 快捷开始训练、适用时锁屏实时运动信息 | Widget、表盘 complication、周报入口与可控通知 | 数据新鲜度标识，刷新预算与系统限制说明 |
+| **v1.0 稳定发布** | 电量和长期稳定性优化、数据导出与恢复策略 | 无障碍、精细权限管理、隐私说明 | Release Archive、签名、设备矩阵、发布前检查 |
+
+**优先级：** P0：错误/丢数据、安全状态与核心功能；P1：必备界面与可理解的信息；P2：锦上添花与下一版。保持一个版本内 P0 少且验收可判定。
+
+## 2. v0.2 UI 页面设计与用户流程
+
+### 2.1 导航
+
+维持现有 `健康` 与 `运动` 两个 Tab，不破坏深链接/UI 测试；**新增第 3 个 `分析` Tab**。`运动` Tab 下新增 `骑行仪表盘`；Watch 端扩展当前 `WatchHomeView` 的骑行子视图和设置入口，不另起 App。
+
+### 2.2 iPhone 健康（保持现有，最小扩展）
+
+```text
+┌───────────── 健康 ─────────────┐
+│ 最近同步 20:08   [刷新]          │
+│ 心率       76 bpm              │
+│ 静息心率   59 bpm ↘ 较基线 -3   │
+│ HRV        45 ms  ↗ 较基线 +4   │
+│ 步数  8,200   活动能量  380    │
+│ 睡眠  7小时12分  [看详细分析 >] │
+│ [历史趋势 >]                   │
+└───────────────────────────────┘
+```
+
+基线信息只能在达到样本门槛时出现；数据不足时用“积累中（x/y 天）”占位，不填假数。
+
+### 2.3 iPhone 骑行仪表盘（v0.2 竖屏优先）
+
+```text
+┌────────────── 骑行 ─────────────┐
+│ ● Watch 已连接   GPS 有效 · 2秒前 │
+│                                 │
+│        26.8                     │
+│        km/h  当前速度            │
+│                                 │
+│  平均 24.1 km/h   距离 12.6 km   │
+│  时间 00:31:27    心率 148 bpm   │
+│  心率区间 Z3（自定义边界）       │
+│ [Z1][Z2][Z3●][Z4][Z5]          │
+│                                 │
+│ [暂停]             [结束]         │
+└─────────────────────────────────┘
+```
+
+- Speed 缺失、过期或位置未授权显示 `--`，不能将缺失静默置零；实际可信的静止才显示 0。
+- 速度来源需显示 GPS/传感器/不可用（传感器接入属于可选扩展，不是 v0.2 必需）。
+- 运动暂停、停止、连接断开、保存中、保存失败保持原状态机语义，骑行卡片不单独创建运动会话。
+- 码表数字醒目、暗色模式、户外高对比、可用字体大小和辅助功能。
+- 横屏适配需要修改 `project.yml` 当前的 portrait-only 方向配置，故作为 v0.3 独立任务，不在 v0.2 偷偷开关方向。
+
+### 2.4 Apple Watch 骑行页
+
+```text
+┌───── 骑行  ·  Z3 ─────┐
+│     ♥ 148 bpm        │
+│      26.8 km/h       │
+│   12.6 km · 31:27    │
+│     [暂停] [结束]     │
+└──────────────────────┘
+```
+
+Watch 是目标区间提醒的执行端。区间设置从本机配置同步/读取，独立于 iPhone 实时连接（需验证 Watch 配置落地方式）；提醒默认关闭，支持开关。不要在骑行中要求频繁点击交互。
+
+### 2.5 分析 Tab
+
+```text
+┌────────────── 分析 ────────────┐
+│ 你的近况（与自己的历史比较）      │
+│ 静息心率：近7天 60 | 基线 63     │
+│   下降 3 bpm  · 样本充足         │
+│ HRV：近7天 45 | 基线 41 ms      │
+│   上升 4 ms · 不代表医疗诊断      │
+│ 睡眠：昨晚 7h12m                 │
+│  深睡 1h17  REM 1h31 清醒 18m   │
+│ 数据依据/来源  [查看 >]          │
+│ [7天] [28天]  趋势图            │
+└───────────────────────────────┘
+```
+
+## 3. 两条并行主线的范围
+
+### 3.1 Cycling Track（C）
+
+**C1 / P0：指标契约**。在现有 `WorkoutMetricsSnapshot` 增加 `speedMetersPerSecond?`、`speedSampleDate?`、`speedSource?`、`speedQuality?`（或等价可选字段），考虑旧/新消息的 `Codable` 兼容性和既有 `WorkoutMirroringCodec.currentVersion`。原则：旧格式仍应可解码（若破坏兼容，则明确升级版本和降级策略）。增加离线 deterministic tests。
+
+**C2 / P0：GPS 测速服务**。使用 Core Location 的 `CLLocation.speed`；单位为 m/s，显示乘以 3.6 转 km/h。仅室外骑行启用；检验时间戳、有效性（例如 `speed < 0` 为无效）、定位精度和速度精度；过滤跳点，采用少量近期数据平滑，位置过期标记 unavailable。所用阈值集中为配置参数，需真机校准。暂停时不累计移动时间；Watch 作为主计时/运动状态源；不新增另一套 workout session。GPS 权限拒绝时保留心率/时长/已有距离。
+
+**C3 / P0：平均速度与时间定义**。优先以运动记录距离和有效运动时长计算均速，显示“运动均速”；移动均速可放 v0.3，但不可混用口径。处理 0 秒、缺失距离、暂停/恢复、运动类型切换及断线恢复。
+
+**C4 / P0：个人心率区间**。支持用户手动输入最大心率或者直接设置区间边界；不得未经说明直接以 220-年龄等公式标成真实最大心率。Z1–Z5 定义清晰、边界不重叠、可重置与本地存储。目标区间在设置完成后才能启用提醒。区间解释为训练参考，不是医学诊断。
+
+**C5 / P0：Watch 震动提醒**。Watch 本地以连续多个有效心率样本或 8～10 秒持续越界触发；例如最短冷却 60 秒、回到区间需滞后区间阈值（hysteresis）才能再次触发；暂停/停止/样本过期不得提醒；默认关闭，UI 可关闭。必须验证 Haptic 对 HR 采样及电量影响。系统允许 active workout 期间发 haptic，但不应频繁调用。
+
+**C6 / P1：骑行 UI**。Watch 和 iPhone 分别显示速度、均速、时间、心率、区间、来源/数据状态。UI 必须支持 0 / nil / stale / GPS denied / disconnect / paused / saving / saved / failed；Demo 随机/确定性 GPS 轨迹可通过依赖注入产生，不写真实 HealthKit。
+
+**C7 / P1：骑行回归测试和设备清单**。确保旧的 workout saving/mirroring 不回退；模拟 GPS 0/负值/时间倒退/高噪声/断线/后台/恢复；新增 `docs/DEVICE_VALIDATION.md` 项，至少完成一次 20+ 分钟真实骑行的速度、距离、心率、暂停与电量观察。
+
+### 3.2 Health Track（H）
+
+**H1 / P0：日趋势统计与质量标签**。复用已有 `HealthDataService` / `HealthKitHealthDataService` / `MetricTrendViewModel`，不要重写查询层。构造“每天一个数据点”的明确模型，按本地时区/Calendar 处理日期、DST；标记 missing、notAuthorizedOrUnavailable、sourceFallback 和 freshness。读权限不可通过空查询证明已拒绝。
+
+**H2 / P0：个人基线**。初版用最近完整 7 天为观察期、此前连续 28 天为参考窗口；静息心率与 HRV 分开统计，以有效日值的中位数（median）为基线。参考窗口至少 14 有效日，观察期至少 4 有效日，否则报告“数据不足”；展示两组中位数及差值，不产生“生病/过劳/恢复到位”等诊断结论，不合成 0～100 恢复分。所有算法时间窗、样本数和理由可解释、可测试。
+
+**H3 / P0：睡眠基础分析**。复用已修复的 `SleepAggregator` 和 `primarySourceName`，展示睡眠/清醒/REM/核心/深睡，只有 inBed 数据时必须明确标注“只有卧床记录，无法推断实际睡着时长”。睡眠起止跨午夜按夜归属、DST、来源冲突、被拆分的睡眠段需测试。不要把 REM/深睡比例描述为医学诊断。
+
+**H4 / P1：分析页面 UI**。新增 `WatchPulse/Features/Insights/` 与 ViewModel。默认展示最近趋势、自己基线差异、数据样本数、最近同步时间、数据来源和一条谨慎的文案；卡片可进入原有趋势页。无权限/无数据/不足/部分失败各自有 Preview、UI 测试。
+
+**H5 / P1：模型缓存**。优先计算式与现有本地模型；如果 28～35 天查询导致页面慢，可加本地轻量缓存、并且明确过期时刷新。禁止在未经批准情况下引入云端、账户系统或第三方遥测 SDK。
+
+**H6 / v0.3：健康周报**。明确“本周”采用上一个完整自然周或滚动过去 7 个完整日，不能混用。包括总骑行次数与距离、静息心率变化、HRV 变化、平均睡眠和有效样本天数。源数据不足时不计算虚假的百分比或 0 值。初期 App 内显示即可，系统通知与 Widget 放后续。
+
+## 4. 合同设计、并行边界与版本兼容
+
+现有工程源自 `Packages/WatchPulseKit`：
+
+- `WatchPulseShared/Workout` 管理可序列化契约：骑行速度字段/来源/质量、训练区间设置传输格式（如确需跨设备）；健康基线模型可在 `Models/` 新增纯 Foundation 类型。
+- `WatchPulseCore/Workout` 增加 `CyclingMetricsCalculator`、`HeartRateZoneEvaluator`、GPS/haptic 协议。平台 Core Location/WatchKit 实现在 `WatchPulseWatch/`，保持 Linux 可测。
+- `WatchPulseCore/ViewModels` 增加 `HealthBaselineViewModel` / `HealthInsightsViewModel`；健康统计尽量依赖已有 HealthDataService 接口。
+- `WatchPulse/Features/Workout` 只编辑骑行码表相关 View，`WatchPulse/Features/Insights` 只编辑分析页面。
+- 共享文件 `WatchPulse/App/RootView.swift`、`AppEnvironment.swift`、`project.yml`、`Info.plist`、现有 `WorkoutMetricsSnapshot.swift` / `WorkoutMirroringMessage.swift` 由统一集成者（INT）负责一次性改动，或由 C0 公共合同先合并；两条线严禁同时提交相互冲突的更改。
+- 用户已有真机 bug fix 必须先进入共同基线，不能从旧提交覆盖。
+- 如新增 `NSLocationWhenInUseUsageDescription` / `HKWorkoutRoute` entitlement/配置，需经 macOS 构建、Info.plist 检查与真实设备权限验证。
+- 不应把独立的 iPhone GPS 运动流混进当前 Watch 主导的运动状态；若后续确实支持 iPhone GPS 降级，需单独设计源仲裁和测试。
+
+## 5. 并行作业顺序（依赖 DAG）
+
+```text
+S0 冻结已验证基线 + 更新文档 + 建立工作分支
+             |
+C0 共享契约与注入协议（短时间串行、全员先对齐）
+             |
+        +----+----------------+
+        |                     |
+ Cycling 分支              Health 分支
+ C1 GPS/速度质量             H1 日趋势质量
+ C2 心率区间模型             H2 基线中位数与门槛
+ C3 Watch 低频震动            H3 睡眠分析
+ C4 双端码表 UI              H4 分析页 UI
+ C5 测试与权限清单           H5 测试与数据不足状态
+        |                     |
+        +----------+----------+
+                   |
+        INT 集成冲突解决 / 全量 CI / Demo
+                   |
+        真机验收 / v0.2.0-beta.1 tag
+                   |
+         v0.3 → v0.4 → v0.5 → v1.0
+```
+
+如开发工具不支持真正并行会话，按两个独立 feature branch 顺序实现，也能保持独立模块与集成流程。不得在多个执行单元中同时改同一工作目录。
+
+### Git 分支策略
+
+1. 检查当前 HEAD、未提交更改、最新 CI；用户已验证的小 bug 若尚未推送，先收齐。
+2. 当前仓库的默认分支此前是 `claude/intelligent-mendel-ztg12j`。不要假设已存在 `main`，也不要无授权改默认分支设置。
+3. 从同一已验证基线建立 `feature/cycling-v02`、`feature/health-insights-v02`；`integration/v02` 做跨模块集成。保留 `release/v0.1-stable` 指向完成前版本以便回滚（不要覆盖现有 tag）。
+4. 每个任务一个小提交。若有条件，以 PR 合并，确保每项至少 macOS CI 全绿；最后统一生成一个 `v0.2.0-beta.1` 候选版本。
+
+## 6. 验收测试矩阵
+
+| 场景 | Linux 单测 | macOS CI / Demo | 真机 |
+|---|---|---|---|
+| 速度有效/缺失/噪声/时序与均速 | 必须 | 必须 | Watch 室外骑行 GPS + iPhone 展示 |
+| 心率区间边界/提醒节流 | 必须 | mock haptic 验证 | Watch 心率采集持续性 + 触觉体验 |
+| 暂停/恢复/断线后同步 | 必须 | UI + 模拟 E2E | 双设备 20 分钟以上 / 锁屏 |
+| 保存状态/历史记录 | 必须 | 保留现有 CI | 真机 HealthKit 数据一致性 |
+| 基线样本不足/异常值/时区 | 必须 | Preview/UI | 与健康 App 历史点对照 |
+| 睡眠多来源/分期/仅卧床/DST | 必须 | Preview/UI | Apple Watch 与 iPhone 数据核验 |
+| 权限拒绝/无数据/部分失败 | 必须 | UI 测试 | 系统设置中逐项关闭权限 |
+| Release 构建/签名/安装 | N/A | unsigned Release build | Xcode Archive、签名与双设备安装 |
+
+**DoD（每个任务必须满足）**：修改范围准确；失败优先测试；Linux `swift test --package-path Packages/WatchPulseKit` 通过；GitHub Actions iOS/watchOS 与 UI 测试通过；演示数据明确标记；新权限和边界覆盖文档；不破坏旧保存/断线/镜像状态机；任何未经过真机验证的项目不得标“已验证”。
+
+## 7. Codex 总控指令（可直接复制）
+
+> 继续开发 `zhuuchaofan/WatchPulse`。目标是在当前稳定 MVP 的基础上推进 **v0.2 骑行增强 + 健康分析双主线**，完成后按照文档规划后续版本。先读取最新 HEAD、README、`docs/DEVICE_VALIDATION.md` 和架构，核对用户真机修复是否已经推送，避免从旧 SHA 覆盖修改。保留 SwiftUI + HealthKit + XcodeGen 和 `WatchPulseShared`/`WatchPulseCore` 架构，不引入后端、第三方云服务或无必要重构。
+>
+> 先在仓库新增 `docs/ROADMAP_V02_V10.md`（内容以本任务书为准），建立独立开发任务清单；执行 S0/C0，并把共享契约明确下来。随后将 Cycling 与 Health 模块放在 **不同分支或独立 worktree** 中并行开发；如果环境不支持真正并行，按独立分支顺序执行，禁止多个代理同时编辑同一个目录。共享 `AppEnvironment`、`RootView`、`project.yml`、Info.plist 和 Mirror Codec 等由集成步骤统一修改，禁止两个分支互相覆盖。
+>
+> Cycling：先实现室外 GPS 实时速度、运动均速及质量标识；再实现手动配置的 Z1–Z5 目标心率区间与可关闭、具有持续时间/滞回/冷却控制的 Watch 震动；最后提供 iPhone 大数字码表和 Watch 骑行页。数据过期显示 `--`，不要当成 0，距离和速度要标注来源。不能用不存在的传感器编造踏频。
+>
+> Health：复用当前 HealthKit 查询和睡眠聚合，实现近 7 天对前 28 天的个人基线比较；分别评估静息心率和 HRV，基线期 ≥14 有效天且观察期 ≥4 有效天才展示变化；实现睡眠分期/清醒/仅卧床说明和新增 `分析` Tab。不要造“恢复分”“身体电量”等未经验证的医疗化综合评分。
+>
+> **每项先补失败测试，再最小实现**；保留模拟模式与来源标识；每完成一项执行单元测试与 GitHub Actions macOS CI；新增权限、后台和 watchOS 真机未知事项写进 `docs/DEVICE_VALIDATION.md`；失败先修，不要把模拟器通过当成真机通过。实施完两条独立分支后集成到 `integration/v02`，跑所有 E2E/UI、检查 Swift 6 concurrency、构建 iOS/watchOS 和签名之前的 Release 配置。不要擅自切换默认分支、合并或上架。
+>
+> 不需要每个小步骤都停下确认；只有涉及用户实际隐私偏好、UI 产品取舍冲突、签名、删除数据或影响当前稳定版本时才询问。最终提交模块 PR/分支、测试结果、真实未验证项、v0.2 Beta 候选与后续 v0.3 任务，不声称已完成未实现功能。
+
+## 8. 两个并行执行单元的具体初始任务
+
+**Cycling Worker 第一阶段**
+1. 检查当前 `WorkoutMetricsSnapshot`、Watch `HealthKitWorkoutSessionDriver`、Watch 运动 UI、iPhone `LiveWorkoutDashboardView`。
+2. 起草 `CyclingMetricExtension` 可选字段契约、旧版本兼容策略、速度质量与来源枚举；给出测试用例。
+3. 创建与 Core Location 解耦的协议和纯 Swift 速度计算器；测试速度负值、过期、异常突变、暂停、恢复、缺 GPS、间隔中断。
+4. 平台层仅在室外骑行时启动 GPS，明确权限和电量成本；失败不能阻断运动记录。
+5. 加 Watch/iPhone Demo 与大数字 UI；补文档并跑 CI。
+6. 个人心率区间与触觉提醒单独提交；默认关，低频触发，并验证心率采集不会长期中断。
+
+**Health Worker 第一阶段**
+1. 核对 `HealthKitHealthDataService`、`HealthMetricKind`、`MetricTrendViewModel`、`SleepAggregator` 是否存在可复用的稳定数据接口。
+2. 起草 `BaselineWindow`、`BaselineSummary`、`DataSufficiency`、`SleepInsight` 等纯模型，保持日期与来源语义。
+3. 先写 7 天与前 28 天比较的确定性测试：无数据、刚好门槛、样本不足、异常点、DST、部分来源失败。
+4. 实现中位数基线及数据可用性 UI；只描述数值变化与样本数，不做健康诊断。
+5. 睡眠分期与仅卧床展示，适配源优先和清醒时间，增加 UI 测试。
+6. 在 `Features/Insights` 下提供单独页面；由 INT Worker 将新 tab 接入 RootView。
+
+## 9. 技术来源与核对资料
+
+- Apple 创建运动路线（Core Location + HKWorkoutRouteBuilder）：https://developer.apple.com/documentation/healthkit/creating-a-workout-route
+- `CLLocation.speed` 单位与负数无效值：https://developer.apple.com/documentation/corelocation/cllocation/speed
+- Apple Watch haptic 对心率收集的影响：https://developer.apple.com/documentation/watchkit/wkinterfacedevice/play(_:)
+- HealthKit 骑行速度/踏频数据及外设来源：https://developer.apple.com/documentation/healthkit/hkquantitytypeidentifier/cyclingspeed 、https://developer.apple.com/documentation/healthkit/hkquantitytypeidentifier/cyclingcadence
+- HealthKit observer queries 后台刷新限制：https://developer.apple.com/documentation/healthkit/executing-observer-queries
+
+---
+
+**发布前关键提醒：** 用户骑行时不可依赖频繁操作 iPhone；不应引导边骑车边操作手机。任何 GPS 权限、心率采样与 Watch 通知行为均须做真实设备测试。技术实现方案是设计目标，不应表述为已经完成功能。
