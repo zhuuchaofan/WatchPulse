@@ -23,6 +23,7 @@ public final class MockWorkoutHistoryService: WorkoutHistoryService, @unchecked 
     private var _attributions: [UUID: HeartRateAttribution]
     private var _isHealthDataAvailable: Bool
     private var _workoutFetchCount = 0
+    private var _heartRateFetchCount = 0
 
     public init(
         workouts: MockHealthDataService.Behavior<[WorkoutRecord]> = .noData,
@@ -49,6 +50,7 @@ public final class MockWorkoutHistoryService: WorkoutHistoryService, @unchecked 
     public var dataOrigin: HealthDataOrigin { .simulated }
     public var isHealthDataAvailable: Bool { withLock { _isHealthDataAvailable } }
     public var workoutFetchCount: Int { withLock { _workoutFetchCount } }
+    public var heartRateFetchCount: Int { withLock { _heartRateFetchCount } }
 
     public func setWorkouts(_ behavior: MockHealthDataService.Behavior<[WorkoutRecord]>) {
         withLock { _workouts = behavior }
@@ -82,7 +84,10 @@ public final class MockWorkoutHistoryService: WorkoutHistoryService, @unchecked 
 
     /// 只返回登记在该运动名下的心率（模拟“与运动关联的样本”），不会混入其他运动的数据。
     public func fetchHeartRateSeries(for workout: WorkoutRecord) async throws -> WorkoutHeartRateSeries {
-        let (behavior, attribution) = withLock { (_heartRates[workout.id] ?? .noData, _attributions[workout.id] ?? .workoutAssociated) }
+        let (behavior, attribution) = withLock {
+            _heartRateFetchCount += 1
+            return (_heartRates[workout.id] ?? .noData, _attributions[workout.id] ?? .workoutAssociated)
+        }
         switch behavior {
         case .value(let series):
             let points = series

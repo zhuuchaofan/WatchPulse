@@ -139,6 +139,22 @@ final class WatchPulseUITests: XCTestCase {
     }
 
     @MainActor
+    func testWorkoutDetailShowsDataCredibilitySection() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+
+        let row = element(app, "workout.history.row")
+        for _ in 0..<5 where !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 10), "演示模式必须显示模拟数据标识")
+        XCTAssertTrue(app.staticTexts["数据可信度"].waitForExistence(timeout: 10))
+    }
+
+    @MainActor
     func testWorkoutHistoryFailureScenario() {
         let app = launch(scenario: "failure")
         app.tabBars.buttons["运动"].tap()
