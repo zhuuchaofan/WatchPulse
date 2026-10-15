@@ -1,12 +1,19 @@
 import Foundation
 import WatchPulseShared
 
-/// 仅用于 SwiftUI Preview 与单元测试的健康数据服务。
+/// 仅用于 SwiftUI Preview、单元测试与演示模式的健康数据服务。
 ///
-/// 它不会读取任何真实健康数据；`HeartRateSample.previewSample` 的来源名明确标注为预览数据，
-/// 不得用于真机验收。
+/// 它不会读取任何真实健康数据，`dataOrigin` 固定为 `.simulated`，界面会据此标注“模拟数据”；
+/// 示例样本的来源名也明确标注为非真实数据，不得用于真机验收。
 public final class MockHealthDataService: HealthDataService, @unchecked Sendable {
-    /// `fetchLatestHeartRate()` 的返回行为。
+    /// 单项查询的返回行为。
+    public enum Behavior<Value: Sendable>: Sendable {
+        case value(Value)
+        case noData
+        case failure(HealthDataError)
+    }
+
+    /// `fetchLatestHeartRate()` 的返回行为（保留第一阶段的写法）。
     public enum FetchBehavior: Sendable {
         case sample(HeartRateSample)
         case noData
@@ -18,22 +25,40 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
     private var _authorizationStatus: HealthAuthorizationRequestStatus
     private var _authorizationError: HealthDataError?
     private var _fetchBehavior: FetchBehavior
+    private var _summaries: [HealthMetricKind: Behavior<MetricSummaryValue>]
+    private var _trends: [HealthMetricKind: Behavior<[MetricDataPoint]>]
     private var _responseDelay: Duration?
     private var _authorizationRequestCount = 0
     private var _fetchCount = 0
+    private var _summaryFetchCount = 0
+    private var _trendFetchCount = 0
 
     public init(
         isHealthDataAvailable: Bool = true,
         authorizationStatus: HealthAuthorizationRequestStatus = .unnecessary,
         authorizationError: HealthDataError? = nil,
         fetchBehavior: FetchBehavior = .noData,
+        summaries: [HealthMetricKind: Behavior<MetricSummaryValue>] = [:],
+        trends: [HealthMetricKind: Behavior<[MetricDataPoint]>] = [:],
         responseDelay: Duration? = nil
     ) {
         _isHealthDataAvailable = isHealthDataAvailable
         _authorizationStatus = authorizationStatus
         _authorizationError = authorizationError
         _fetchBehavior = fetchBehavior
+        _summaries = summaries
+        _trends = trends
         _responseDelay = responseDelay
+    }
+
+    /// 演示模式：一整套确定性的模拟数据（非真实健康数据）。
+    public static func demo(now: Date = Date(), calendar: Calendar = .current) -> MockHealthDataService {
+        let data = SimulatedHealthData(now: now, calendar: calendar)
+        return MockHealthDataService(
+            fetchBehavior: .sample(data.latestHeartRate),
+            summaries: Dictionary(uniqueKeysWithValues: HealthMetricKind.allCases.map { ($0, .value(data.summary(for: $0))) }),
+            trends: Dictionary(uniqueKeysWithValues: HealthMetricKind.allCases.map { ($0, .value(data.trend(for: $0, days: 90))) })
+        )
     }
 
     // MARK: - 配置
@@ -48,12 +73,24 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
         set { withLock { _authorizationStatus = newValue } }
     }
 
+    public func setSummary(_ behavior: Behavior<MetricSummaryValue>, for kind: HealthMetricKind) {
+        withLock { _summaries[kind] = behavior }
+    }
+
+    public func setTrend(_ behavior: Behavior<[MetricDataPoint]>, for kind: HealthMetricKind) {
+        withLock { _trends[kind] = behavior }
+    }
+
     // MARK: - 调用记录
 
     public var authorizationRequestCount: Int { withLock { _authorizationRequestCount } }
     public var fetchCount: Int { withLock { _fetchCount } }
+    public var summaryFetchCount: Int { withLock { _summaryFetchCount } }
+    public var trendFetchCount: Int { withLock { _trendFetchCount } }
 
     // MARK: - HealthDataService
+
+    public var dataOrigin: HealthDataOrigin { .simulated }
 
     public var isHealthDataAvailable: Bool { withLock { _isHealthDataAvailable } }
 
@@ -91,7 +128,34 @@ public final class MockHealthDataService: HealthDataService, @unchecked Sendable
         }
     }
 
+    public func fetchSummary(for kind: HealthMetricKind, on day: Date) async throws -> MetricSummaryValue? {
+        try await simulateDelay()
+        let behavior = withLock {
+            _summaryFetchCount += 1
+            return _summaries[kind] ?? .noData
+        }
+        return try Self.resolve(behavior)
+    }
+
+    public func fetchDailyTrend(for kind: HealthMetricKind, in interval: DateInterval) async throws -> [MetricDataPoint] {
+        try await simulateDelay()
+        let behavior = withLock {
+            _trendFetchCount += 1
+            return _trends[kind] ?? .noData
+        }
+        let points = try Self.resolve(behavior) ?? []
+        return points.filter { interval.contains($0.date) && $0.date < interval.end }
+    }
+
     // MARK: - Private
+
+    private static func resolve<Value>(_ behavior: Behavior<Value>) throws -> Value? {
+        switch behavior {
+        case .value(let value): return value
+        case .noData: return nil
+        case .failure(let error): throw error
+        }
+    }
 
     private func simulateDelay() async throws {
         if let delay = withLock({ _responseDelay }) {
@@ -118,7 +182,7 @@ extension HeartRateSample {
             startDate: date,
             endDate: date,
             source: HealthSampleSource(
-                name: "预览示例数据（非真实）",
+                name: SimulatedHealthData.sourceName,
                 bundleIdentifier: "preview.mock",
                 productType: nil,
                 deviceName: "Mock",
