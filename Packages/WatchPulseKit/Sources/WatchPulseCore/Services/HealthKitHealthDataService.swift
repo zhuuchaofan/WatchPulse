@@ -188,10 +188,22 @@ public final class HealthKitHealthDataService: HealthDataService, @unchecked Sen
 
     // MARK: - Private
 
+    /// 允许的设备时钟误差：晚于“现在 + 容差”的样本视为时间错误（例如设备时钟曾被设到未来），不作为“最新”。
+    static let futureSampleTolerance: TimeInterval = 5 * 60
+
     private func latestQuantitySample(of type: HKQuantityType, predicate: NSPredicate? = nil) async throws -> HKQuantitySample? {
         guard isHealthDataAvailable else { throw HealthDataError.healthDataUnavailable }
+        // 真机发现：「健康」中可能存在采样时间在未来的样本，按结束时间倒序会排在最前面。
+        let notInFuture = HKQuery.predicateForSamples(
+            withStart: nil,
+            end: Date().addingTimeInterval(Self.futureSampleTolerance),
+            options: .strictEndDate
+        )
+        let combined = predicate.map {
+            NSCompoundPredicate(andPredicateWithSubpredicates: [$0, notInFuture])
+        } ?? notInFuture
         let descriptor = HKSampleQueryDescriptor(
-            predicates: [.quantitySample(type: type, predicate: predicate)],
+            predicates: [.quantitySample(type: type, predicate: combined)],
             sortDescriptors: [SortDescriptor(\.endDate, order: .reverse)],
             limit: 1
         )
