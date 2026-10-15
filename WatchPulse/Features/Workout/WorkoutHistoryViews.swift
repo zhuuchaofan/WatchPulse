@@ -3,6 +3,36 @@ import SwiftUI
 import WatchPulseCore
 import WatchPulseShared
 
+/// 近 30 天骑行统计（来自运动记录）。
+private struct CyclingStatisticsRow: View {
+    let statistics: CyclingStatistics
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label("\(statistics.rideCount) 次骑行", systemImage: "figure.outdoor.cycle")
+                    .font(.headline)
+                Spacer()
+                Text(MetricFormatting.distance(meters: statistics.totalDistanceMeters))
+                    .font(.headline)
+                    .monospacedDigit()
+            }
+            HStack(spacing: 16) {
+                LabeledContent("运动时长", value: MetricFormatting.clock(seconds: statistics.totalDuration))
+                LabeledContent("运动均速", value: statistics.averageSpeedMetersPerSecond.map { "\(MetricFormatting.speedKilometersPerHour($0)) km/h" } ?? "--")
+            }
+            .font(.footnote)
+            if let longest = statistics.longestRideMeters {
+                Text("单次最长 \(MetricFormatting.distance(meters: longest))。均速 = 有距离记录的骑行总距离 ÷ 运动时长（不含暂停）。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("workout.cyclingStats")
+    }
+}
+
 /// 运动页中的“运动记录”分组。
 struct WorkoutHistorySection: View {
     let viewModel: WorkoutHistoryViewModel
@@ -10,6 +40,11 @@ struct WorkoutHistorySection: View {
     var body: some View {
         switch viewModel.state {
         case .loaded(let workouts):
+            if let cycling = CyclingStatistics.recent(workouts, days: 30, endingAt: .now) {
+                Section("近 30 天骑行") {
+                    CyclingStatisticsRow(statistics: cycling)
+                }
+            }
             ForEach(WorkoutHistoryViewModel.groupedByMonth(workouts), id: \.month) { group in
                 Section(group.month.formatted(.dateTime.year().month(.wide))) {
                     ForEach(group.workouts) { workout in
@@ -104,6 +139,9 @@ struct WorkoutDetailView: View {
                 }
                 if let distance = workout.distanceMeters {
                     LabeledContent("距离", value: MetricFormatting.distance(meters: distance))
+                    if workout.activity == .cycling, let speed = workout.averageSpeedMetersPerSecond {
+                        LabeledContent("运动均速", value: "\(MetricFormatting.speedKilometersPerHour(speed)) km/h")
+                    }
                     if distance > 0, workout.duration > 0, workout.activity != .cycling {
                         LabeledContent("平均配速", value: Self.pace(seconds: workout.duration, meters: distance))
                     }

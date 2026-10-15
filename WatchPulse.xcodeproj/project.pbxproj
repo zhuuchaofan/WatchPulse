@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		108FBB4A4E4D8DB5495CC0D3 /* CyclingDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99841025C4893C7CAC2FDEE /* CyclingDashboardView.swift */; };
 		12DB9A9B3A1C2EDD7E29E5BA /* MetricTrendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AB21D3EAB65BF119FC07B9 /* MetricTrendView.swift */; };
 		1D921562BD608F16C3CD84FA /* WorkoutHistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */; };
 		255BF8FF0DADAA11B3BE8B2C /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = D5DFAF353CBEF1ABFA96740D /* WatchPulseShared */; };
@@ -28,9 +29,11 @@
 		C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */; };
 		C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = 755ED5EED151AA21F5F0A358 /* WatchPulseShared */; };
 		CA59D30A0CBBE053C148CFFC /* LoadStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */; };
+		CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */; };
 		D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */; };
 		E5ABA9774353D4B92F9B4517 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38D4CA80C56C32DD0C2DE0E /* RootView.swift */; };
 		F0DEE8E40423873A7D22EB17 /* WorkoutHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15846F47C632321DC91AA219 /* WorkoutHomeView.swift */; };
+		F9B5A6F1E187D39E2ACA5BED /* CoreLocationFixProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8894F7D98AD74FC70AA58A5D /* CoreLocationFixProvider.swift */; };
 		FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833B9E27C20270DEA0879919 /* AppEnvironment.swift */; };
 /* End PBXBuildFile section */
 
@@ -84,7 +87,9 @@
 		765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveWorkoutDashboardView.swift; sourceTree = "<group>"; };
 		78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthOverviewView.swift; sourceTree = "<group>"; };
 		833B9E27C20270DEA0879919 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		8894F7D98AD74FC70AA58A5D /* CoreLocationFixProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreLocationFixProvider.swift; sourceTree = "<group>"; };
 		88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchPulseWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingUITests.swift; sourceTree = "<group>"; };
 		B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModeBanner.swift; sourceTree = "<group>"; };
 		B7ED7F5C548F414307C59225 /* WatchPulseWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulseWatch.entitlements; sourceTree = "<group>"; };
 		B81B4C89FAC849BAA6FB3678 /* WatchAppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAppEnvironment.swift; sourceTree = "<group>"; };
@@ -93,6 +98,7 @@
 		DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadStateView.swift; sourceTree = "<group>"; };
 		E38D4CA80C56C32DD0C2DE0E /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		E56EEC85543EF543A0DF5446 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		F99841025C4893C7CAC2FDEE /* CyclingDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingDashboardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +126,7 @@
 		0FA6416DBA9E57377538726A /* Workout */ = {
 			isa = PBXGroup;
 			children = (
+				8894F7D98AD74FC70AA58A5D /* CoreLocationFixProvider.swift */,
 				4D4AD3550B8FAC2849ABD2BA /* HealthKitWorkoutSessionDriver.swift */,
 			);
 			path = Workout;
@@ -136,6 +143,7 @@
 		162EF456A60815BB1D410004 /* WatchPulseUITests */ = {
 			isa = PBXGroup;
 			children = (
+				B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */,
 				5F587BF96769682F11DCF6FA /* WatchPulseUITests.swift */,
 			);
 			path = WatchPulseUITests;
@@ -183,6 +191,7 @@
 		452908F0DC54C154588A2B69 /* Workout */ = {
 			isa = PBXGroup;
 			children = (
+				F99841025C4893C7CAC2FDEE /* CyclingDashboardView.swift */,
 				64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */,
 				765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */,
 				3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */,
@@ -434,6 +443,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */,
+				108FBB4A4E4D8DB5495CC0D3 /* CyclingDashboardView.swift in Sources */,
 				B62A603470186DA8EC47DD66 /* DemoModeBanner.swift in Sources */,
 				D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */,
 				64E007889CF320B777F1AFE3 /* HealthOverviewView.swift in Sources */,
@@ -453,6 +463,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F9B5A6F1E187D39E2ACA5BED /* CoreLocationFixProvider.swift in Sources */,
 				5ED80B75C7AB3CBC98B0BA74 /* HealthKitWorkoutSessionDriver.swift in Sources */,
 				3CFFCC7FF024E90937F7BD27 /* WatchAppEnvironment.swift in Sources */,
 				530177FFEC442E17F5E8EB1C /* WatchHomeView.swift in Sources */,
@@ -464,6 +475,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */,
 				8A1A9ED601C3719574137CC2 /* WatchPulseUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -7,6 +7,10 @@ import WatchPulseShared
 struct LiveWorkoutDashboardView: View {
     let monitor: LiveWorkoutMonitor
     @State private var isConfirmingEnd = false
+    /// 骑行：大字码表模式（默认开启）。
+    @AppStorage("WatchPulse.cyclingLargeMode") private var isCyclingLargeMode = true
+
+    private var isCycling: Bool { monitor.configuration?.activity == .cycling }
 
     var body: some View {
         ScrollView {
@@ -18,23 +22,40 @@ struct LiveWorkoutDashboardView: View {
                 ConnectionBadge(connection: monitor.connection)
                     .accessibilityIdentifier("live.connection")
 
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    Text(MetricFormatting.clock(seconds: monitor.elapsedTime(at: context.date)))
-                        .font(.system(size: 56, weight: .semibold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(monitor.phase == .running ? .primary : .secondary)
-                        .accessibilityIdentifier("live.elapsed")
-                }
+                if isCycling {
+                    CyclingDashboardPanel(monitor: monitor, isLargeMode: isCyclingLargeMode)
+                    if !isCyclingLargeMode {
+                        heartRateChart
+                    }
+                } else {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        Text(MetricFormatting.clock(seconds: monitor.elapsedTime(at: context.date)))
+                            .font(.system(size: 56, weight: .semibold, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(monitor.phase == .running ? .primary : .secondary)
+                            .accessibilityIdentifier("live.elapsed")
+                    }
 
-                metricGrid
-                heartRateChart
+                    metricGrid
+                    heartRateChart
+                }
                 controls
             }
             .padding()
         }
         .background(Color(.systemGroupedBackground))
-        .navigationTitle("实时运动")
+        .navigationTitle(isCycling ? "骑行" : "实时运动")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isCycling {
+                Button {
+                    isCyclingLargeMode.toggle()
+                } label: {
+                    Label(isCyclingLargeMode ? "标准视图" : "大字模式", systemImage: isCyclingLargeMode ? "chart.xyaxis.line" : "textformat.size.larger")
+                }
+                .accessibilityIdentifier("cycling.toggleLargeMode")
+            }
+        }
         .confirmationDialog("结束 Apple Watch 上的运动？", isPresented: $isConfirmingEnd, titleVisibility: .visible) {
             Button("结束并保存", role: .destructive) {
                 monitor.send(.end)

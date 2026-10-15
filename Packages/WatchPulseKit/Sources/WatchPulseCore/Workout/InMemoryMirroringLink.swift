@@ -123,6 +123,9 @@ public final class InMemoryMirroringLink {
 public final class SimulatedMirroredWorkout {
     @ObservationIgnored public let link: InMemoryMirroringLink
     @ObservationIgnored public let driver: SimulatedWorkoutSessionDriver
+    /// 模拟 GPS（室外骑行时由测速器启动），非真实定位。
+    @ObservationIgnored public let locationProvider: SimulatedLocationFixProvider
+    @ObservationIgnored public let speedTracker: CyclingSpeedTracker
     public let watch: WorkoutSessionController
     public let monitor: LiveWorkoutMonitor
     public private(set) var isOutageActive = false
@@ -153,6 +156,15 @@ public final class SimulatedMirroredWorkout {
         )
         monitor.attach(sender: link.phoneEndpoint)
 
+        let locationProvider = SimulatedLocationFixProvider()
+        let speedTracker = CyclingSpeedTracker(provider: locationProvider, now: now)
+        self.locationProvider = locationProvider
+        self.speedTracker = speedTracker
+        speedTracker.onUpdate = { [weak watch] in watch?.refreshMetrics() }
+        watch.addObserver(speedTracker)
+        // 演示用的心率区间（模拟最大心率 190），真实模式下由用户在 Apple Watch 上设置。
+        watch.heartRateZones = try? HeartRateZoneSettings.percentOfMaximum(190)
+
         link.onDeliverToPhone = { [weak monitor] data in monitor?.receive(data) }
         link.onDeliverToWatch = { [weak driver] data in driver?.deliverRemoteData(data) }
         link.onDisconnect = { [weak monitor, weak driver] reason in
@@ -174,6 +186,8 @@ public final class SimulatedMirroredWorkout {
 
     /// 推进一次模拟时钟：生成指标、发送心跳、检测连接。
     public func tick() {
+        locationProvider.advance(to: now())
+        speedTracker.tick()
         driver.advance(to: now())
         watch.tick()
         monitor.evaluateConnection()
