@@ -69,6 +69,8 @@ public struct SleepNight: Hashable, Codable, Sendable, Identifiable {
     /// 各睡眠阶段时长（仅含睡着的阶段与清醒）。
     public let stageDurations: [SleepStage: TimeInterval]
     public let sourceNames: [String]
+    /// 睡眠 / 清醒 / 分期所采用的来源（多来源时只采用一个，避免互相覆盖）。
+    public let primarySourceName: String?
 
     public var id: Date { date }
 
@@ -86,7 +88,8 @@ public struct SleepNight: Hashable, Codable, Sendable, Identifiable {
         inBedDuration: TimeInterval,
         awakeDuration: TimeInterval,
         stageDurations: [SleepStage: TimeInterval],
-        sourceNames: [String]
+        sourceNames: [String],
+        primarySourceName: String? = nil
     ) {
         self.date = date
         self.start = start
@@ -96,14 +99,18 @@ public struct SleepNight: Hashable, Codable, Sendable, Identifiable {
         self.awakeDuration = awakeDuration
         self.stageDurations = stageDurations
         self.sourceNames = sourceNames
+        self.primarySourceName = primarySourceName
     }
 }
 
 /// 把零散的睡眠记录按夜聚合。
 ///
 /// - 夜的归属：以 18:00 为分界，开始于 D-1 日 18:00 至 D 日 18:00 之间的记录属于 D 日这一夜；
-/// - 多个来源（iPhone、Apple Watch、第三方 App）时间重叠时不重复累计：
-///   按时间轴扫描，每一小段只计入优先级最高的阶段（深睡 > REM > 核心 > 未细分 > 清醒 > 卧床）。
+/// - 多个来源（iPhone、Apple Watch、第三方 App）时：
+///   - 卧床时长取所有来源记录的并集；
+///   - 睡着 / 清醒 / 分期只采用**一个主来源**，避免一个来源的“睡着”覆盖另一个来源记录的“清醒”。
+///     主来源优先选有分期（核心 / 深度 / REM）的来源（通常是 Apple Watch），其次选睡着时长最长的来源；
+///   - 同一来源内部的重叠按时间轴扫描，每段只计优先级最高的阶段。
 public enum SleepAggregator {
     public static func nights(from segments: [SleepSegment], calendar: Calendar = .current) -> [SleepNight] {
         let valid = segments.filter { $0.end > $0.start }
@@ -118,23 +125,19 @@ public enum SleepAggregator {
     }
 
     static func summarize(date: Date, segments: [SleepSegment]) -> SleepNight {
-        let boundaries = Array(Set(segments.flatMap { [$0.start, $0.end] })).sorted()
+        let primary = primarySource(in: segments)
+        let primarySegments = segments.filter { $0.sourceName == primary && $0.stage != .inBed }
+        let staged = sweep(primarySegments)
+        let inBed = coveredDuration(segments)
+
+        var stages: [SleepStage: TimeInterval] = [:]
         var asleep: TimeInterval = 0
         var awake: TimeInterval = 0
-        var inBed: TimeInterval = 0
-        var stages: [SleepStage: TimeInterval] = [:]
-
-        for (lower, upper) in zip(boundaries, boundaries.dropFirst()) {
-            let covering = segments.filter { $0.start <= lower && $0.end >= upper }
-            guard let best = covering.max(by: { $0.stage.priority < $1.stage.priority })?.stage else {
-                continue
-            }
-            let duration = upper.timeIntervalSince(lower)
-            inBed += duration
-            if best.isAsleep {
+        for (stage, duration) in staged {
+            if stage.isAsleep {
                 asleep += duration
-                stages[best, default: 0] += duration
-            } else if best == .awake {
+                stages[stage, default: 0] += duration
+            } else if stage == .awake {
                 awake += duration
                 stages[.awake, default: 0] += duration
             }
@@ -149,7 +152,42 @@ public enum SleepAggregator {
             inBedDuration: inBed,
             awakeDuration: awake,
             stageDurations: stages,
-            sourceNames: sources
+            sourceNames: sources,
+            primarySourceName: primarySegments.isEmpty ? nil : primary
         )
+    }
+
+    /// 选出主来源：有分期的来源优先，其次睡着时长最长；只有卧床记录的来源不参与。
+    static func primarySource(in segments: [SleepSegment]) -> String? {
+        let bySource = Dictionary(grouping: segments.filter { $0.stage != .inBed }) { $0.sourceName ?? "" }
+        let ranked = bySource.map { source, items -> (source: String, hasStages: Bool, asleep: TimeInterval) in
+            let hasStages = items.contains { [.core, .deep, .rem].contains($0.stage) }
+            let asleep = sweep(items).filter { $0.key.isAsleep }.map(\.value).reduce(0, +)
+            return (source, hasStages, asleep)
+        }
+        let best = ranked.max { lhs, rhs in
+            if lhs.hasStages != rhs.hasStages { return !lhs.hasStages }
+            if lhs.asleep != rhs.asleep { return lhs.asleep < rhs.asleep }
+            return lhs.source > rhs.source // 稳定的平局处理
+        }
+        guard let best else { return nil }
+        return best.source.isEmpty ? nil : best.source
+    }
+
+    /// 时间轴扫描：每一小段只计入覆盖它的最高优先级阶段。
+    static func sweep(_ segments: [SleepSegment]) -> [SleepStage: TimeInterval] {
+        let boundaries = Array(Set(segments.flatMap { [$0.start, $0.end] })).sorted()
+        var result: [SleepStage: TimeInterval] = [:]
+        for (lower, upper) in zip(boundaries, boundaries.dropFirst()) {
+            let covering = segments.filter { $0.start <= lower && $0.end >= upper }
+            guard let best = covering.max(by: { $0.stage.priority < $1.stage.priority })?.stage else { continue }
+            result[best, default: 0] += upper.timeIntervalSince(lower)
+        }
+        return result
+    }
+
+    /// 所有记录覆盖的总时长（并集）。
+    static func coveredDuration(_ segments: [SleepSegment]) -> TimeInterval {
+        sweep(segments.map { SleepSegment(start: $0.start, end: $0.end, stage: .inBed) }).values.reduce(0, +)
     }
 }

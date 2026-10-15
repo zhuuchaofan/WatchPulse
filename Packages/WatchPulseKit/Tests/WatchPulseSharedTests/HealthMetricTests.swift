@@ -83,7 +83,7 @@ final class HealthMetricTests: XCTestCase {
     }
 
     func testOverlappingSourcesAreNotDoubleCounted() {
-        // iPhone 记录卧床 23:00–07:00；Apple Watch 记录的分期与之重叠；第三方 App 又记录了一段重复的睡眠。
+        // iPhone 记录卧床 23:00–07:00；Apple Watch 记录分期（含 03:00–03:15 清醒）；第三方 App 记录一段重叠的“未细分睡眠”。
         let segments = [
             SleepSegment(start: date(10, 23), end: date(11, 7), stage: .inBed, sourceName: "iPhone"),
             SleepSegment(start: date(10, 23, 30), end: date(11, 2), stage: .core, sourceName: "Watch"),
@@ -98,14 +98,41 @@ final class HealthMetricTests: XCTestCase {
         let night = nights[0]
         XCTAssertEqual(night.date, date(11, 0))
         XCTAssertEqual(night.inBedDuration, 8 * 3600)
-        // 23:30–06:30 共 7 小时，其中 03:00–03:15 被“未细分睡眠”覆盖，优先于清醒，因此全部计为睡着。
-        XCTAssertEqual(night.asleepDuration, 7 * 3600)
-        XCTAssertEqual(night.awakeDuration, 0)
+        // 睡眠 / 清醒只取最详细的来源（Apple Watch 分期）：第三方的“未细分睡眠”不能覆盖 Watch 记录的清醒。
+        XCTAssertEqual(night.primarySourceName, "Watch")
+        XCTAssertEqual(night.asleepDuration, 7 * 3600 - 15 * 60)
+        XCTAssertEqual(night.awakeDuration, 15 * 60)
+        XCTAssertEqual(night.stageDurations[.awake], 15 * 60)
         XCTAssertEqual(night.stageDurations[.deep], 3600)
-        XCTAssertEqual(night.stageDurations[.asleepUnspecified], 15 * 60)
+        XCTAssertNil(night.stageDurations[.asleepUnspecified])
         XCTAssertEqual(night.sourceNames, ["App", "Watch", "iPhone"])
         XCTAssertFalse(night.isInBedOnly)
         XCTAssertEqual(night.primaryDuration, night.asleepDuration)
+    }
+
+    func testThirdPartyOnlyNightUsesThatSource() {
+        let segments = [
+            SleepSegment(start: date(10, 23), end: date(11, 7), stage: .inBed, sourceName: "iPhone"),
+            SleepSegment(start: date(10, 23, 30), end: date(11, 3), stage: .asleepUnspecified, sourceName: "App"),
+            SleepSegment(start: date(11, 3), end: date(11, 3, 20), stage: .awake, sourceName: "App"),
+            SleepSegment(start: date(11, 3, 20), end: date(11, 6), stage: .asleepUnspecified, sourceName: "App"),
+        ]
+        let night = SleepAggregator.nights(from: segments, calendar: calendar)[0]
+        XCTAssertEqual(night.primarySourceName, "App")
+        XCTAssertEqual(night.asleepDuration, 22_200) // 23:30–03:00 + 03:20–06:00
+        XCTAssertEqual(night.awakeDuration, 20 * 60)
+    }
+
+    func testStagedSourcePreferredOverLongerUnstagedSource() {
+        // 第三方记录更长但没有分期；Apple Watch 有分期，应优先采用 Watch。
+        let segments = [
+            SleepSegment(start: date(10, 22), end: date(11, 8), stage: .asleepUnspecified, sourceName: "App"),
+            SleepSegment(start: date(11, 0), end: date(11, 6), stage: .core, sourceName: "Watch"),
+        ]
+        let night = SleepAggregator.nights(from: segments, calendar: calendar)[0]
+        XCTAssertEqual(night.primarySourceName, "Watch")
+        XCTAssertEqual(night.asleepDuration, 6 * 3600)
+        XCTAssertEqual(night.inBedDuration, 10 * 3600)
     }
 
     func testInBedOnlyNight() {
