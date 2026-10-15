@@ -123,18 +123,20 @@ struct HealthOverviewView: View {
 
     @ViewBuilder
     private func heartRateSection(_ snapshot: HealthDashboardSnapshot) -> some View {
-        NavigationLink(value: HealthMetricKind.heartRate) {
-            if let sample = snapshot.latestHeartRate {
-                HeartRateCard(sample: sample)
-            } else {
+        if let sample = snapshot.latestHeartRate {
+            // 卡片内有可展开的“数据详情”，因此不整体作为链接；趋势入口在卡片底部。
+            HeartRateCard(sample: sample)
+                .accessibilityIdentifier("dashboard.heartRateCard")
+        } else {
+            NavigationLink(value: HealthMetricKind.heartRate) {
                 MetricSummaryCard(card: MetricCardModel(
                     kind: .heartRate,
                     status: snapshot.heartRateError.map(MetricCardStatus.failed) ?? .noData
                 ))
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("dashboard.heartRateCard")
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("dashboard.heartRateCard")
     }
 
     @ViewBuilder
