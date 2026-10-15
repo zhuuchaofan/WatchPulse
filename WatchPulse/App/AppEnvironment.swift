@@ -16,6 +16,7 @@ final class AppEnvironment {
 
     let isDemoMode: Bool
     let healthDataService: any HealthDataService
+    let workoutHistoryService: any WorkoutHistoryService
     let liveWorkoutMonitor: LiveWorkoutMonitor
     /// 演示模式下的模拟 Watch 运动。
     let simulatedWorkout: SimulatedMirroredWorkout?
@@ -25,15 +26,22 @@ final class AppEnvironment {
         isDemoMode = defaults.bool(forKey: Self.demoModeKey)
         if isDemoMode {
             healthDataService = MockHealthDataService.demo()
+            workoutHistoryService = MockWorkoutHistoryService.demo()
             liveWorkoutMonitor = LiveWorkoutMonitor(dataOrigin: .simulated)
             simulatedWorkout = SimulatedMirroredWorkout(monitor: liveWorkoutMonitor)
             mirroringReceiver = nil
         } else {
             healthDataService = HealthKitHealthDataService()
+            workoutHistoryService = HealthKitWorkoutHistoryService()
             liveWorkoutMonitor = LiveWorkoutMonitor(dataOrigin: .healthKit)
             simulatedWorkout = nil
             mirroringReceiver = HealthKitMirroringReceiver(monitor: liveWorkoutMonitor)
         }
+    }
+
+    /// 演示模式：把刚结束的模拟运动加入模拟历史（真实模式下运动由 Apple Watch 写入 HealthKit）。
+    func recordSimulatedWorkout(_ workout: WorkoutRecord, heartRates: [HeartRatePoint]) {
+        (workoutHistoryService as? MockWorkoutHistoryService)?.insert(workout, heartRates: heartRates)
     }
 
     /// 在 App 启动早期调用，注册镜像会话回调。

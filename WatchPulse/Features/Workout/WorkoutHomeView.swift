@@ -2,10 +2,27 @@ import SwiftUI
 import WatchPulseCore
 import WatchPulseShared
 
-/// 运动页：实时运动入口（来自 Apple Watch 镜像）+ 演示模式控制。
+/// 运动页：实时运动入口（来自 Apple Watch 镜像）+ 运动记录 + 演示模式控制。
 struct WorkoutHomeView: View {
     let monitor: LiveWorkoutMonitor
     let simulatedWorkout: SimulatedMirroredWorkout?
+    let historyService: any WorkoutHistoryService
+    var onSimulatedWorkoutCompleted: @MainActor (WorkoutRecord, [HeartRatePoint]) -> Void = { _, _ in }
+
+    @State private var historyViewModel: WorkoutHistoryViewModel
+
+    init(
+        monitor: LiveWorkoutMonitor,
+        simulatedWorkout: SimulatedMirroredWorkout?,
+        historyService: any WorkoutHistoryService,
+        onSimulatedWorkoutCompleted: @escaping @MainActor (WorkoutRecord, [HeartRatePoint]) -> Void = { _, _ in }
+    ) {
+        self.monitor = monitor
+        self.simulatedWorkout = simulatedWorkout
+        self.historyService = historyService
+        self.onSimulatedWorkoutCompleted = onSimulatedWorkoutCompleted
+        _historyViewModel = State(initialValue: WorkoutHistoryViewModel(service: historyService))
+    }
 
     var body: some View {
         NavigationStack {
@@ -42,8 +59,31 @@ struct WorkoutHomeView: View {
                 if let simulatedWorkout {
                     SimulationControls(simulation: simulatedWorkout)
                 }
+
+                WorkoutHistorySection(viewModel: historyViewModel)
             }
             .navigationTitle("运动")
+            .navigationDestination(for: WorkoutRecord.self) { workout in
+                WorkoutDetailScreen(workout: workout, service: historyService)
+            }
+            .task {
+                if historyViewModel.state == .idle {
+                    await historyViewModel.load()
+                }
+            }
+            .refreshable { await historyViewModel.load() }
+            .onChange(of: monitor.phase) { _, phase in
+                // 运动结束后 Apple Watch 会把记录写入 HealthKit，稍后刷新列表。
+                guard phase == .ended else { return }
+                Task {
+                    if let completed = simulatedWorkout?.watch.completedWorkout {
+                        onSimulatedWorkoutCompleted(completed, monitor.heartRateHistory)
+                    } else {
+                        try? await Task.sleep(for: .seconds(3))
+                    }
+                    await historyViewModel.load()
+                }
+            }
         }
     }
 }
@@ -115,9 +155,17 @@ private struct SimulationControls: View {
 
 #Preview("演示模式") {
     let monitor = LiveWorkoutMonitor(dataOrigin: .simulated)
-    return WorkoutHomeView(monitor: monitor, simulatedWorkout: SimulatedMirroredWorkout(monitor: monitor))
+    return WorkoutHomeView(
+        monitor: monitor,
+        simulatedWorkout: SimulatedMirroredWorkout(monitor: monitor),
+        historyService: MockWorkoutHistoryService.demo()
+    )
 }
 
-#Preview("等待") {
-    WorkoutHomeView(monitor: LiveWorkoutMonitor(dataOrigin: .healthKit), simulatedWorkout: nil)
+#Preview("等待 · 无记录") {
+    WorkoutHomeView(
+        monitor: LiveWorkoutMonitor(dataOrigin: .healthKit),
+        simulatedWorkout: nil,
+        historyService: MockWorkoutHistoryService()
+    )
 }

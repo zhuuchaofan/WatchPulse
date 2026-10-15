@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		12DB9A9B3A1C2EDD7E29E5BA /* MetricTrendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AB21D3EAB65BF119FC07B9 /* MetricTrendView.swift */; };
+		1D921562BD608F16C3CD84FA /* WorkoutHistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */; };
 		255BF8FF0DADAA11B3BE8B2C /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = D5DFAF353CBEF1ABFA96740D /* WatchPulseShared */; };
 		3CFFCC7FF024E90937F7BD27 /* WatchAppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81B4C89FAC849BAA6FB3678 /* WatchAppEnvironment.swift */; };
 		3D9F74A72D01FB62554EB24C /* WatchPulseWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -59,6 +60,7 @@
 /* Begin PBXFileReference section */
 		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
 		15846F47C632321DC91AA219 /* WorkoutHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHomeView.swift; sourceTree = "<group>"; };
+		3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryViews.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
 		3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseWatchApp.swift; sourceTree = "<group>"; };
 		46AB21D3EAB65BF119FC07B9 /* MetricTrendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricTrendView.swift; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 			children = (
 				64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */,
 				765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */,
+				3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */,
 				15846F47C632321DC91AA219 /* WorkoutHomeView.swift */,
 			);
 			path = Workout;
@@ -397,6 +400,7 @@
 				12DB9A9B3A1C2EDD7E29E5BA /* MetricTrendView.swift in Sources */,
 				E5ABA9774353D4B92F9B4517 /* RootView.swift in Sources */,
 				6E6EDB45070BA907E0BF468C /* WatchPulseApp.swift in Sources */,
+				1D921562BD608F16C3CD84FA /* WorkoutHistoryViews.swift in Sources */,
 				F0DEE8E40423873A7D22EB17 /* WorkoutHomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

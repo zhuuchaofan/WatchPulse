@@ -15,7 +15,9 @@ struct RootView: View {
 
             WorkoutHomeView(
                 monitor: environment.liveWorkoutMonitor,
-                simulatedWorkout: environment.simulatedWorkout
+                simulatedWorkout: environment.simulatedWorkout,
+                historyService: environment.workoutHistoryService,
+                onSimulatedWorkoutCompleted: environment.recordSimulatedWorkout
             )
             .tabItem { Label("运动", systemImage: "figure.run") }
         }
