@@ -6,10 +6,7 @@ struct WatchPulseWatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            WatchHomeView(
-                controller: WatchAppEnvironment.shared.controller,
-                isDemoMode: WatchAppEnvironment.shared.isDemoMode
-            )
+            WatchHomeView(environment: WatchAppEnvironment.shared)
         }
     }
 }

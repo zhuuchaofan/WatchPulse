@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		108FBB4A4E4D8DB5495CC0D3 /* CyclingDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F99841025C4893C7CAC2FDEE /* CyclingDashboardView.swift */; };
 		12DB9A9B3A1C2EDD7E29E5BA /* MetricTrendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AB21D3EAB65BF119FC07B9 /* MetricTrendView.swift */; };
 		1D921562BD608F16C3CD84FA /* WorkoutHistoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */; };
 		255BF8FF0DADAA11B3BE8B2C /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = D5DFAF353CBEF1ABFA96740D /* WatchPulseShared */; };
@@ -27,10 +28,14 @@
 		BE1DEAD9BFE99F0BCE31B85F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69285459661FE21B2ABB2CE6 /* Assets.xcassets */; };
 		C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */; };
 		C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = 755ED5EED151AA21F5F0A358 /* WatchPulseShared */; };
+		C73DCAECB4DA5A647E206721 /* InsightsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6F2272A87332167F94557A /* InsightsUITests.swift */; };
 		CA59D30A0CBBE053C148CFFC /* LoadStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */; };
+		CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */; };
+		CF1674B37409C0D8048C9E13 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8CB8C0ADE899B29375B141 /* InsightsView.swift */; };
 		D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */; };
 		E5ABA9774353D4B92F9B4517 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38D4CA80C56C32DD0C2DE0E /* RootView.swift */; };
 		F0DEE8E40423873A7D22EB17 /* WorkoutHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15846F47C632321DC91AA219 /* WorkoutHomeView.swift */; };
+		F9B5A6F1E187D39E2ACA5BED /* CoreLocationFixProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8894F7D98AD74FC70AA58A5D /* CoreLocationFixProvider.swift */; };
 		FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833B9E27C20270DEA0879919 /* AppEnvironment.swift */; };
 /* End PBXBuildFile section */
 
@@ -69,6 +74,7 @@
 		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
 		02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WatchPulseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		15846F47C632321DC91AA219 /* WorkoutHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHomeView.swift; sourceTree = "<group>"; };
+		2A6F2272A87332167F94557A /* InsightsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsUITests.swift; sourceTree = "<group>"; };
 		3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryViews.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
 		3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseWatchApp.swift; sourceTree = "<group>"; };
@@ -84,7 +90,10 @@
 		765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveWorkoutDashboardView.swift; sourceTree = "<group>"; };
 		78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthOverviewView.swift; sourceTree = "<group>"; };
 		833B9E27C20270DEA0879919 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+		8894F7D98AD74FC70AA58A5D /* CoreLocationFixProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreLocationFixProvider.swift; sourceTree = "<group>"; };
 		88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchPulseWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB8CB8C0ADE899B29375B141 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingUITests.swift; sourceTree = "<group>"; };
 		B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModeBanner.swift; sourceTree = "<group>"; };
 		B7ED7F5C548F414307C59225 /* WatchPulseWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulseWatch.entitlements; sourceTree = "<group>"; };
 		B81B4C89FAC849BAA6FB3678 /* WatchAppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAppEnvironment.swift; sourceTree = "<group>"; };
@@ -93,6 +102,7 @@
 		DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadStateView.swift; sourceTree = "<group>"; };
 		E38D4CA80C56C32DD0C2DE0E /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		E56EEC85543EF543A0DF5446 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		F99841025C4893C7CAC2FDEE /* CyclingDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingDashboardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -120,6 +130,7 @@
 		0FA6416DBA9E57377538726A /* Workout */ = {
 			isa = PBXGroup;
 			children = (
+				8894F7D98AD74FC70AA58A5D /* CoreLocationFixProvider.swift */,
 				4D4AD3550B8FAC2849ABD2BA /* HealthKitWorkoutSessionDriver.swift */,
 			);
 			path = Workout;
@@ -136,6 +147,8 @@
 		162EF456A60815BB1D410004 /* WatchPulseUITests */ = {
 			isa = PBXGroup;
 			children = (
+				B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */,
+				2A6F2272A87332167F94557A /* InsightsUITests.swift */,
 				5F587BF96769682F11DCF6FA /* WatchPulseUITests.swift */,
 			);
 			path = WatchPulseUITests;
@@ -183,6 +196,7 @@
 		452908F0DC54C154588A2B69 /* Workout */ = {
 			isa = PBXGroup;
 			children = (
+				F99841025C4893C7CAC2FDEE /* CyclingDashboardView.swift */,
 				64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */,
 				765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */,
 				3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */,
@@ -203,6 +217,7 @@
 			isa = PBXGroup;
 			children = (
 				B9F7883F93A8C605ACF3D676 /* HealthOverview */,
+				9010B4E8CD2A92CFEDC0CB0F /* Insights */,
 				C6A741FF758F450767B4E64D /* Trends */,
 				452908F0DC54C154588A2B69 /* Workout */,
 			);
@@ -229,6 +244,14 @@
 				4EB377CC56184FEE411652BA /* WatchPulse.entitlements */,
 			);
 			path = WatchPulse;
+			sourceTree = "<group>";
+		};
+		9010B4E8CD2A92CFEDC0CB0F /* Insights */ = {
+			isa = PBXGroup;
+			children = (
+				AB8CB8C0ADE899B29375B141 /* InsightsView.swift */,
+			);
+			path = Insights;
 			sourceTree = "<group>";
 		};
 		9EC8627EAD0749C64966D4EA /* Shared */ = {
@@ -433,10 +456,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */,
+				108FBB4A4E4D8DB5495CC0D3 /* CyclingDashboardView.swift in Sources */,
 				B62A603470186DA8EC47DD66 /* DemoModeBanner.swift in Sources */,
 				D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */,
 				64E007889CF320B777F1AFE3 /* HealthOverviewView.swift in Sources */,
 				72998FC3C9A0EF87F6708179 /* HeartRateCard.swift in Sources */,
+				CF1674B37409C0D8048C9E13 /* InsightsView.swift in Sources */,
 				9A7EAA85DFC615FFB9B21025 /* LiveWorkoutDashboardView.swift in Sources */,
 				CA59D30A0CBBE053C148CFFC /* LoadStateView.swift in Sources */,
 				B35A8A43798B3E5B28794004 /* MetricSummaryCard.swift in Sources */,
@@ -452,6 +477,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F9B5A6F1E187D39E2ACA5BED /* CoreLocationFixProvider.swift in Sources */,
 				5ED80B75C7AB3CBC98B0BA74 /* HealthKitWorkoutSessionDriver.swift in Sources */,
 				3CFFCC7FF024E90937F7BD27 /* WatchAppEnvironment.swift in Sources */,
 				530177FFEC442E17F5E8EB1C /* WatchHomeView.swift in Sources */,
@@ -463,6 +489,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */,
+				C73DCAECB4DA5A647E206721 /* InsightsUITests.swift in Sources */,
 				8A1A9ED601C3719574137CC2 /* WatchPulseUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -519,7 +547,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 54NF5AR7MC;
@@ -541,7 +569,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -689,7 +717,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 54NF5AR7MC;
@@ -705,7 +733,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

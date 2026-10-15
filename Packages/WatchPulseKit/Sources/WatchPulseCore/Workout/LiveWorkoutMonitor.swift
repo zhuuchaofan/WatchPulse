@@ -41,6 +41,10 @@ public final class LiveWorkoutMonitor {
     /// Watch 报告的保存状态。只有 `.saved` 才能向用户显示“已保存”。
     public private(set) var saveStatus: WorkoutSaveStatus = .pending
     public private(set) var commandError: String?
+    /// Watch 上设置的心率区间（来自完整状态同步）；未设置为 `nil`。
+    public private(set) var heartRateZones: HeartRateZoneSettings?
+    /// Watch 上开启提醒时的目标区间。
+    public private(set) var targetZone: TrainingZone?
     public private(set) var droppedMessageCount = 0
     public private(set) var invalidMessageCount = 0
 
@@ -206,6 +210,8 @@ public final class LiveWorkoutMonitor {
         pendingCommand = nil
         commandError = nil
         saveStatus = .pending
+        heartRateZones = nil
+        targetZone = nil
     }
 
     // MARK: - Private
@@ -220,6 +226,8 @@ public final class LiveWorkoutMonitor {
             configuration = snapshot.configuration
             startDate = snapshot.startDate
             saveStatus = snapshot.saveStatus
+            heartRateZones = snapshot.heartRateZones
+            targetZone = snapshot.targetZone
             updatePhase(snapshot.phase)
             if let metrics = snapshot.metrics {
                 applyMetrics(metrics)

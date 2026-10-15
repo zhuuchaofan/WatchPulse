@@ -45,6 +45,12 @@ public final class WorkoutSessionController {
     @ObservationIgnored private var endTask: Task<Void, Never>?
     /// 等待最终状态送达确认的上限。
     @ObservationIgnored public let finalDeliveryTimeout: Duration
+    /// v0.2 扩展点（GPS 测速、心率区间提醒）。
+    @ObservationIgnored private var observers: [any WorkoutLiveObserver] = []
+    /// Watch 上设置的心率区间，随完整状态同步给 iPhone。
+    @ObservationIgnored public var heartRateZones: HeartRateZoneSettings?
+    /// 开启震动提醒时的目标区间，随完整状态同步给 iPhone。
+    @ObservationIgnored public var targetZone: TrainingZone?
 
     public init(
         driver: any WorkoutSessionDriver,
@@ -70,6 +76,21 @@ public final class WorkoutSessionController {
     }
 
     public var dataOrigin: HealthDataOrigin { driver.dataOrigin }
+
+    /// 注册扩展观察者（在开始运动前调用）。
+    public func addObserver(_ observer: any WorkoutLiveObserver) {
+        observers.append(observer)
+    }
+
+    /// 观察者有新数据（例如新的 GPS 速度）时调用：重新补充最新指标并发给 iPhone。
+    /// 时间戳与时长保持不变，iPhone 端按“同一时刻的更新”处理。
+    public func refreshMetrics() {
+        guard phase.isActive, let latestMetrics else { return }
+        let refreshed = augment(latestMetrics)
+        guard refreshed != latestMetrics else { return }
+        self.latestMetrics = refreshed
+        send(.metrics(refreshed))
+    }
 
     /// 当前运动时长（运动进行中时实时推算）。
     public func elapsedTime(at date: Date) -> TimeInterval {
@@ -104,10 +125,13 @@ public final class WorkoutSessionController {
         // 只有驱动上报 `.mirroringConnected` 后才算已连接；仅有发送器对象不代表镜像已建立。
         isMirroringConnected = false
         phase = .prepared
+        // 先通知观察者（例如开始定位），驱动开始后的阶段变化才能被观察到。
+        observers.forEach { $0.workoutDidStart(configuration, at: date) }
 
         do {
             try await driver.start(configuration, at: date)
         } catch {
+            observers.forEach { $0.workoutDidEnd() }
             cancelReconnect()
             phase = .notStarted
             self.configuration = nil
@@ -157,6 +181,7 @@ public final class WorkoutSessionController {
         defer { isBusy = false }
 
         let date = now()
+        observers.forEach { $0.workoutDidEnd() }
         saveStatus = .saving
         sendStateSync()
 
@@ -210,6 +235,12 @@ public final class WorkoutSessionController {
             latestMetrics = snapshot.metrics
             saveStatus = .pending
             completedWorkout = nil
+            if let configuration = snapshot.configuration {
+                observers.forEach {
+                    $0.workoutDidStart(configuration, at: snapshot.startDate ?? now())
+                    $0.workoutPhaseDidChange(to: snapshot.phase, at: now())
+                }
+            }
             sendStateSync()
             if sender != nil, !isMirroringConnected {
                 scheduleReconnect()
@@ -247,6 +278,7 @@ public final class WorkoutSessionController {
                 latestMetrics = latestMetrics?.rebased(to: date)
             }
             phase = newPhase
+            observers.forEach { $0.workoutPhaseDidChange(to: newPhase, at: date) }
             send(.phaseChanged(newPhase, at: date))
 
         case .metrics(let metrics):
@@ -254,8 +286,9 @@ public final class WorkoutSessionController {
             if let current = latestMetrics, metrics.timestamp < current.timestamp {
                 return
             }
-            latestMetrics = metrics
-            send(.metrics(metrics))
+            let augmented = augment(metrics)
+            latestMetrics = augmented
+            send(.metrics(augmented))
 
         case .remoteDataReceived(let data):
             handleRemote(data)
@@ -303,7 +336,9 @@ public final class WorkoutSessionController {
                 phase: .ended,
                 startDate: startDate,
                 metrics: latestMetrics,
-                saveStatus: saveStatus
+                saveStatus: saveStatus,
+                heartRateZones: heartRateZones,
+                targetZone: targetZone
             ))
         )
         guard let data = try? WorkoutMirroringCodec.encode(envelope) else { return false }
@@ -374,8 +409,19 @@ public final class WorkoutSessionController {
             phase: phase,
             startDate: startDate,
             metrics: latestMetrics,
-            saveStatus: saveStatus
+            saveStatus: saveStatus,
+            heartRateZones: heartRateZones,
+            targetZone: targetZone
         )))
+    }
+
+    private func augment(_ metrics: WorkoutMetricsSnapshot) -> WorkoutMetricsSnapshot {
+        observers.reduce(metrics) { current, observer in
+            let next = observer.workoutMetricsWillPublish(current)
+            // 观察者只能补充字段，计时由 HealthKit 决定。
+            guard next.timestamp == current.timestamp, next.elapsedTime == current.elapsedTime else { return current }
+            return next
+        }
     }
 
     private func send(_ message: WorkoutMirroringMessage) {

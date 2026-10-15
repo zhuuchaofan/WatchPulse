@@ -121,3 +121,37 @@ WatchPulse/
 ├── docs/{ARCHITECTURE,DEVICE_VALIDATION}.md
 └── .github/workflows/ci.yml
 ```
+
+## 8. v0.2：骑行增强 + 健康分析
+
+需求基准见 [ROADMAP_V02_V10.md](ROADMAP_V02_V10.md)。不改动现有分层与状态机，只通过以下扩展点接入：
+
+**共享契约（C0）**
+- `WorkoutMetricsSnapshot.speed: WorkoutSpeedSample?`（来源 GPS / 传感器 / 不可用，质量 good / lowAccuracy / stale / unavailable / notAuthorized / paused；不可展示的质量不带数值）。字段可选、解码宽松，镜像协议版本号不变：v0.1 的一端会忽略新字段，未知取值降级为 `unavailable`。
+- `WorkoutStateSnapshot.heartRateZones / targetZone`（可选），iPhone 用 Watch 上的区间设置显示当前区间。
+- `WorkoutLiveObserver`：挂在 `WorkoutSessionController` 上，只能在指标发布前补充字段、在开始 / 阶段变化 / 结束时得到通知；不能改变计时，也不能改变开始 / 暂停 / 结束 / 保存流程。`refreshMetrics()` 让观察者在有新速度时重发指标（时间戳不变）。
+- `HealthDataService.fetchSleepNights(in:)`：按夜返回带分期与来源的睡眠详情。
+
+**Cycling Track**
+
+| 组件 | 位置 | 说明 |
+| --- | --- | --- |
+| `GPSSpeedCalculator` | Core | 纯逻辑：有效性 / 精度 / 时间序 / 跳点过滤，5 秒平滑，过期与暂停不带数值；阈值集中在 `Configuration`，需真机校准 |
+| `CyclingSpeedTracker` | Core | 观察者：仅室外骑行启动定位，暂停 / 结束停止，崩溃恢复后重启；限频请求重发 |
+| `WorkoutSpeedMath` / `CyclingStatistics` | Shared | 运动均速 = 距离 ÷ 有效运动时长（不含暂停），实时与记录同一口径 |
+| `HeartRateZoneSettings` / `HeartRateZoneSettingsStore` | Shared / Core | 用户输入最大心率或下限，校验不重叠；Watch 本机存储 |
+| `ZoneAlertEngine` / `ZoneAlertMonitor` | Core | 运行中、样本新鲜、连续 ≥ 3 样本且持续 ≥ 10 秒越界才提醒；冷却 60 秒；回到区间内 3 bpm 以上才重新武装；默认关闭 |
+| `CyclingDisplayModel` | Core | Watch / iPhone 共用的显示规则：缺失 / 过期 / 暂停 / 未授权 / 断开 → `--` + 原因 |
+| `CoreLocationFixProvider`、`WatchHapticPlayer` | watchOS App | `CLLocationManager`（使用期间授权）与 `WKInterfaceDevice.play(_:)` |
+
+**Health Track**
+
+| 组件 | 位置 | 说明 |
+| --- | --- | --- |
+| `DailyMetricSeries` | Shared | 每个日历日一项，缺测为 `nil`；按 `Calendar` 逐日推进，夏令时不重复 / 缺失 |
+| `BaselineWindows` / `BaselineComparison` | Shared | 观察期 = 最近 7 个完整日（不含今天），参考期 = 之前 28 天；中位数；参考 ≥ 14 天且观察 ≥ 4 天才给差值；超出合理范围的日值排除并计数 |
+| `SleepInsight` | Shared | 最近一晚分期与占比、仅卧床标记；≥ 4 晚时给出平均时长与入睡 / 醒来时刻的均值和标准差（墙上时间，跨午夜与夏令时正确） |
+| `HealthInsightsViewModel` | Core | 并发读取 35 天日值与睡眠；每张卡片独立 value / noData / failed；不缓存（H5 视真机性能再定） |
+| `InsightsView` | iOS `Features/Insights` | 第三个 Tab「分析」；健康页静息心率 / HRV 卡片显示“较基线 ±n / 积累中” |
+
+所有文案只描述数值、天数、来源；不生成“恢复分 / 身体电量”等综合评分，不做医学判断。演示模式下模拟 GPS、模拟区间与模拟健康数据均有明显标注。

@@ -10,6 +10,8 @@
 	<array>
 		<string>workout-processing</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>室外骑行时，WatchPulse 使用 Apple Watch 的定位计算实时速度。位置只在本机用于测速，不会上传。</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>WatchPulse 需要在运动时读取心率、活动能量和距离，用于实时显示运动数据。</string>
 	<key>NSHealthUpdateUsageDescription</key>

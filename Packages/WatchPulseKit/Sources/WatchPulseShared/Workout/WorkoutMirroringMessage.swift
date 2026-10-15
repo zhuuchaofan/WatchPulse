@@ -38,19 +38,43 @@ public struct WorkoutStateSnapshot: Hashable, Codable, Sendable {
     public let startDate: Date?
     public let metrics: WorkoutMetricsSnapshot?
     public let saveStatus: WorkoutSaveStatus
+    /// Watch 上设置的心率区间（v0.2 新增，可选；旧消息为 `nil`）。iPhone 用它显示当前区间。
+    public let heartRateZones: HeartRateZoneSettings?
+    /// 开启了震动提醒时的目标区间；未开启为 `nil`。
+    public let targetZone: TrainingZone?
 
     public init(
         configuration: WorkoutConfigurationRequest?,
         phase: WorkoutSessionPhase,
         startDate: Date?,
         metrics: WorkoutMetricsSnapshot?,
-        saveStatus: WorkoutSaveStatus = .pending
+        saveStatus: WorkoutSaveStatus = .pending,
+        heartRateZones: HeartRateZoneSettings? = nil,
+        targetZone: TrainingZone? = nil
     ) {
         self.configuration = configuration
         self.phase = phase
         self.startDate = startDate
         self.metrics = metrics
         self.saveStatus = saveStatus
+        self.heartRateZones = heartRateZones
+        self.targetZone = targetZone
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case configuration, phase, startDate, metrics, saveStatus, heartRateZones, targetZone
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        configuration = try container.decodeIfPresent(WorkoutConfigurationRequest.self, forKey: .configuration)
+        phase = try container.decode(WorkoutSessionPhase.self, forKey: .phase)
+        startDate = try container.decodeIfPresent(Date.self, forKey: .startDate)
+        metrics = try container.decodeIfPresent(WorkoutMetricsSnapshot.self, forKey: .metrics)
+        saveStatus = try container.decode(WorkoutSaveStatus.self, forKey: .saveStatus)
+        // v0.2 新增的可选字段：取值不合法或无法识别时忽略，不能让整条状态同步失败。
+        heartRateZones = try? container.decodeIfPresent(HeartRateZoneSettings.self, forKey: .heartRateZones)
+        targetZone = try? container.decodeIfPresent(TrainingZone.self, forKey: .targetZone)
     }
 }
 

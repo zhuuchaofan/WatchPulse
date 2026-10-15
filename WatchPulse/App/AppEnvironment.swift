@@ -13,7 +13,7 @@ final class AppEnvironment {
     static let shared = AppEnvironment()
 
     static let demoModeKey = "WatchPulseDemoMode"
-    /// 演示场景：`-WatchPulseDemoScenario full|empty|failure|needsAuthorization`，用于 UI 测试覆盖各种状态。
+    /// 演示场景：`-WatchPulseDemoScenario full|empty|failure|needsAuthorization|insufficient`，用于 UI 测试覆盖各种状态。
     static let demoScenarioKey = "WatchPulseDemoScenario"
 
     let isDemoMode: Bool
@@ -60,6 +60,8 @@ enum DemoScenario: String {
     case empty
     case failure
     case needsAuthorization
+    /// 只有最近 10 天的静息心率 / HRV、3 晚睡眠：基线“积累中”。
+    case insufficient
 
     func makeHealthDataService() -> any HealthDataService {
         switch self {
@@ -73,17 +75,29 @@ enum DemoScenario: String {
             for kind in HealthMetricKind.allCases {
                 summaries[kind] = .failure(error)
             }
-            return MockHealthDataService(fetchBehavior: .failure(error), summaries: summaries)
+            var trends: [HealthMetricKind: MockHealthDataService.Behavior<[MetricDataPoint]>] = [:]
+            for kind in HealthMetricKind.allCases {
+                trends[kind] = .failure(error)
+            }
+            return MockHealthDataService(fetchBehavior: .failure(error), summaries: summaries, trends: trends, sleepNights: .failure(error))
         case .needsAuthorization:
             let service = MockHealthDataService.demo()
             service.authorizationStatus = .shouldRequest
+            return service
+        case .insufficient:
+            let service = MockHealthDataService.demo()
+            let data = SimulatedHealthData(now: Date())
+            for kind in [HealthMetricKind.restingHeartRate, .heartRateVariability] {
+                service.setTrend(.value(data.trend(for: kind, days: 10)), for: kind)
+            }
+            service.setSleepNights(.value(data.sleepNights(days: 3)))
             return service
         }
     }
 
     func makeWorkoutHistoryService() -> any WorkoutHistoryService {
         switch self {
-        case .full, .needsAuthorization:
+        case .full, .needsAuthorization, .insufficient:
             return MockWorkoutHistoryService.demo()
         case .empty:
             return MockWorkoutHistoryService()
