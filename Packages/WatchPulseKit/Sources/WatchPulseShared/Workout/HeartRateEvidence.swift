@@ -99,19 +99,7 @@ public struct HeartRateEvidence: Hashable, Codable, Sendable {
         guard let series else { return .unavailable(reason: .notLoaded) }
 
         // 1. 清洗：非有限 / 超范围 / 窗口外 / 重复时间戳 → 异常（排除并计数，不修正）。
-        let windowStart = workout.startDate.addingTimeInterval(-configuration.windowTolerance)
-        let windowEnd = workout.endDate.addingTimeInterval(configuration.windowTolerance)
-        var valid: [HeartRatePoint] = []
-        var seen = Set<Date>()
-        // 同一时刻有多个样本时的取舍必须与输入顺序无关：按时间、再按（有限的）数值排序。
-        func sortValue(_ point: HeartRatePoint) -> Double { point.beatsPerMinute.isFinite ? point.beatsPerMinute : -1 }
-        let ordered = series.points.sorted { ($0.date, sortValue($0)) < ($1.date, sortValue($1)) }
-        for point in ordered {
-            let isValidValue = point.beatsPerMinute.isFinite && configuration.plausibleRange.contains(point.beatsPerMinute)
-            let inWindow = point.date >= windowStart && point.date <= windowEnd
-            guard isValidValue, inWindow, seen.insert(point.date).inserted else { continue }
-            valid.append(point)
-        }
+        let valid = validPoints(in: series.points, for: workout, configuration: configuration)
         let raw = series.points.count
         let anomalous = raw - valid.count
         guard !valid.isEmpty else {
@@ -173,5 +161,26 @@ public struct HeartRateEvidence: Hashable, Codable, Sendable {
             reasons: reasons,
             statistics: HeartRateSeriesStatistics(points: valid)
         )
+    }
+
+    /// 通过清洗的有效样本（按时间升序）。区间分布等派生计算应使用它，而不是原始样本。
+    public static func validPoints(
+        in points: [HeartRatePoint],
+        for workout: WorkoutRecord,
+        configuration: HeartRateEvidenceConfiguration = .init()
+    ) -> [HeartRatePoint] {
+        let windowStart = workout.startDate.addingTimeInterval(-configuration.windowTolerance)
+        let windowEnd = workout.endDate.addingTimeInterval(configuration.windowTolerance)
+        // 同一时刻有多个样本时的取舍必须与输入顺序无关：按时间、再按（有限的）数值排序。
+        func sortValue(_ point: HeartRatePoint) -> Double { point.beatsPerMinute.isFinite ? point.beatsPerMinute : -1 }
+        var valid: [HeartRatePoint] = []
+        var seen = Set<Date>()
+        for point in points.sorted(by: { ($0.date, sortValue($0)) < ($1.date, sortValue($1)) }) {
+            let isValidValue = point.beatsPerMinute.isFinite && configuration.plausibleRange.contains(point.beatsPerMinute)
+            let inWindow = point.date >= windowStart && point.date <= windowEnd
+            guard isValidValue, inWindow, seen.insert(point.date).inserted else { continue }
+            valid.append(point)
+        }
+        return valid
     }
 }
