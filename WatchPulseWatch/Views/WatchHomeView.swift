@@ -294,27 +294,33 @@ private struct WatchZoneSettingsView: View {
     var body: some View {
         List {
             Section {
+                // watchOS 的 Stepper 把标签放大显示在中间，只放数字，单位写在分组标题里，避免换行。
                 Stepper(value: $maximum, in: HeartRateZoneSettings.maximumRange) {
-                    Text("\(maximum) 次/分").monospacedDigit()
+                    stepperValue("\(maximum)")
                 }
             } header: {
-                Text("最大心率")
+                Text("最大心率（次/分）")
             } footer: {
                 Text("请输入你实测或已知的最大心率。WatchPulse 不用年龄公式推算。")
             }
 
-            Section("区间") {
+            Section("区间（次/分）") {
                 Toggle("自定义下限", isOn: $isCustom)
                 if isCustom {
                     ForEach(TrainingZone.allCases) { zone in
-                        Stepper(value: $bounds[zone.rawValue - 1], in: HeartRateZoneSettings.minimumBoundary...(maximum - 1)) {
-                            Text("\(zone.title) ≥ \(bounds[zone.rawValue - 1])").monospacedDigit()
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(zone.title) \(zone.name) 下限").font(.footnote).foregroundStyle(.secondary)
+                            Stepper(value: $bounds[zone.rawValue - 1], in: HeartRateZoneSettings.minimumBoundary...(maximum - 1)) {
+                                stepperValue("\(bounds[zone.rawValue - 1])")
+                            }
                         }
                     }
                 } else if let preview = try? HeartRateZoneSettings.percentOfMaximum(maximum) {
                     ForEach(TrainingZone.allCases) { zone in
                         Text("\(zone.title) \(preview.range(of: zone).lowerBound)–\(preview.range(of: zone).upperBound)")
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                 }
                 Button("保存区间") { saveZones() }
@@ -353,6 +359,15 @@ private struct WatchZoneSettingsView: View {
             alert = store.alert
             environment.applyZoneSettings()
         }
+    }
+
+    /// Stepper 中间的数值：单行，空间不够时缩小而不是换行。
+    private func stepperValue(_ text: String) -> some View {
+        Text(text)
+            .font(.title3.weight(.semibold))
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
     }
 
     private func saveZones() {
