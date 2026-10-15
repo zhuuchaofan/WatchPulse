@@ -3,7 +3,8 @@
 日常健康监控 + Apple Watch 实时运动监控应用（iOS + watchOS，SwiftUI + HealthKit，无后端、无第三方 SDK）。
 
 > **验证状态**：所有功能已在云端完成编译（iOS / watchOS 模拟器与真机架构）和自动化测试（单元、模拟端到端、稳定性、演示模式 UI 测试）。
-> **尚未在真机上验证**。编译成功和模拟测试通过都不等于真机功能验收，真机清单见 [docs/DEVICE_VALIDATION.md](docs/DEVICE_VALIDATION.md)。
+> iPhone 端已在真机上验证部分数据读取（最新心率、静息心率、HRV、步数、活动能量、运动详情与心率曲线）；**Apple Watch 运动、镜像与保存尚未在真机上验证**。
+> 编译成功和模拟测试通过都不等于真机功能验收，逐项结果见 [docs/DEVICE_VALIDATION.md](docs/DEVICE_VALIDATION.md)。
 
 架构与设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 
@@ -52,7 +53,7 @@
    WATCHPULSE_BUNDLE_ID = com.你的标识.WatchPulse
    ```
 2. 打开 `WatchPulse.xcodeproj`，在 Signing & Capabilities 中确认 `WatchPulse`、`WatchPulseWatch` 两个 target 的 Team 正确、**HealthKit** capability 已显示。
-3. 选择 `WatchPulse` scheme 和 iPhone，⌘R 运行。首次需信任开发者证书并开启开发者模式。Watch App 会随 iPhone App 安装，也可直接用 `WatchPulseWatch` scheme 运行到手表。
+3. 选择 `WatchPulse` scheme 和 iPhone，⌘R 运行。首次需信任开发者证书并开启开发者模式。Watch App 请用 `WatchPulseWatch` scheme 直接运行到手表（个人团队签名下，经 iPhone「Watch」App 安装会提示“无法验证其完整性”），步骤与排障见 [docs/WATCH_DEVICE_SETUP.md](docs/WATCH_DEVICE_SETUP.md)。
 4. 按 [docs/DEVICE_VALIDATION.md](docs/DEVICE_VALIDATION.md) 逐项验证并记录结果。
 
 ## 测试
