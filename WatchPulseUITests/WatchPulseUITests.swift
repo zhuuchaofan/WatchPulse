@@ -66,6 +66,17 @@ final class WatchPulseUITests: XCTestCase {
     }
 
     @MainActor
+    func testHeartRateDetailsCollapsedByDefault() {
+        let app = launch()
+        XCTAssertTrue(element(app, "dashboard.heartRateCard").waitForExistence(timeout: 15))
+        XCTAssertTrue(element(app, "heartRate.ago").exists)
+        // 技术细节默认收起，点开“数据详情”才显示。
+        XCTAssertFalse(app.staticTexts["来源标识"].exists)
+        app.buttons["数据详情"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["来源标识"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testTrendScreenSwitchesPeriods() {
         let app = launch()
         XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 15))
