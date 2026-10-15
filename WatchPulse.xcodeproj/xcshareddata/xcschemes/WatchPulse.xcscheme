@@ -61,6 +61,17 @@
                ReferencedContainer = "container:Packages/WatchPulseKit">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "531E1D1F3B7DE232B5469555"
+               BuildableName = "WatchPulseUITests.xctest"
+               BlueprintName = "WatchPulseUITests"
+               ReferencedContainer = "container:WatchPulse.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

@@ -173,3 +173,31 @@ final class HeartRateSeriesTests: XCTestCase {
         XCTAssertNil(HeartRateSeriesStatistics(points: []))
     }
 }
+
+final class CodecRobustnessTests: XCTestCase {
+    func testInvalidUTF8IsRejectedNotCrashing() {
+        let data = Data([0x7B, 0x22, 0xC3, 0x28, 0xFF, 0xFE, 0x22, 0x7D])
+        XCTAssertThrowsError(try WorkoutMirroringCodec.decode(data)) { error in
+            XCTAssertEqual(error as? WorkoutMirroringCodec.CodecError, .malformedPayload)
+        }
+    }
+
+    func testRebasedKeepsElapsedAndMovesTimestampForwardOnly() {
+        let metrics = WorkoutMetricsSnapshot(timestamp: Date(timeIntervalSince1970: 100), elapsedTime: 60, heartRateBPM: 120)
+        let resumed = metrics.rebased(to: Date(timeIntervalSince1970: 400))
+        XCTAssertEqual(resumed.elapsedTime, 60)
+        XCTAssertEqual(resumed.elapsedTime(at: Date(timeIntervalSince1970: 410), isRunning: true), 70)
+        XCTAssertEqual(metrics.rebased(to: Date(timeIntervalSince1970: 50)).timestamp, metrics.timestamp)
+    }
+}
+
+final class CodecFuzzTests: XCTestCase {
+    func testControlCharactersAndRandomBytesAreRejected() {
+        XCTAssertThrowsError(try WorkoutMirroringCodec.decode(Data([0x7B, 0x22, 0x61, 0x04, 0x22, 0x3A, 0x31, 0x7D])))
+        var generator = SystemRandomNumberGenerator()
+        for _ in 0..<5_000 {
+            let bytes = (0..<Int.random(in: 0...64, using: &generator)).map { _ in UInt8.random(in: 0...255, using: &generator) }
+            _ = try? WorkoutMirroringCodec.decode(Data(bytes))
+        }
+    }
+}

@@ -20,6 +20,7 @@
 		72998FC3C9A0EF87F6708179 /* HeartRateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC593086560A2F9EF04199F /* HeartRateCard.swift */; };
 		7677D911E53BA8F6CAC2A8E5 /* WatchPulseWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */; };
 		89FB024E94A4D613F8745939 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 228A296A6B9394F26F079ADA /* WatchPulseCore */; };
+		8A1A9ED601C3719574137CC2 /* WatchPulseUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5F587BF96769682F11DCF6FA /* WatchPulseUITests.swift */; };
 		9A7EAA85DFC615FFB9B21025 /* LiveWorkoutDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */; };
 		B35A8A43798B3E5B28794004 /* MetricSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F5D60F7CDF979CAF207CCF /* MetricSummaryCard.swift */; };
 		B62A603470186DA8EC47DD66 /* DemoModeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */; };
@@ -34,6 +35,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		D105987A06BBF92725E239B5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 345D012C7895D3FA0BC3066F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 883119ABAC881FAA89DDC4D5;
+			remoteInfo = WatchPulse;
+		};
 		FDCA6B71D0509D3C98027172 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 345D012C7895D3FA0BC3066F /* Project object */;
@@ -59,6 +67,7 @@
 
 /* Begin PBXFileReference section */
 		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
+		02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WatchPulseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		15846F47C632321DC91AA219 /* WorkoutHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHomeView.swift; sourceTree = "<group>"; };
 		3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryViews.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
@@ -67,6 +76,7 @@
 		4D4AD3550B8FAC2849ABD2BA /* HealthKitWorkoutSessionDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutSessionDriver.swift; sourceTree = "<group>"; };
 		4EB377CC56184FEE411652BA /* WatchPulse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulse.entitlements; sourceTree = "<group>"; };
 		57F5D60F7CDF979CAF207CCF /* MetricSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricSummaryCard.swift; sourceTree = "<group>"; };
+		5F587BF96769682F11DCF6FA /* WatchPulseUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseUITests.swift; sourceTree = "<group>"; };
 		64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitMirroringReceiver.swift; sourceTree = "<group>"; };
 		69285459661FE21B2ABB2CE6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EC593086560A2F9EF04199F /* HeartRateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateCard.swift; sourceTree = "<group>"; };
@@ -121,6 +131,14 @@
 				D27B60D65C47BA37CBC75C9E /* Assets.xcassets */,
 			);
 			path = Resources;
+			sourceTree = "<group>";
+		};
+		162EF456A60815BB1D410004 /* WatchPulseUITests */ = {
+			isa = PBXGroup;
+			children = (
+				5F587BF96769682F11DCF6FA /* WatchPulseUITests.swift */,
+			);
+			path = WatchPulseUITests;
 			sourceTree = "<group>";
 		};
 		186FD809F817F917DD106598 /* Views */ = {
@@ -195,6 +213,7 @@
 			isa = PBXGroup;
 			children = (
 				7232AB9E0CBD11A3430A9600 /* WatchPulse.app */,
+				02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */,
 				88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */,
 			);
 			name = Products;
@@ -253,6 +272,7 @@
 				4D81E7A49844866E332F4806 /* Config */,
 				A3237228CE6064DCFD36BE3D /* Packages */,
 				7DAB9D4AAB0AB7BD63377453 /* WatchPulse */,
+				162EF456A60815BB1D410004 /* WatchPulseUITests */,
 				1C08006261FD1BA580B5E5A6 /* WatchPulseWatch */,
 				73A597B9DDDC2DF4BF59EB0F /* Products */,
 			);
@@ -289,6 +309,24 @@
 			productName = WatchPulseWatch;
 			productReference = 88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */;
 			productType = "com.apple.product-type.application";
+		};
+		531E1D1F3B7DE232B5469555 /* WatchPulseUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0E18AF32529E861B356F0B3 /* Build configuration list for PBXNativeTarget "WatchPulseUITests" */;
+			buildPhases = (
+				86DB89545F95D9258411C87A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				44E3B6E49075D6ECCD85AB7D /* PBXTargetDependency */,
+			);
+			name = WatchPulseUITests;
+			packageProductDependencies = (
+			);
+			productName = WatchPulseUITests;
+			productReference = 02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 		883119ABAC881FAA89DDC4D5 /* WatchPulse */ = {
 			isa = PBXNativeTarget;
@@ -331,6 +369,11 @@
 							};
 						};
 					};
+					531E1D1F3B7DE232B5469555 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+						TestTargetID = 883119ABAC881FAA89DDC4D5;
+					};
 					883119ABAC881FAA89DDC4D5 = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -360,6 +403,7 @@
 			projectRoot = "";
 			targets = (
 				883119ABAC881FAA89DDC4D5 /* WatchPulse */,
+				531E1D1F3B7DE232B5469555 /* WatchPulseUITests */,
 				0694CD5F05E4565C2C2493D1 /* WatchPulseWatch */,
 			);
 		};
@@ -416,9 +460,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		86DB89545F95D9258411C87A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8A1A9ED601C3719574137CC2 /* WatchPulseUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		44E3B6E49075D6ECCD85AB7D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 883119ABAC881FAA89DDC4D5 /* WatchPulse */;
+			targetProxy = D105987A06BBF92725E239B5 /* PBXContainerItemProxy */;
+		};
 		A8EB854C6934EFDA9E1B5AA3 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0694CD5F05E4565C2C2493D1 /* WatchPulseWatch */;
@@ -538,6 +595,42 @@
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				TARGETED_DEVICE_FAMILY = 4;
+			};
+			name = Debug;
+		};
+		9C9DF7698286FFFDE51C885A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WATCHPULSE_BUNDLE_ID).uitests";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = WatchPulse;
+			};
+			name = Release;
+		};
+		A3496464124DCA6DF8B408E2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WATCHPULSE_BUNDLE_ID).uitests";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_TARGET_NAME = WatchPulse;
 			};
 			name = Debug;
 		};
@@ -665,6 +758,15 @@
 			buildConfigurations = (
 				87D1AF6535888F0CCF63412F /* Debug */,
 				B6D8322C787FEEB8E1500B61 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D0E18AF32529E861B356F0B3 /* Build configuration list for PBXNativeTarget "WatchPulseUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A3496464124DCA6DF8B408E2 /* Debug */,
+				9C9DF7698286FFFDE51C885A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

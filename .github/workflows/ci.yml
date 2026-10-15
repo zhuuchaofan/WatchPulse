@@ -8,7 +8,7 @@ on:
 jobs:
   build-and-test:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
@@ -56,6 +56,9 @@ jobs:
           grep -hE "(\.swift|\.plist|\.xcassets).*warning:" build-*.log | sort -u > warnings.txt || true
           echo "Unique source warnings: $(wc -l < warnings.txt)"
           head -50 warnings.txt
+          # 以 annotation 形式上报，便于通过 API 查看。
+          head -20 warnings.txt | while IFS= read -r line; do echo "::warning title=compiler::${line}"; done
+          echo "::notice title=warning-count::$(wc -l < warnings.txt) unique source warnings"
 
       - name: Inspect built app bundle
         run: |
@@ -64,7 +67,7 @@ jobs:
           test -d "$APP/Watch/WatchPulseWatch.app"
           plutil -p "$APP/Watch/WatchPulseWatch.app/Info.plist" | grep -E "WKApplication|WKCompanionAppBundleIdentifier|NSHealth|workout-processing"
 
-      - name: Run package tests on iOS Simulator via Xcode scheme
+      - name: Run package tests and UI tests (demo mode) on iOS Simulator
         run: |
           set -o pipefail
           UDID=$(xcrun simctl list devices available -j | python3 -c '

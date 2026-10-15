@@ -13,6 +13,8 @@ final class AppEnvironment {
     static let shared = AppEnvironment()
 
     static let demoModeKey = "WatchPulseDemoMode"
+    /// 演示场景：`-WatchPulseDemoScenario full|empty|failure|needsAuthorization`，用于 UI 测试覆盖各种状态。
+    static let demoScenarioKey = "WatchPulseDemoScenario"
 
     let isDemoMode: Bool
     let healthDataService: any HealthDataService
@@ -25,8 +27,9 @@ final class AppEnvironment {
     init(defaults: UserDefaults = .standard) {
         isDemoMode = defaults.bool(forKey: Self.demoModeKey)
         if isDemoMode {
-            healthDataService = MockHealthDataService.demo()
-            workoutHistoryService = MockWorkoutHistoryService.demo()
+            let scenario = DemoScenario(rawValue: defaults.string(forKey: Self.demoScenarioKey) ?? "") ?? .full
+            healthDataService = scenario.makeHealthDataService()
+            workoutHistoryService = scenario.makeWorkoutHistoryService()
             liveWorkoutMonitor = LiveWorkoutMonitor(dataOrigin: .simulated)
             simulatedWorkout = SimulatedMirroredWorkout(monitor: liveWorkoutMonitor)
             mirroringReceiver = nil
@@ -47,6 +50,45 @@ final class AppEnvironment {
     /// 在 App 启动早期调用，注册镜像会话回调。
     func startWorkoutMirroring() {
         mirroringReceiver?.start()
+    }
+}
+
+/// 演示模式下的数据场景（全部为模拟数据）。
+enum DemoScenario: String {
+    case full
+    case empty
+    case failure
+    case needsAuthorization
+
+    func makeHealthDataService() -> any HealthDataService {
+        switch self {
+        case .full:
+            return MockHealthDataService.demo()
+        case .empty:
+            return MockHealthDataService()
+        case .failure:
+            let error = HealthDataError.protectedDataUnavailable
+            var summaries: [HealthMetricKind: MockHealthDataService.Behavior<MetricSummaryValue>] = [:]
+            for kind in HealthMetricKind.allCases {
+                summaries[kind] = .failure(error)
+            }
+            return MockHealthDataService(fetchBehavior: .failure(error), summaries: summaries)
+        case .needsAuthorization:
+            let service = MockHealthDataService.demo()
+            service.authorizationStatus = .shouldRequest
+            return service
+        }
+    }
+
+    func makeWorkoutHistoryService() -> any WorkoutHistoryService {
+        switch self {
+        case .full, .needsAuthorization:
+            return MockWorkoutHistoryService.demo()
+        case .empty:
+            return MockWorkoutHistoryService()
+        case .failure:
+            return MockWorkoutHistoryService(workouts: .failure(.protectedDataUnavailable))
+        }
     }
 }
 

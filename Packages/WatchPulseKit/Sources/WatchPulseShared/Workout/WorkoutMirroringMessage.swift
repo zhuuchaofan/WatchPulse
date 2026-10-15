@@ -111,6 +111,12 @@ public enum WorkoutMirroringCodec {
         guard data.count <= maximumPayloadSize else {
             throw CodecError.payloadTooLarge(data.count)
         }
+        // 先用 JSONSerialization 校验：部分 Foundation 版本的 JSONDecoder 遇到非法 UTF-8 或
+        // 字符串中的控制字符会直接崩溃（内部 try!）而不是抛错。消息很小，二次解析开销可忽略。
+        guard String(data: data, encoding: .utf8) != nil,
+              (try? JSONSerialization.jsonObject(with: data)) is [String: Any] else {
+            throw CodecError.malformedPayload
+        }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .secondsSince1970
 

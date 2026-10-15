@@ -33,4 +33,15 @@ extension WorkoutMetricsSnapshot {
         guard isRunning else { return elapsedTime }
         return elapsedTime + max(0, date.timeIntervalSince(timestamp))
     }
+
+    /// 以 `date` 为新的时间基准（用于暂停后继续：暂停期间不计时）。
+    public func rebased(to date: Date) -> WorkoutMetricsSnapshot {
+        WorkoutMetricsSnapshot(
+            timestamp: max(date, timestamp),
+            elapsedTime: elapsedTime,
+            heartRateBPM: heartRateBPM,
+            activeEnergyKilocalories: activeEnergyKilocalories,
+            distanceMeters: distanceMeters
+        )
+    }
 }

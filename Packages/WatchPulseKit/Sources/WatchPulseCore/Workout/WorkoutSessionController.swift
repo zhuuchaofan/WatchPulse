@@ -220,6 +220,9 @@ public final class WorkoutSessionController {
         switch event {
         case .phaseChanged(let newPhase, let date):
             guard newPhase != phase, newPhase != .notStarted else { return }
+            if phase == .paused, newPhase == .running {
+                latestMetrics = latestMetrics?.rebased(to: date)
+            }
             phase = newPhase
             send(.phaseChanged(newPhase, at: date))
 

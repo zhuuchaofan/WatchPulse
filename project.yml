@@ -94,6 +94,21 @@ targets:
       - package: WatchPulseKit
         product: WatchPulseCore
 
+  WatchPulseUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: WatchPulseUITests
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: $(WATCHPULSE_BUNDLE_ID).uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: WatchPulse
+        TARGETED_DEVICE_FAMILY: "1"
+        SWIFT_VERSION: "5.0"
+    dependencies:
+      - target: WatchPulse
+
 schemes:
   WatchPulse:
     build:
@@ -106,8 +121,19 @@ schemes:
       targets:
         - package: WatchPulseKit/WatchPulseSharedTests
         - package: WatchPulseKit/WatchPulseCoreTests
+        - WatchPulseUITests
     archive:
       config: Release
+
+  # 演示模式：全部为模拟数据，用于无真机时查看界面。不能作为真机验收依据。
+  WatchPulse Demo:
+    build:
+      targets:
+        WatchPulse: all
+    run:
+      config: Debug
+      commandLineArguments:
+        "-WatchPulseDemoMode YES": true
 
   WatchPulseWatch:
     build:
@@ -117,3 +143,12 @@ schemes:
       config: Debug
     archive:
       config: Release
+
+  WatchPulseWatch Demo:
+    build:
+      targets:
+        WatchPulseWatch: all
+    run:
+      config: Debug
+      commandLineArguments:
+        "-WatchPulseDemoMode YES": true

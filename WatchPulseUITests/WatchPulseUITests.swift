@@ -1,0 +1,162 @@
+import XCTest
+
+/// iOS 模拟器上的界面流程测试。**全部在演示模式（模拟数据）下运行**，只验证界面状态与交互流程，
+/// 不代表真机 HealthKit / Apple Watch 功能验收。
+final class WatchPulseUITests: XCTestCase {
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    private func launch(scenario: String = "full") -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments += ["-WatchPulseDemoMode", "YES", "-WatchPulseDemoScenario", scenario]
+        app.launch()
+        return app
+    }
+
+    @MainActor
+    private func element(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any)[identifier].firstMatch
+    }
+
+    @MainActor
+    private func waitForLabel(_ element: XCUIElement, contains text: String, timeout: TimeInterval = 10, file: StaticString = #filePath, line: UInt = #line) {
+        let predicate = NSPredicate(format: "label CONTAINS %@", text)
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        let result = XCTWaiter().wait(for: [expectation], timeout: timeout)
+        XCTAssertEqual(result, .completed, "“\(element.label)” 不包含 “\(text)”", file: file, line: line)
+    }
+
+    // MARK: - 健康总览
+
+    @MainActor
+    func testDashboardShowsSimulatedDataBannerAndMetrics() {
+        let app = launch()
+        XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 15), "模拟数据必须有明确标注")
+        XCTAssertTrue(element(app, "dashboard.heartRateCard").exists)
+        XCTAssertTrue(element(app, "metricCard.restingHeartRate").exists)
+        XCTAssertTrue(element(app, "metricCard.stepCount").exists)
+        let simulatedSource = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "模拟数据（非真实）"))
+            .firstMatch
+        XCTAssertTrue(simulatedSource.exists, "示例心率的来源必须标注为非真实")
+    }
+
+    @MainActor
+    func testTrendScreenSwitchesPeriods() {
+        let app = launch()
+        let steps = element(app, "metricCard.stepCount")
+        XCTAssertTrue(steps.waitForExistence(timeout: 15))
+        steps.tap()
+
+        XCTAssertTrue(element(app, "trend.chart").waitForExistence(timeout: 10))
+        XCTAssertTrue(element(app, "demoBanner").exists)
+        app.buttons["30 天"].tap()
+        XCTAssertTrue(element(app, "trend.chart").waitForExistence(timeout: 10))
+        app.buttons["90 天"].tap()
+        XCTAssertTrue(element(app, "trend.chart").waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testNeedsAuthorizationThenLoads() {
+        let app = launch(scenario: "needsAuthorization")
+        let authorize = element(app, "dashboard.authorize")
+        XCTAssertTrue(authorize.waitForExistence(timeout: 15))
+        authorize.tap()
+        XCTAssertTrue(element(app, "dashboard.heartRateCard").waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testEmptyScenarioShowsNoDataWithoutClaimingDenial() {
+        let app = launch(scenario: "empty")
+        XCTAssertTrue(app.staticTexts["暂无可读取的健康数据"].waitForExistence(timeout: 15))
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "拒绝")).firstMatch.exists)
+    }
+
+    @MainActor
+    func testFailureScenarioShowsErrorAndRetry() {
+        let app = launch(scenario: "failure")
+        XCTAssertTrue(app.staticTexts["读取失败"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["重试"].exists)
+        app.buttons["重试"].tap()
+        XCTAssertTrue(app.staticTexts["读取失败"].waitForExistence(timeout: 10))
+    }
+
+    // MARK: - 运动记录
+
+    @MainActor
+    func testWorkoutHistoryDetailShowsHeartRateCurve() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+
+        let row = element(app, "workout.history.row")
+        for _ in 0..<5 where !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        XCTAssertTrue(element(app, "workoutDetail.heartRateChart").waitForExistence(timeout: 10))
+        XCTAssertTrue(element(app, "demoBanner").exists)
+    }
+
+    @MainActor
+    func testWorkoutHistoryFailureScenario() {
+        let app = launch(scenario: "failure")
+        app.tabBars.buttons["运动"].tap()
+        XCTAssertTrue(element(app, "loadState.failed").waitForExistence(timeout: 10))
+    }
+
+    // MARK: - 实时运动（模拟 Apple Watch）
+
+    @MainActor
+    func testSimulatedLiveWorkoutControlOutageRecoveryAndEnd() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+        XCTAssertTrue(element(app, "workout.waiting").waitForExistence(timeout: 10))
+
+        element(app, "demo.start.running").tap()
+        let liveRow = element(app, "workout.liveRow")
+        XCTAssertTrue(liveRow.waitForExistence(timeout: 10))
+        liveRow.tap()
+
+        let phase = element(app, "live.phase")
+        XCTAssertTrue(phase.waitForExistence(timeout: 10))
+        waitForLabel(phase, contains: "进行中")
+        XCTAssertTrue(element(app, "demoBanner").exists)
+        waitForLabel(element(app, "live.heartRate"), contains: "次/分")
+
+        // iPhone → Watch：暂停 / 继续。
+        element(app, "live.pause").tap()
+        waitForLabel(phase, contains: "已暂停")
+        element(app, "live.resume").tap()
+        waitForLabel(phase, contains: "进行中")
+
+        // 模拟断线：仪表盘显示断开，命令被拒绝。
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        element(app, "demo.beginOutage").tap()
+        liveRow.tap()
+        waitForLabel(element(app, "live.connection"), contains: "断开")
+        element(app, "live.pause").tap()
+        waitForLabel(element(app, "live.commandError"), contains: "未连接")
+
+        // 恢复：Watch 端自动重连，仪表盘回到已连接。
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        element(app, "demo.endOutage").tap()
+        liveRow.tap()
+        waitForLabel(element(app, "live.connection"), contains: "已连接", timeout: 40)
+
+        // 结束运动。
+        element(app, "live.end").tap()
+        let confirm = app.buttons["结束并保存"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+        waitForLabel(phase, contains: "已结束")
+        element(app, "live.done").tap()
+
+        // 模拟运动加入了运动记录。
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(element(app, "workout.waiting").waitForExistence(timeout: 10))
+    }
+}

@@ -182,7 +182,10 @@ public final class LiveWorkoutMonitor {
             if let metrics = snapshot.metrics {
                 applyMetrics(metrics)
             }
-        case .phaseChanged(let newPhase, _):
+        case .phaseChanged(let newPhase, let date):
+            if phase == .paused, newPhase == .running {
+                latestMetrics = latestMetrics?.rebased(to: date)
+            }
             updatePhase(newPhase)
         case .metrics(let metrics):
             applyMetrics(metrics)
