@@ -50,8 +50,15 @@ final class WatchPulseUITests: XCTestCase {
         let app = launch()
         XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 15), "模拟数据必须有明确标注")
         XCTAssertTrue(element(app, "dashboard.heartRateCard").exists)
-        XCTAssertTrue(element(app, "metricCard.restingHeartRate").exists)
-        XCTAssertTrue(element(app, "metricCard.stepCount").exists)
+        // 演示心率并非来自 Apple Watch，卡片会显示来源提示。
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "非 Apple Watch")).firstMatch.exists)
+        // 卡片在懒加载网格中，可能需要滚动才会创建。
+        for identifier in ["metricCard.restingHeartRate", "metricCard.stepCount"] {
+            let card = element(app, identifier)
+            scrollTo(card, in: app)
+            XCTAssertTrue(card.exists, identifier)
+        }
         let simulatedSource = app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", "模拟数据（非真实）"))
             .firstMatch
@@ -61,8 +68,10 @@ final class WatchPulseUITests: XCTestCase {
     @MainActor
     func testTrendScreenSwitchesPeriods() {
         let app = launch()
+        XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 15))
         let steps = element(app, "metricCard.stepCount")
-        XCTAssertTrue(steps.waitForExistence(timeout: 15))
+        scrollTo(steps, in: app)
+        XCTAssertTrue(steps.waitForExistence(timeout: 5))
         steps.tap()
 
         XCTAssertTrue(element(app, "trend.chart").waitForExistence(timeout: 10))
