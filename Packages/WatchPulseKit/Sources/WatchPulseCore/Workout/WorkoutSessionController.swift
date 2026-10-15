@@ -255,7 +255,10 @@ public final class WorkoutSessionController {
             if lastError == .mirroringUnavailable {
                 lastError = nil
             }
-            sendStateSync()
+            // 恢复流程中镜像可能先于状态恢复建立：此时还没有可同步的运动，恢复完成后会再同步。
+            if phase.isActive {
+                sendStateSync()
+            }
 
         case .mirroringDisconnected:
             markDisconnected()

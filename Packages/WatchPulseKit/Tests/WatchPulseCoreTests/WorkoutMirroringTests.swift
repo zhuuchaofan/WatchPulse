@@ -245,6 +245,12 @@ final class WorkoutSessionControllerTests: XCTestCase {
 
         XCTAssertEqual(controller.phase, .running)
         XCTAssertEqual(controller.startDate, start)
+        // 恢复过程中镜像先于状态恢复建立时，不能先发一条“未开始”的状态。
+        XCTAssertFalse(sender.messages.contains { message in
+            if case .stateSync(let snapshot) = message { return !snapshot.phase.isActive }
+            return false
+        }, "\(sender.messages)")
+        XCTAssertEqual(Set(sender.sent.map(\.sessionID)), [controller.sessionID])
         XCTAssertEqual(controller.elapsedTime(at: clock.date), 600)
         guard case .stateSync(let snapshot)? = sender.messages.last else { return XCTFail() }
         XCTAssertEqual(snapshot.startDate, start)
