@@ -34,6 +34,14 @@ struct MetricSummaryCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
+                if let baseline = card.baseline {
+                    Text(baseline.shortText)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(baseline.sufficiency == .sufficient ? Color.primary : Color.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .accessibilityIdentifier("card.baseline.\(card.kind.rawValue)")
+                }
 
             case .noData:
                 Text("—")
