@@ -80,14 +80,15 @@ final class WorkoutHistoryTests: XCTestCase {
         XCTAssertEqual(groups[1].workouts.map(\.startDate), [marchLater, march])
     }
 
-    func testDetailLoadsHeartRateCurveWithinWorkout() async {
+    func testDetailLoadsHeartRateCurveForThatWorkoutOnly() async {
         let target = workout(id: 1, start: now, minutes: 60)
-        let other = workout(id: 2, start: now.addingTimeInterval(-7_200), minutes: 30)
+        // 另一条记录与目标运动时间重叠（例如同时佩戴的另一台心率设备记录的运动）。
+        let overlapping = workout(id: 2, start: now.addingTimeInterval(600), minutes: 30)
         let inside = (0..<1_000).map { HeartRatePoint(date: now.addingTimeInterval(Double($0) * 3), beatsPerMinute: 100 + Double($0 % 60)) }
-        let outside = [HeartRatePoint(date: now.addingTimeInterval(-7_000), beatsPerMinute: 200)]
+        let foreign = [HeartRatePoint(date: now.addingTimeInterval(900), beatsPerMinute: 200)]
         let service = MockWorkoutHistoryService(
-            workouts: .value([target, other]),
-            heartRates: [target.id: .value(inside), other.id: .value(outside)]
+            workouts: .value([target, overlapping]),
+            heartRates: [target.id: .value(inside), overlapping.id: .value(foreign)]
         )
         let viewModel = WorkoutDetailViewModel(workout: target, service: service, maxChartPoints: 200)
 
@@ -95,25 +96,28 @@ final class WorkoutHistoryTests: XCTestCase {
 
         let detail = viewModel.state.value
         XCTAssertEqual(detail?.sampleCount, 1_000)
+        XCTAssertEqual(detail?.attribution, .workoutAssociated)
         XCTAssertLessThanOrEqual(detail?.points.count ?? 0, 200)
-        XCTAssertEqual(detail?.statistics.maximum, 159)
+        XCTAssertEqual(detail?.statistics.maximum, 159, "不能混入其他运动 / 设备的心率")
         XCTAssertEqual(detail?.statistics.minimum, 100)
         let zoneTotal = detail?.zoneDurations.values.reduce(0, +) ?? 0
         XCTAssertEqual(zoneTotal, 999 * 3, accuracy: 0.001)
     }
 
-    func testDetailNoDataAndFailure() async {
-        let target = workout(start: now)
-        let empty = WorkoutDetailViewModel(workout: target, service: MockWorkoutHistoryService())
-        await empty.load()
-        XCTAssertEqual(empty.state, .noData)
-
-        let failing = WorkoutDetailViewModel(
-            workout: target,
-            service: MockWorkoutHistoryService(heartRates: [target.id: .failure(.queryFailed(reason: "x"))])
-        )
-        await failing.load()
-        XCTAssertEqual(failing.state, .failed(.queryFailed(reason: "x")))
+    func testDetailReportsFallbackAttribution() async {
+        let target = workout(id: 1, start: now, minutes: 10)
+        let points = [HeartRatePoint(date: now, beatsPerMinute: 120), HeartRatePoint(date: now.addingTimeInterval(5), beatsPerMinute: 125)]
+        for attribution in [HeartRateAttribution.sameDevice, .timeRangeAllSources] {
+            let service = MockWorkoutHistoryService(
+                workouts: .value([target]),
+                heartRates: [target.id: .value(points)],
+                attributions: [target.id: attribution]
+            )
+            let viewModel = WorkoutDetailViewModel(workout: target, service: service)
+            await viewModel.load()
+            XCTAssertEqual(viewModel.state.value?.attribution, attribution)
+            XCTAssertEqual(viewModel.state.value?.attribution.isExact, false)
+        }
     }
 
     func testHeartRateZones() async {

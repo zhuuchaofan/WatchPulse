@@ -58,6 +58,30 @@ public struct HeartRatePoint: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
+/// 运动心率曲线的数据归属方式。
+public enum HeartRateAttribution: Hashable, Codable, Sendable {
+    /// 与该运动关联的样本（`HKQuery.predicateForObjects(from: workout)`），最准确。
+    case workoutAssociated
+    /// 运动没有关联样本，按运动时间段读取与运动同一设备的样本。
+    case sameDevice
+    /// 无法确定设备，按运动时间段读取所有来源的样本，可能混入其他设备数据。
+    case timeRangeAllSources
+
+    /// 是否确定只包含该运动本身的心率。
+    public var isExact: Bool { self == .workoutAssociated }
+}
+
+/// 一次运动的心率曲线及其数据归属。
+public struct WorkoutHeartRateSeries: Hashable, Sendable {
+    public let points: [HeartRatePoint]
+    public let attribution: HeartRateAttribution
+
+    public init(points: [HeartRatePoint], attribution: HeartRateAttribution) {
+        self.points = points
+        self.attribution = attribution
+    }
+}
+
 /// 心率曲线统计。
 public struct HeartRateSeriesStatistics: Hashable, Codable, Sendable {
     public let minimum: Double

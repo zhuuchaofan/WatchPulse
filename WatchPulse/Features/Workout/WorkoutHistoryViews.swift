@@ -136,6 +136,12 @@ struct WorkoutDetailView: View {
                     Text("共 \(detail.sampleCount) 个心率样本")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    if let note = Self.attributionNote(detail.attribution) {
+                        Label(note, systemImage: "exclamationmark.triangle")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                            .accessibilityIdentifier("workoutDetail.attributionNote")
+                    }
                 }
             }
 
@@ -164,6 +170,18 @@ struct WorkoutDetailView: View {
             Text("\(Int(value.rounded())) 次/分").font(.subheadline.weight(.semibold)).monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 心率曲线不是与该运动关联的样本时，说明数据来源，避免误以为全部来自本次运动。
+    static func attributionNote(_ attribution: HeartRateAttribution) -> String? {
+        switch attribution {
+        case .workoutAssociated:
+            return nil
+        case .sameDevice:
+            return "该运动没有关联心率样本，曲线按运动时间段读取同一设备的心率。"
+        case .timeRangeAllSources:
+            return "该运动没有关联心率样本，曲线按运动时间段读取所有来源的心率，可能包含其他设备的数据。"
+        }
     }
 
     static func pace(seconds: TimeInterval, meters: Double) -> String {

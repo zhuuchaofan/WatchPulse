@@ -42,6 +42,11 @@ public struct HeartRateSample: Identifiable, Hashable, Codable, Sendable {
 
 /// 样本来源信息，对应 `HKSourceRevision` 与 `HKDevice`。
 public struct HealthSampleSource: Hashable, Codable, Sendable {
+    /// 是否来自 Apple Watch（`HKDevice.model == "Watch"` 或硬件型号以 `Watch` 开头）。
+    public var isAppleWatch: Bool {
+        deviceModel == "Watch" || (productType?.hasPrefix("Watch") ?? false)
+    }
+
     /// 来源名称，例如 “Apple Watch”。
     public let name: String
     /// 来源 Bundle ID，例如 `com.apple.health.xxxx`。

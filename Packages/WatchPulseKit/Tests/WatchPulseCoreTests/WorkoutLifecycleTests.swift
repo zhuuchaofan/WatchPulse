@@ -188,18 +188,23 @@ final class ConnectionWatchdogTests: XCTestCase {
         )))
         XCTAssertEqual(monitor.connection, .connected)
 
-        var ticks = 0
+        let start = clock.date
+        var staleObservedAt: Date?
+        // 每次“睡眠”推进 5 秒；在推进前记录看门狗上一轮是否已判定为信号弱。
         monitor.startConnectionWatchdog(interval: .seconds(1)) { _ in
-            ticks += 1
+            if staleObservedAt == nil, monitor.connection == .stale {
+                staleObservedAt = clock.date
+            }
             clock.advance(5)
             await Task.yield()
         }
         XCTAssertTrue(monitor.isConnectionWatchdogRunning)
-        while monitor.connection == .connected, ticks < 100 {
+        for _ in 0..<1_000 where staleObservedAt == nil {
             await Task.yield()
         }
         XCTAssertEqual(monitor.connection, .stale)
-        XCTAssertLessThanOrEqual(ticks, 4)
+        // 阈值 10 秒、每轮 5 秒：第 3 轮（15 秒）检查时必须已判定为信号弱。
+        XCTAssertEqual(staleObservedAt.map { $0.timeIntervalSince(start) }, 15)
 
         monitor.stopConnectionWatchdog()
         XCTAssertFalse(monitor.isConnectionWatchdogRunning)

@@ -201,3 +201,12 @@ final class CodecFuzzTests: XCTestCase {
         }
     }
 }
+
+final class HeartRateSourceTests: XCTestCase {
+    func testAppleWatchDetection() {
+        XCTAssertTrue(HealthSampleSource(name: "Apple Watch", bundleIdentifier: "com.apple.health.X", productType: "Watch7,1").isAppleWatch)
+        XCTAssertTrue(HealthSampleSource(name: "某人的 Apple Watch", bundleIdentifier: "com.apple.health.X", deviceModel: "Watch").isAppleWatch)
+        XCTAssertFalse(HealthSampleSource(name: "Polar", bundleIdentifier: "fi.polar.beat", productType: nil, deviceName: "H10", deviceModel: "H10").isAppleWatch)
+        XCTAssertFalse(HealthSampleSource(name: "iPhone", bundleIdentifier: "com.apple.health.Y", productType: "iPhone16,2", deviceModel: "iPhone").isAppleWatch)
+    }
+}

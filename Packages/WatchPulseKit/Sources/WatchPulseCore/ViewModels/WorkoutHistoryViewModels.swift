@@ -62,6 +62,8 @@ public struct WorkoutHeartRateDetail: Hashable, Sendable {
     public let sampleCount: Int
     /// 各心率区间的时长（秒）。
     public let zoneDurations: [HeartRateZone: TimeInterval]
+    /// 曲线数据的归属方式；非 `.workoutAssociated` 时界面需提示可能包含其他来源。
+    public let attribution: HeartRateAttribution
 }
 
 /// 以本次运动最高心率为参照的简单心率区间（不需要年龄等个人信息）。
@@ -143,8 +145,9 @@ public final class WorkoutDetailViewModel {
         }
         state = .loading
         let workout = workout
-        switch await capture({ [service] in try await service.fetchHeartRateSeries(from: workout.startDate, to: workout.endDate) }) {
-        case .success(let points):
+        switch await capture({ [service] in try await service.fetchHeartRateSeries(for: workout) }) {
+        case .success(let series):
+            let points = series.points
             guard let statistics = HeartRateSeriesStatistics(points: points) else {
                 state = .noData
                 return
@@ -153,7 +156,8 @@ public final class WorkoutDetailViewModel {
                 points: HeartRateSeries.downsample(points, maxPoints: maxChartPoints),
                 statistics: statistics,
                 sampleCount: points.count,
-                zoneDurations: HeartRateZone.durations(for: points)
+                zoneDurations: HeartRateZone.durations(for: points),
+                attribution: series.attribution
             ))
         case .failure(let error):
             state = .from(error)

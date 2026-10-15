@@ -59,12 +59,16 @@ public final class HealthKitHealthDataService: HealthDataService, @unchecked Sen
 
     // MARK: - 最新心率
 
+    /// 优先返回 Apple Watch 记录的最新心率；没有 Apple Watch 样本时才返回其他来源的最新一条
+    /// （`HeartRateSample.source.isAppleWatch` 为 `false`，界面会标注来源）。
     public func fetchLatestHeartRate() async throws -> HeartRateSample? {
-        guard let sample = try await latestQuantitySample(of: HKQuantityType(.heartRate)) else {
-            // 空结果可能是“确实没有记录”，也可能是“读取权限被拒绝”，HealthKit 不区分二者。
-            return nil
+        let heartRate = HKQuantityType(.heartRate)
+        let appleWatchOnly = HKQuery.predicateForObjects(withDeviceProperty: HKDevicePropertyKeyModel, allowedValues: ["Watch"])
+        if let sample = try await latestQuantitySample(of: heartRate, predicate: appleWatchOnly) {
+            return Self.makeHeartRateSample(from: sample)
         }
-        return Self.makeHeartRateSample(from: sample)
+        // 空结果可能是“确实没有记录”，也可能是“读取权限被拒绝”，HealthKit 不区分二者。
+        return try await latestQuantitySample(of: heartRate).map(Self.makeHeartRateSample(from:))
     }
 
     static func makeHeartRateSample(from sample: HKQuantitySample) -> HeartRateSample {
@@ -184,10 +188,10 @@ public final class HealthKitHealthDataService: HealthDataService, @unchecked Sen
 
     // MARK: - Private
 
-    private func latestQuantitySample(of type: HKQuantityType) async throws -> HKQuantitySample? {
+    private func latestQuantitySample(of type: HKQuantityType, predicate: NSPredicate? = nil) async throws -> HKQuantitySample? {
         guard isHealthDataAvailable else { throw HealthDataError.healthDataUnavailable }
         let descriptor = HKSampleQueryDescriptor(
-            predicates: [.quantitySample(type: type)],
+            predicates: [.quantitySample(type: type, predicate: predicate)],
             sortDescriptors: [SortDescriptor(\.endDate, order: .reverse)],
             limit: 1
         )

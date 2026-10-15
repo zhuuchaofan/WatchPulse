@@ -32,6 +32,12 @@ struct HeartRateCard: View {
                 }
                 LabeledContent("距今", value: sample.endDate.formatted(.relative(presentation: .named)))
                 LabeledContent("来源", value: sample.source.name)
+                if !sample.source.isAppleWatch {
+                    Label("非 Apple Watch 记录：“健康”中没有 Apple Watch 心率，显示其他来源的最新一条", systemImage: "info.circle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 if let deviceDescription {
                     LabeledContent("设备", value: deviceDescription)
                 }
