@@ -47,28 +47,47 @@ final class SharedModelTests: XCTestCase {
 }
 
 final class WorkoutMirroringCodecTests: XCTestCase {
+    private let sessionID = UUID()
+
+    private func envelope(_ message: WorkoutMirroringMessage, sequence: UInt64 = 1) -> WorkoutMirroringEnvelope {
+        WorkoutMirroringEnvelope(sessionID: sessionID, sequence: sequence, sentAt: Date(timeIntervalSince1970: 1_700_000_000), message: message)
+    }
+
     func testRoundTripAllMessageKinds() throws {
+        let metrics = WorkoutMetricsSnapshot(
+            timestamp: Date(timeIntervalSince1970: 1_700_000_100),
+            elapsedTime: 100,
+            heartRateBPM: 132,
+            activeEnergyKilocalories: 12.5,
+            distanceMeters: nil
+        )
         let messages: [WorkoutMirroringMessage] = [
             .phaseChanged(.running, at: Date(timeIntervalSince1970: 1_700_000_000)),
-            .metrics(WorkoutMetricsSnapshot(
-                timestamp: Date(timeIntervalSince1970: 1_700_000_100),
-                elapsedTime: 100,
-                heartRateBPM: 132,
-                activeEnergyKilocalories: 12.5,
-                distanceMeters: nil
+            .metrics(metrics),
+            .stateSync(WorkoutStateSnapshot(
+                configuration: WorkoutConfigurationRequest(activity: .cycling, location: .indoor),
+                phase: .paused,
+                startDate: Date(timeIntervalSince1970: 1_699_999_000),
+                metrics: metrics
             )),
+            .stateSync(WorkoutStateSnapshot(configuration: nil, phase: .notStarted, startDate: nil, metrics: nil)),
+            .heartbeat(at: Date(timeIntervalSince1970: 1_700_000_200)),
+            .commandRejected(.pause, reason: "x"),
             .command(.pause),
             .command(.end),
+            .requestStateSync,
         ]
 
-        for message in messages {
-            let data = try WorkoutMirroringCodec.encode(message)
-            XCTAssertEqual(try WorkoutMirroringCodec.decode(data), message)
+        for (index, message) in messages.enumerated() {
+            let original = envelope(message, sequence: UInt64(index + 1))
+            let data = try WorkoutMirroringCodec.encode(original)
+            XCTAssertEqual(try WorkoutMirroringCodec.decode(data), original)
         }
     }
 
     func testRejectsUnsupportedVersion() throws {
-        let data = Data(#"{"version":99,"message":{"command":{"_0":"pause"}}}"#.utf8)
+        let future = WorkoutMirroringEnvelope(version: 99, sessionID: sessionID, sequence: 1, sentAt: Date(), message: .requestStateSync)
+        let data = try JSONEncoder().encode(future)
         XCTAssertThrowsError(try WorkoutMirroringCodec.decode(data)) { error in
             XCTAssertEqual(error as? WorkoutMirroringCodec.CodecError, .unsupportedVersion(99))
         }
@@ -78,15 +97,79 @@ final class WorkoutMirroringCodecTests: XCTestCase {
         XCTAssertThrowsError(try WorkoutMirroringCodec.decode(Data("not json".utf8))) { error in
             XCTAssertEqual(error as? WorkoutMirroringCodec.CodecError, .malformedPayload)
         }
-        let unknownMessage = Data(#"{"version":1,"message":{"teleport":{}}}"#.utf8)
+        let unknownMessage = Data(#"{"version":1,"sessionID":"00000000-0000-0000-0000-000000000000","sequence":1,"sentAt":0,"message":{"teleport":{}}}"#.utf8)
         XCTAssertThrowsError(try WorkoutMirroringCodec.decode(unknownMessage)) { error in
             XCTAssertEqual(error as? WorkoutMirroringCodec.CodecError, .malformedPayload)
         }
+    }
+
+    func testRejectsOversizedPayload() {
+        let data = Data(repeating: 0x20, count: WorkoutMirroringCodec.maximumPayloadSize + 1)
+        XCTAssertThrowsError(try WorkoutMirroringCodec.decode(data)) { error in
+            XCTAssertEqual(error as? WorkoutMirroringCodec.CodecError, .payloadTooLarge(data.count))
+        }
+    }
+
+    func testTypicalMessagesAreSmall() throws {
+        let data = try WorkoutMirroringCodec.encode(envelope(.metrics(WorkoutMetricsSnapshot(
+            timestamp: Date(), elapsedTime: 3_600, heartRateBPM: 150, activeEnergyKilocalories: 600, distanceMeters: 10_000
+        ))))
+        XCTAssertLessThan(data.count, 512)
     }
 
     func testConfigurationRequestCodable() throws {
         let request = WorkoutConfigurationRequest(activity: .running, location: .outdoor)
         let decoded = try JSONDecoder().decode(WorkoutConfigurationRequest.self, from: JSONEncoder().encode(request))
         XCTAssertEqual(decoded, request)
+    }
+
+    func testElapsedTimeExtrapolation() {
+        let metrics = WorkoutMetricsSnapshot(timestamp: Date(timeIntervalSince1970: 100), elapsedTime: 60)
+        XCTAssertEqual(metrics.elapsedTime(at: Date(timeIntervalSince1970: 130), isRunning: true), 90)
+        XCTAssertEqual(metrics.elapsedTime(at: Date(timeIntervalSince1970: 130), isRunning: false), 60)
+        XCTAssertEqual(metrics.elapsedTime(at: Date(timeIntervalSince1970: 50), isRunning: true), 60)
+    }
+}
+
+final class HeartRateSeriesTests: XCTestCase {
+    private func points(_ count: Int, start: Date = Date(timeIntervalSince1970: 0)) -> [HeartRatePoint] {
+        (0..<count).map { HeartRatePoint(date: start.addingTimeInterval(Double($0)), beatsPerMinute: Double(100 + $0 % 50)) }
+    }
+
+    func testDownsampleKeepsSmallSeriesSorted() {
+        let input = points(10).shuffled()
+        XCTAssertEqual(HeartRateSeries.downsample(input, maxPoints: 100), points(10))
+    }
+
+    func testDownsampleLimitsPointCountAndPreservesAverage() {
+        let input = points(10_000)
+        let output = HeartRateSeries.downsample(input, maxPoints: 300)
+        XCTAssertLessThanOrEqual(output.count, 300)
+        XCTAssertGreaterThan(output.count, 250)
+        XCTAssertEqual(output.map(\.date), output.map(\.date).sorted())
+        let inputAverage = HeartRateSeriesStatistics(points: input)!.average
+        let outputAverage = HeartRateSeriesStatistics(points: output)!.average
+        XCTAssertEqual(inputAverage, outputAverage, accuracy: 1)
+        XCTAssertGreaterThanOrEqual(output.first!.date, input.first!.date)
+        XCTAssertLessThanOrEqual(output.last!.date, input.last!.date)
+    }
+
+    func testDownsampleEdgeCases() {
+        XCTAssertEqual(HeartRateSeries.downsample([], maxPoints: 10), [])
+        let sameTime = (0..<20).map { HeartRatePoint(date: Date(timeIntervalSince1970: 5), beatsPerMinute: Double($0)) }
+        XCTAssertEqual(HeartRateSeries.downsample(sameTime, maxPoints: 5).count, 20)
+        XCTAssertEqual(HeartRateSeries.downsample(points(20), maxPoints: 0).count, 20)
+    }
+
+    func testStatistics() {
+        let stats = HeartRateSeriesStatistics(points: [
+            HeartRatePoint(date: Date(), beatsPerMinute: 90),
+            HeartRatePoint(date: Date(), beatsPerMinute: 150),
+            HeartRatePoint(date: Date(), beatsPerMinute: 120),
+        ])
+        XCTAssertEqual(stats?.minimum, 90)
+        XCTAssertEqual(stats?.maximum, 150)
+        XCTAssertEqual(stats?.average, 120)
+        XCTAssertNil(HeartRateSeriesStatistics(points: []))
     }
 }

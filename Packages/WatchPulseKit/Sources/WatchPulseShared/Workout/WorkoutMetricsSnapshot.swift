@@ -26,3 +26,11 @@ public struct WorkoutMetricsSnapshot: Hashable, Codable, Sendable {
         self.distanceMeters = distanceMeters
     }
 }
+
+extension WorkoutMetricsSnapshot {
+    /// 推算 `date` 时刻的运动时长：运动进行中时在快照基础上加上经过的时间。
+    public func elapsedTime(at date: Date, isRunning: Bool) -> TimeInterval {
+        guard isRunning else { return elapsedTime }
+        return elapsedTime + max(0, date.timeIntervalSince(timestamp))
+    }
+}

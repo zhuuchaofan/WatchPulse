@@ -1,46 +1,85 @@
+import Foundation
+
 /// 运动会话相关错误。
 public enum WorkoutSessionError: Error, Hashable, Sendable {
-    /// 第一阶段尚未实现实时运动会话与镜像。
-    case notImplementedInThisPhase
-    /// 当前没有进行中的会话。
+    case healthDataUnavailable
+    case authorizationFailed(reason: String)
+    case sessionStartFailed(reason: String)
+    case sessionFailed(reason: String)
     case noActiveSession
+    /// 当前阶段不允许执行该操作（例如未开始时暂停）。
+    case invalidTransition(from: WorkoutSessionPhase, action: String)
+    /// 与对端设备未连接。
+    case notConnected
+    /// 多次重连失败，运动在 Watch 上继续本地记录。
+    case mirroringUnavailable
+    case saveFailed(reason: String)
 }
 
-/// Watch 端：运动主会话的所有者。
-///
-/// 后续实现（参考 Apple “Building a multidevice workout app”）：
-/// 1. 用 `WorkoutConfigurationRequest` 构造 `HKWorkoutConfiguration`，创建
-///    `HKWorkoutSession` 与 `HKLiveWorkoutBuilder`；
-/// 2. 调用 `session.startMirroringToCompanionDevice()` 把会话镜像到 iPhone；
-/// 3. `session.startActivity(with:)` + `builder.beginCollection(at:)`；
-/// 4. 在 `HKLiveWorkoutBuilderDelegate` 中汇总 `WorkoutMetricsSnapshot`，
-///    用 `WorkoutMirroringCodec` 编码后 `sendToRemoteWorkoutSession(data:)`；
-/// 5. 在 `HKWorkoutSessionDelegate` 中把状态变化映射为 `WorkoutSessionPhase` 并通知 iPhone，
-///    同时处理 iPhone 发来的 `WorkoutRemoteCommand`。
-@MainActor
-public protocol WorkoutSessionManaging: AnyObject {
-    var phase: WorkoutSessionPhase { get }
-    var latestMetrics: WorkoutMetricsSnapshot? { get }
-
-    func requestWorkoutAuthorization() async throws
-    func startWorkout(_ configuration: WorkoutConfigurationRequest) async throws
-    func pause()
-    func resume()
-    func end() async throws
+extension WorkoutSessionError: LocalizedError {
+    public var errorDescription: String? {
+        switch self {
+        case .healthDataUnavailable:
+            return "此设备不支持健康数据。"
+        case .authorizationFailed(let reason):
+            return "运动授权失败：\(reason)"
+        case .sessionStartFailed(let reason):
+            return "无法开始运动：\(reason)"
+        case .sessionFailed(let reason):
+            return "运动会话出错：\(reason)"
+        case .noActiveSession:
+            return "当前没有进行中的运动。"
+        case .invalidTransition(let phase, let action):
+            return "运动\(phase.title)时无法\(action)。"
+        case .notConnected:
+            return "未连接到对端设备。"
+        case .mirroringUnavailable:
+            return "暂时无法连接 iPhone，运动仍在 Apple Watch 上记录。"
+        case .saveFailed(let reason):
+            return "保存运动失败：\(reason)"
+        }
+    }
 }
 
-/// iPhone 端：镜像会话的接收方。
-///
-/// 后续实现：
-/// 1. App 启动早期（`application(_:didFinishLaunchingWithOptions:)` 阶段）设置
-///    `healthStore.workoutSessionMirroringStartHandler`，系统可能在后台拉起 App 来投递镜像会话；
-/// 2. 收到 `HKWorkoutSession` 后设置 delegate，解码 Watch 发来的 `WorkoutMirroringMessage`；
-/// 3. 用 `send(_:)` 把 `WorkoutRemoteCommand` 编码后发回 Watch。
-@MainActor
-public protocol MirroredWorkoutReceiving: AnyObject {
-    var phase: WorkoutSessionPhase { get }
-    var latestMetrics: WorkoutMetricsSnapshot? { get }
+/// 运动驱动层上报的事件。
+public enum WorkoutDriverEvent: Sendable {
+    case phaseChanged(WorkoutSessionPhase, at: Date)
+    case metrics(WorkoutMetricsSnapshot)
+    /// 收到对端（iPhone）发来的数据。
+    case remoteDataReceived(Data)
+    /// 镜像连接断开。
+    case mirroringDisconnected(reason: String?)
+    case failed(reason: String)
+}
 
-    func startObservingMirroredSessions()
-    func send(_ command: WorkoutRemoteCommand) async throws
+/// Watch 端运动会话的驱动层。真实实现封装 `HKWorkoutSession` + `HKLiveWorkoutBuilder`，
+/// 模拟实现 `SimulatedWorkoutSessionDriver` 用于测试、Preview 与演示模式。
+///
+/// 驱动只负责“执行”，状态机与镜像同步逻辑在 `WorkoutSessionController` 中，便于测试。
+@MainActor
+public protocol WorkoutSessionDriver: AnyObject {
+    /// 事件回调，在主线程调用。
+    var eventHandler: ((WorkoutDriverEvent) -> Void)? { get set }
+    var dataOrigin: HealthDataOrigin { get }
+
+    func requestAuthorization() async throws
+    /// 创建会话、开始镜像到 iPhone、开始采集。镜像失败不应阻止运动开始，而应上报 `.mirroringDisconnected`。
+    func start(_ configuration: WorkoutConfigurationRequest, at date: Date) async throws
+    func pause(at date: Date)
+    func resume(at date: Date)
+    /// 结束采集并保存运动，返回保存的记录。
+    func end(at date: Date) async throws -> WorkoutRecord?
+    /// 镜像断开后重新连接 iPhone。
+    func reconnectMirroring() async throws
+    /// App 崩溃或被系统终止后恢复进行中的运动；没有可恢复的运动返回 `nil`。
+    func recoverActiveSession() async throws -> WorkoutStateSnapshot?
+}
+
+/// 向对端设备发送镜像数据。
+///
+/// 发送是“尽力而为”的同步调用：未连接时立即抛出 `WorkoutSessionError.notConnected`；
+/// 已交给系统但最终失败的情况由真实实现通过断线事件上报。这样状态机可以完全同步、可测试。
+@MainActor
+public protocol WorkoutMirroringSender: AnyObject {
+    func send(_ data: Data) throws
 }

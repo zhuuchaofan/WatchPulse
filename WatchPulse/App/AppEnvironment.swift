@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import WatchPulseCore
 import WatchPulseShared
 
@@ -15,13 +16,40 @@ final class AppEnvironment {
 
     let isDemoMode: Bool
     let healthDataService: any HealthDataService
+    let liveWorkoutMonitor: LiveWorkoutMonitor
+    /// 演示模式下的模拟 Watch 运动。
+    let simulatedWorkout: SimulatedMirroredWorkout?
+    private let mirroringReceiver: HealthKitMirroringReceiver?
 
     init(defaults: UserDefaults = .standard) {
         isDemoMode = defaults.bool(forKey: Self.demoModeKey)
         if isDemoMode {
             healthDataService = MockHealthDataService.demo()
+            liveWorkoutMonitor = LiveWorkoutMonitor(dataOrigin: .simulated)
+            simulatedWorkout = SimulatedMirroredWorkout(monitor: liveWorkoutMonitor)
+            mirroringReceiver = nil
         } else {
             healthDataService = HealthKitHealthDataService()
+            liveWorkoutMonitor = LiveWorkoutMonitor(dataOrigin: .healthKit)
+            simulatedWorkout = nil
+            mirroringReceiver = HealthKitMirroringReceiver(monitor: liveWorkoutMonitor)
         }
+    }
+
+    /// 在 App 启动早期调用，注册镜像会话回调。
+    func startWorkoutMirroring() {
+        mirroringReceiver?.start()
+    }
+}
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        MainActor.assumeIsolated {
+            AppEnvironment.shared.startWorkoutMirroring()
+        }
+        return true
     }
 }

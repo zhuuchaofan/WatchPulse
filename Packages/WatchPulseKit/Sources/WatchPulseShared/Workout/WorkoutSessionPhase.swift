@@ -17,3 +17,16 @@ public enum WorkoutSessionPhase: String, Codable, Sendable {
         }
     }
 }
+
+extension WorkoutSessionPhase {
+    public var title: String {
+        switch self {
+        case .notStarted: return "未开始"
+        case .prepared: return "准备中"
+        case .running: return "进行中"
+        case .paused: return "已暂停"
+        case .stopped: return "正在结束"
+        case .ended: return "已结束"
+        }
+    }
+}

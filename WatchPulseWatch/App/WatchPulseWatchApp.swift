@@ -2,11 +2,14 @@ import SwiftUI
 
 @main
 struct WatchPulseWatchApp: App {
-    @State private var workoutManager = WatchWorkoutManager()
+    @WKApplicationDelegateAdaptor(WatchAppDelegate.self) private var appDelegate
 
     var body: some Scene {
         WindowGroup {
-            WatchHomeView(workoutManager: workoutManager)
+            WatchHomeView(
+                controller: WatchAppEnvironment.shared.controller,
+                isDemoMode: WatchAppEnvironment.shared.isDemoMode
+            )
         }
     }
 }

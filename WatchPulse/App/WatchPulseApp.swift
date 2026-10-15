@@ -3,6 +3,7 @@ import WatchPulseCore
 
 @main
 struct WatchPulseApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var healthOverviewViewModel: HealthOverviewViewModel
 
     init() {

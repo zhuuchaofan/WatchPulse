@@ -9,23 +9,26 @@
 /* Begin PBXBuildFile section */
 		12DB9A9B3A1C2EDD7E29E5BA /* MetricTrendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AB21D3EAB65BF119FC07B9 /* MetricTrendView.swift */; };
 		255BF8FF0DADAA11B3BE8B2C /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = D5DFAF353CBEF1ABFA96740D /* WatchPulseShared */; };
-		2CA33C70077B5ECB3CE06E14 /* PhoneWorkoutMirroringCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BDFA2D33AA59689696F81E1 /* PhoneWorkoutMirroringCoordinator.swift */; };
+		3CFFCC7FF024E90937F7BD27 /* WatchAppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = B81B4C89FAC849BAA6FB3678 /* WatchAppEnvironment.swift */; };
 		3D9F74A72D01FB62554EB24C /* WatchPulseWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		530177FFEC442E17F5E8EB1C /* WatchHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */; };
 		5D2B25860F6584B29EDC7F6C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D27B60D65C47BA37CBC75C9E /* Assets.xcassets */; };
+		5ED80B75C7AB3CBC98B0BA74 /* HealthKitWorkoutSessionDriver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4AD3550B8FAC2849ABD2BA /* HealthKitWorkoutSessionDriver.swift */; };
 		64E007889CF320B777F1AFE3 /* HealthOverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */; };
 		6E6EDB45070BA907E0BF468C /* WatchPulseApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */; };
 		72998FC3C9A0EF87F6708179 /* HeartRateCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC593086560A2F9EF04199F /* HeartRateCard.swift */; };
 		7677D911E53BA8F6CAC2A8E5 /* WatchPulseWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */; };
 		89FB024E94A4D613F8745939 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 228A296A6B9394F26F079ADA /* WatchPulseCore */; };
-		933E71BA2DA96ABE6C010334 /* WatchWorkoutManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB6E6ABB60AB0911866A57FF /* WatchWorkoutManager.swift */; };
+		9A7EAA85DFC615FFB9B21025 /* LiveWorkoutDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */; };
 		B35A8A43798B3E5B28794004 /* MetricSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F5D60F7CDF979CAF207CCF /* MetricSummaryCard.swift */; };
 		B62A603470186DA8EC47DD66 /* DemoModeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */; };
 		BE1DEAD9BFE99F0BCE31B85F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69285459661FE21B2ABB2CE6 /* Assets.xcassets */; };
 		C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */; };
 		C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = 755ED5EED151AA21F5F0A358 /* WatchPulseShared */; };
 		CA59D30A0CBBE053C148CFFC /* LoadStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */; };
+		D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */; };
 		E5ABA9774353D4B92F9B4517 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38D4CA80C56C32DD0C2DE0E /* RootView.swift */; };
+		F0DEE8E40423873A7D22EB17 /* WorkoutHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15846F47C632321DC91AA219 /* WorkoutHomeView.swift */; };
 		FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833B9E27C20270DEA0879919 /* AppEnvironment.swift */; };
 /* End PBXBuildFile section */
 
@@ -55,21 +58,24 @@
 
 /* Begin PBXFileReference section */
 		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
+		15846F47C632321DC91AA219 /* WorkoutHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHomeView.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
 		3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseWatchApp.swift; sourceTree = "<group>"; };
 		46AB21D3EAB65BF119FC07B9 /* MetricTrendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricTrendView.swift; sourceTree = "<group>"; };
+		4D4AD3550B8FAC2849ABD2BA /* HealthKitWorkoutSessionDriver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitWorkoutSessionDriver.swift; sourceTree = "<group>"; };
 		4EB377CC56184FEE411652BA /* WatchPulse.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulse.entitlements; sourceTree = "<group>"; };
 		57F5D60F7CDF979CAF207CCF /* MetricSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetricSummaryCard.swift; sourceTree = "<group>"; };
+		64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitMirroringReceiver.swift; sourceTree = "<group>"; };
 		69285459661FE21B2ABB2CE6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EC593086560A2F9EF04199F /* HeartRateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateCard.swift; sourceTree = "<group>"; };
 		7232AB9E0CBD11A3430A9600 /* WatchPulse.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = WatchPulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveWorkoutDashboardView.swift; sourceTree = "<group>"; };
 		78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthOverviewView.swift; sourceTree = "<group>"; };
 		833B9E27C20270DEA0879919 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
 		88F6B7548EB0279D9F08C0BC /* WatchPulseWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchPulseWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9BDFA2D33AA59689696F81E1 /* PhoneWorkoutMirroringCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWorkoutMirroringCoordinator.swift; sourceTree = "<group>"; };
 		B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModeBanner.swift; sourceTree = "<group>"; };
 		B7ED7F5C548F414307C59225 /* WatchPulseWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulseWatch.entitlements; sourceTree = "<group>"; };
-		CB6E6ABB60AB0911866A57FF /* WatchWorkoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchWorkoutManager.swift; sourceTree = "<group>"; };
+		B81B4C89FAC849BAA6FB3678 /* WatchAppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAppEnvironment.swift; sourceTree = "<group>"; };
 		D27B60D65C47BA37CBC75C9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D722C04E39BD7DFA2EB0F85F /* WatchPulseKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = WatchPulseKit; path = Packages/WatchPulseKit; sourceTree = SOURCE_ROOT; };
 		DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadStateView.swift; sourceTree = "<group>"; };
@@ -102,7 +108,7 @@
 		0FA6416DBA9E57377538726A /* Workout */ = {
 			isa = PBXGroup;
 			children = (
-				CB6E6ABB60AB0911866A57FF /* WatchWorkoutManager.swift */,
+				4D4AD3550B8FAC2849ABD2BA /* HealthKitWorkoutSessionDriver.swift */,
 			);
 			path = Workout;
 			sourceTree = "<group>";
@@ -138,6 +144,7 @@
 		359B432883B3EEB0394EFB24 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				B81B4C89FAC849BAA6FB3678 /* WatchAppEnvironment.swift */,
 				3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */,
 			);
 			path = App;
@@ -156,7 +163,9 @@
 		452908F0DC54C154588A2B69 /* Workout */ = {
 			isa = PBXGroup;
 			children = (
-				9BDFA2D33AA59689696F81E1 /* PhoneWorkoutMirroringCoordinator.swift */,
+				64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */,
+				765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */,
+				15846F47C632321DC91AA219 /* WorkoutHomeView.swift */,
 			);
 			path = Workout;
 			sourceTree = "<group>";
@@ -379,14 +388,16 @@
 			files = (
 				FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */,
 				B62A603470186DA8EC47DD66 /* DemoModeBanner.swift in Sources */,
+				D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */,
 				64E007889CF320B777F1AFE3 /* HealthOverviewView.swift in Sources */,
 				72998FC3C9A0EF87F6708179 /* HeartRateCard.swift in Sources */,
+				9A7EAA85DFC615FFB9B21025 /* LiveWorkoutDashboardView.swift in Sources */,
 				CA59D30A0CBBE053C148CFFC /* LoadStateView.swift in Sources */,
 				B35A8A43798B3E5B28794004 /* MetricSummaryCard.swift in Sources */,
 				12DB9A9B3A1C2EDD7E29E5BA /* MetricTrendView.swift in Sources */,
-				2CA33C70077B5ECB3CE06E14 /* PhoneWorkoutMirroringCoordinator.swift in Sources */,
 				E5ABA9774353D4B92F9B4517 /* RootView.swift in Sources */,
 				6E6EDB45070BA907E0BF468C /* WatchPulseApp.swift in Sources */,
+				F0DEE8E40423873A7D22EB17 /* WorkoutHomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -394,9 +405,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5ED80B75C7AB3CBC98B0BA74 /* HealthKitWorkoutSessionDriver.swift in Sources */,
+				3CFFCC7FF024E90937F7BD27 /* WatchAppEnvironment.swift in Sources */,
 				530177FFEC442E17F5E8EB1C /* WatchHomeView.swift in Sources */,
 				7677D911E53BA8F6CAC2A8E5 /* WatchPulseWatchApp.swift in Sources */,
-				933E71BA2DA96ABE6C010334 /* WatchWorkoutManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
