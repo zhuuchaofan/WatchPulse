@@ -28,6 +28,21 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertEqual(result, .completed, "“\(element.label)” 不包含 “\(text)”", file: file, line: line)
     }
 
+    @MainActor
+    private func waitForLabel(_ element: XCUIElement, matches format: String, _ argument: String, timeout: TimeInterval = 10, file: StaticString = #filePath, line: UInt = #line) {
+        let expectation = XCTNSPredicateExpectation(predicate: NSPredicate(format: format, argument), object: element)
+        let result = XCTWaiter().wait(for: [expectation], timeout: timeout)
+        XCTAssertEqual(result, .completed, "“\(element.label)” 不满足 \(format) \(argument)", file: file, line: line)
+    }
+
+    /// 在懒加载列表中向上滑动直到元素出现。
+    @MainActor
+    private func scrollTo(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 6) {
+        for _ in 0..<attempts where !element.exists {
+            app.swipeUp()
+        }
+    }
+
     // MARK: - 健康总览
 
     @MainActor
@@ -97,8 +112,10 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 
-        XCTAssertTrue(element(app, "workoutDetail.heartRateChart").waitForExistence(timeout: 10))
-        XCTAssertTrue(element(app, "demoBanner").exists)
+        XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 10))
+        let chart = element(app, "workoutDetail.heartRateChart")
+        scrollTo(chart, in: app)
+        XCTAssertTrue(chart.waitForExistence(timeout: 10))
     }
 
     @MainActor
@@ -125,7 +142,8 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertTrue(phase.waitForExistence(timeout: 10))
         waitForLabel(phase, contains: "进行中")
         XCTAssertTrue(element(app, "demoBanner").exists)
-        waitForLabel(element(app, "live.heartRate"), contains: "次/分")
+        // 心率数值出现（不再是占位符“--”），说明模拟指标经镜像链路到达仪表盘。
+        waitForLabel(element(app, "live.heartRate"), matches: "label MATCHES %@", ".*[0-9]+.*次/分.*", timeout: 15)
 
         // iPhone → Watch：暂停 / 继续。
         element(app, "live.pause").tap()
