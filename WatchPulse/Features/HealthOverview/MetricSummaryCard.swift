@@ -71,11 +71,12 @@ struct MetricSummaryCard: View {
 
     private func caption(for summary: MetricSummaryValue) -> String {
         if let night = summary.sleepNight {
+            let recency = SleepAggregator.recencyLabel(for: night, today: .now)
             if night.isInBedOnly {
-                return "仅有卧床记录"
+                return "\(recency) · 仅有卧床记录"
             }
             let deep = night.stageDurations[.deep] ?? 0
-            return deep > 0 ? "深度睡眠 \(MetricFormatting.duration(seconds: deep))" : card.kind.summaryCaption
+            return deep > 0 ? "\(recency) · 深度睡眠 \(MetricFormatting.duration(seconds: deep))" : recency
         }
         switch card.kind.aggregation {
         case .cumulative:

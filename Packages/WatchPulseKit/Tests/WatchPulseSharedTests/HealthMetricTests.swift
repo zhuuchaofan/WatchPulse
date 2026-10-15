@@ -156,6 +156,28 @@ final class HealthMetricTests: XCTestCase {
     }
 
     /// 随机生成的睡眠记录应满足：睡着 + 清醒 ≤ 卧床 ≤ 首尾跨度。
+    func testMostRecentNightFallsBackToEarlierNight() {
+        // 3/11 早上醒来的一夜、3/13 早上醒来的一夜；“今天”为 3/15，昨晚（3/15 这一夜）无记录。
+        let segments = [
+            SleepSegment(start: date(10, 23), end: date(11, 6), stage: .core, sourceName: "Watch"),
+            SleepSegment(start: date(12, 23), end: date(13, 5), stage: .core, sourceName: "Watch"),
+            SleepSegment(start: date(16, 23), end: date(17, 6), stage: .core, sourceName: "Watch"), // 未来记录
+        ]
+        let nights = SleepAggregator.nights(from: segments, calendar: calendar)
+
+        let recent = SleepAggregator.mostRecentNight(in: nights, onOrBefore: date(15, 9), calendar: calendar)
+        XCTAssertEqual(recent?.date, date(13, 0))
+        XCTAssertEqual(recent?.asleepDuration, 6 * 3600)
+        XCTAssertEqual(SleepAggregator.recencyLabel(for: recent!, today: date(15, 9), calendar: calendar), "最近记录 · 3月13日")
+
+        let lastNight = SleepAggregator.mostRecentNight(in: nights, onOrBefore: date(13, 9), calendar: calendar)
+        XCTAssertEqual(lastNight?.date, date(13, 0))
+        XCTAssertEqual(SleepAggregator.recencyLabel(for: lastNight!, today: date(13, 9), calendar: calendar), "昨晚")
+
+        XCTAssertNil(SleepAggregator.mostRecentNight(in: nights, onOrBefore: date(10, 9), calendar: calendar))
+        XCTAssertNil(SleepAggregator.mostRecentNight(in: [], onOrBefore: date(15, 9), calendar: calendar))
+    }
+
     func testSleepAggregationInvariantsOnRandomInput() {
         var generator = SystemRandomNumberGenerator()
         for _ in 0..<200 {

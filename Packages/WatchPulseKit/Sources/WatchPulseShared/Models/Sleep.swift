@@ -120,6 +120,24 @@ public enum SleepAggregator {
             .sorted { $0.date < $1.date }
     }
 
+    /// 总览卡片回看的天数：昨晚没有记录时，显示这段时间内最近一次有记录的夜晚。
+    public static let summaryLookbackDays = 14
+
+    /// `day` 当天（含）之前最近的一夜；`day` 之后的夜晚（未来时间的记录）不参与。
+    public static func mostRecentNight(in nights: [SleepNight], onOrBefore day: Date, calendar: Calendar = .current) -> SleepNight? {
+        let dayStart = calendar.startOfDay(for: day)
+        return nights.filter { $0.date <= dayStart }.max { $0.date < $1.date }
+    }
+
+    /// 卡片上的夜晚说明：昨晚 → “昨晚”；更早 → “最近记录 · 10月13日”（日期为醒来当天，与「健康」App 一致）。
+    public static func recencyLabel(for night: SleepNight, today: Date, calendar: Calendar = .current) -> String {
+        if night.date == calendar.startOfDay(for: today) {
+            return "昨晚"
+        }
+        let components = calendar.dateComponents([.month, .day], from: night.date)
+        return "最近记录 · \(components.month ?? 0)月\(components.day ?? 0)日"
+    }
+
     public static func nightDate(for segment: SleepSegment, calendar: Calendar = .current) -> Date {
         calendar.startOfDay(for: segment.start.addingTimeInterval(6 * 3600))
     }

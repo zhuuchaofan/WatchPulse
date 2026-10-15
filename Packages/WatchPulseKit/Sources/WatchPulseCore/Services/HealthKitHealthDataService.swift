@@ -125,9 +125,13 @@ public final class HealthKitHealthDataService: HealthDataService, @unchecked Sen
             return MetricSummaryValue(kind: kind, value: sum.doubleValue(for: kind.healthKitUnit), date: dayStart)
 
         case .sleep:
+            // 昨晚没有记录时回看最近 14 天，显示最近一次有记录的夜晚（卡片会标注日期）。
             let dayStart = calendar.startOfDay(for: day)
-            let interval = DateInterval(start: dayStart, end: calendar.date(byAdding: .day, value: 1, to: dayStart)!)
-            guard let night = try await sleepNights(in: interval).first(where: { $0.date == dayStart }) else {
+            let interval = DateInterval(
+                start: calendar.date(byAdding: .day, value: -SleepAggregator.summaryLookbackDays, to: dayStart)!,
+                end: calendar.date(byAdding: .day, value: 1, to: dayStart)!
+            )
+            guard let night = SleepAggregator.mostRecentNight(in: try await sleepNights(in: interval), onOrBefore: dayStart, calendar: calendar) else {
                 return nil
             }
             return MetricSummaryValue(
