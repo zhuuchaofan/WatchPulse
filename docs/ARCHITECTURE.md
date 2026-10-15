@@ -1,119 +1,123 @@
-# WatchPulse 架构设计（第一阶段）
+# WatchPulse 架构设计
 
-## 1. 阶段目标
+## 1. 范围与阶段
 
-第一阶段只交付**最小可运行闭环**：
+| 阶段 | 内容 | 状态 |
+| --- | --- | --- |
+| 1 | HealthKit 可用性检查、按需授权、最新心率（值 / 单位 / 时间 / 来源） | 已实现，云端编译 + 单元测试通过，**真机未验证** |
+| 2 | 日常健康监控：心率、HRV、静息心率、步数、睡眠、活动能量；7 / 30 / 90 天趋势 | 已实现，云端验证，**真机未验证** |
+| 3 | Apple Watch 实时运动采集、Workout Mirroring、iPhone 实时仪表盘、状态管理、断线恢复 | 已实现，云端验证（含模拟端到端），**真机未验证** |
+| 4 | 运动记录保存（Watch → HealthKit）、历史查询、运动详情、心率曲线与区间 | 已实现，云端验证，**真机未验证** |
+| 5 | 云端可验证部分：UI 测试（演示模式）、异常处理、模拟 / 压力 / 模糊测试 | 已实现 |
 
-> iPhone 真机通过 HealthKit 读取并显示**一条真实心率记录**（数值、单位、采样时间、来源）。
+真机待验证事项见 [DEVICE_VALIDATION.md](DEVICE_VALIDATION.md)。
 
-明确**不在**本阶段实现：实时运动会话、Workout Mirroring 数据同步、后台投递、写入健康数据、任何网络/后端/第三方 SDK。
+约束：不使用后端、网络服务或第三方 SDK；模拟数据必须与真实 HealthKit 数据明确区分。
 
 ## 2. 分层（MVVM + Service）
 
 ```
-┌──────────────────────────── iOS App (WatchPulse) ─────────────────────────────┐
-│  View  : HealthOverviewView / HeartRateCard （SwiftUI，只负责渲染 State）       │
-│     │ 绑定                                                                     │
-│  ViewModel : HealthOverviewViewModel（@Observable @MainActor，状态机）          │  ← WatchPulseCore
-│     │ 依赖协议                                                                  │
-│  Service 协议 : HealthDataService                                               │  ← WatchPulseCore
-│     ├─ HealthKitHealthDataService（真实实现，#if canImport(HealthKit)）         │
-│     └─ MockHealthDataService（仅用于 Preview / 单元测试）                       │
-│  Model : HeartRateSample / HealthSampleSource / HealthDataError …               │  ← WatchPulseShared
-└───────────────────────────────────────────────────────────────────────────────┘
-┌────────────────────────── watchOS App (WatchPulseWatch) ──────────────────────┐
-│  WatchHomeView → WatchWorkoutManager（实现 WorkoutSessionManaging，本阶段占位）│
-│  Workout 契约：WorkoutSessionPhase / WorkoutMetricsSnapshot /                  │  ← WatchPulseShared
-│               WorkoutMirroringMessage + WorkoutMirroringCodec                 │
-└───────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────── iOS App (WatchPulse) ────────────────────────────────┐
+│ Views: HealthOverviewView · MetricTrendView · WorkoutHomeView                      │
+│        LiveWorkoutDashboardView · WorkoutDetailView · DemoModeBanner              │
+│ AppEnvironment: 真实 / 演示模式依赖组装；HealthKitMirroringReceiver（镜像接收）      │
+└──────────────┬────────────────────────────────────────────────────────────────────┘
+               │ 依赖
+┌──────────────▼──────────── WatchPulseCore（本地 Swift Package）───────────────────┐
+│ ViewModels: HealthOverviewViewModel · MetricTrendViewModel                         │
+│             WorkoutHistoryViewModel · WorkoutDetailViewModel · LoadState<T>        │
+│ Workout:    WorkoutSessionController（Watch 状态机） · LiveWorkoutMonitor（iPhone）  │
+│             SimulatedWorkoutSessionDriver · InMemoryMirroringLink                  │
+│             SimulatedMirroredWorkout（演示 / 集成测试）                              │
+│ Services:   HealthDataService · WorkoutHistoryService（协议）                        │
+│             HealthKit*Service（#if canImport(HealthKit)） · Mock*Service · 模拟数据   │
+└──────────────┬────────────────────────────────────────────────────────────────────┘
+┌──────────────▼──────────── WatchPulseShared（纯 Foundation）──────────────────────┐
+│ 模型：HeartRateSample · HealthMetricKind · MetricSummaryValue · MetricTrend         │
+│       SleepSegment / SleepNight / SleepAggregator · WorkoutRecord · HeartRatePoint │
+│ 镜像契约：WorkoutMirroringEnvelope / Message / Codec · WorkoutStateSnapshot          │
+│          WorkoutSessionDriver · WorkoutMirroringSender（协议）                       │
+└────────────────────────────────────────────────────────────────────────────────────┘
+┌──────────────────────────── watchOS App (WatchPulseWatch) ────────────────────────┐
+│ WatchHomeView（开始 / 实时 / 摘要） · WatchAppEnvironment · WatchAppDelegate（恢复）   │
+│ HealthKitWorkoutSessionDriver：HKWorkoutSession + HKLiveWorkoutBuilder + 镜像发送     │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-共享代码放在本地 Swift Package `Packages/WatchPulseKit`，两个库：
+设计要点：
 
-| 模块 | 内容 | 依赖 |
-| --- | --- | --- |
-| `WatchPulseShared` | 纯模型 + 运动镜像契约（Codable、Sendable），无平台依赖 | Foundation |
-| `WatchPulseCore` | `HealthDataService` 协议、HealthKit 实现、Mock、ViewModel | Shared、Observation、HealthKit（条件编译） |
+- **可测试性优先**：HealthKit 只出现在 `HealthKit*Service`、`HealthKitWorkoutSessionDriver`、`HealthKitMirroringReceiver` 三类“边缘”对象中；所有状态机、聚合、编解码逻辑都在纯 Swift 中，Linux / macOS 均可 `swift test`。
+- **数据来源显式**：服务与驱动都有 `dataOrigin`（`.healthKit` / `.simulated`），界面据此显示“演示模式 · 模拟数据”横幅；模拟样本来源名统一为“模拟数据（非真实）”/“模拟运动（非真实）”。
+- **状态统一**：`LoadState<T>` = idle / loading / healthDataUnavailable / needsAuthorization / noData / failed / loaded。**无数据 ≠ 拒绝权限**：HealthKit 不披露读取权限，空结果只显示“暂无数据”并提示检查路径。
 
-这样做的好处：
-- 不依赖 HealthKit 的逻辑（状态机、模型、编解码）可以在 macOS / Linux 上用 `swift test` 直接测试；
-- iOS 与 watchOS 共用同一份模型和镜像消息格式，后续 Mirroring 两端不会出现格式漂移。
+## 3. 日常健康监控（第二阶段）
 
-## 3. 健康总览状态机
+| 指标 | HealthKit 类型 | 摘要 | 趋势 |
+| --- | --- | --- | --- |
+| 心率 | `heartRate` | 最新样本 | `HKStatisticsCollectionQuery` 日均 + 最小 / 最大 |
+| 心率变异性 | `heartRateVariabilitySDNN`（毫秒） | 最新样本 | 同上 |
+| 静息心率 | `restingHeartRate` | 最新样本 | 同上 |
+| 步数 | `stepCount` | 今日 `HKStatisticsQuery` 合计（HealthKit 自动去重） | 每日合计 |
+| 活动能量 | `activeEnergyBurned`（千卡） | 今日合计 | 每日合计 |
+| 睡眠 | `sleepAnalysis` | 昨晚（按夜聚合） | 每晚时长 |
 
-`HealthOverviewViewModel.State`：
+睡眠聚合 `SleepAggregator`：以 18:00 为界把记录归到“醒来那天”；多来源重叠时按时间轴扫描，每段只计优先级最高的阶段（深睡 > REM > 核心 > 未细分 > 清醒 > 卧床），避免 iPhone + Watch + 第三方 App 重复累计。只有卧床记录时标记为“仅有卧床记录”。
 
-| 状态 | 触发条件 | UI |
-| --- | --- | --- |
-| `idle` | 初始 | 等同加载中 |
-| `loading` | 正在查询授权状态 / 读取数据 | ProgressView |
-| `healthDataUnavailable` | `HKHealthStore.isHealthDataAvailable() == false` | 设备不支持说明 |
-| `needsAuthorization` | `statusForAuthorizationRequest == .shouldRequest` | 说明 + “授权读取心率”按钮（**按需授权**，不在启动时自动弹窗） |
-| `noData` | 查询成功但结果为空 | “暂无心率记录” + 可能原因（含“可能未授予读取权限”，但**不断言**为拒绝） |
-| `failed(HealthDataError)` | 查询/授权抛错 | 错误说明 + 重试 |
-| `loaded(HeartRateSample)` | 拿到最新一条样本 | 数值、单位、采样时间、来源、设备 |
+总览页并发读取各指标：单项失败只影响该卡片；全部失败才整体失败（例如锁屏）；全部为空才显示“暂无可读取的健康数据”。
 
-**关于“无数据 ≠ 拒绝权限”**：HealthKit 出于隐私不会告诉 App 读取权限是否被拒绝；被拒绝时查询表现为“返回空结果”。因此 `noData` 只能表述为“没有可读取的记录”，并引导用户到「健康 App › 共享 › App › WatchPulse」检查，而不是显示“权限被拒绝”。`statusForAuthorizationRequest` 返回 `.unnecessary` 也只代表“已经弹过授权框”，不代表用户允许了读取。
+## 4. 实时运动与镜像（第三阶段）
 
-## 4. 运动镜像扩展点（参考 Apple《Building a multidevice workout app》）
+参考 Apple《Building a multidevice workout app》：
 
-Apple 示例的流程：
+```
+Apple Watch                                             iPhone
+───────────                                             ──────
+WorkoutSessionController ──(Data)──► WorkoutMirroringSender ═══► HKWorkoutSession(镜像)
+   ▲      │  状态机 / 序号 / 心跳 / 重连                          │ didReceiveDataFromRemote…
+   │      ▼                                                      ▼
+HealthKitWorkoutSessionDriver                          HealthKitMirroringReceiver
+  HKWorkoutSession + HKLiveWorkoutBuilder                       │
+  startMirroringToCompanionDevice()                             ▼
+  sendToRemoteWorkoutSession(data:)  ◄═══(命令 Data)═══   LiveWorkoutMonitor ──► 仪表盘
+```
 
-1. **Watch** 创建 `HKWorkoutSession` + `HKLiveWorkoutBuilder`，调用 `session.startMirroringToCompanionDevice()`；
-2. **iPhone** 在启动早期设置 `healthStore.workoutSessionMirroringStartHandler`，收到镜像出来的 `HKWorkoutSession`；
-3. 两端通过 `session.sendToRemoteWorkoutSession(data:)` 互发 `Data`，通过 `HKWorkoutSessionDelegate.workoutSession(_:didReceiveDataFromRemoteWorkoutSession:)` 接收；
-4. 运动状态变化通过 `workoutSession(_:didChangeTo:from:date:)` 同步。
+- **消息协议**：`WorkoutMirroringEnvelope { version, sessionID, sequence, sentAt, message }`，JSON 编码，单条 ≤ 64 KB。
+  消息：`stateSync`（完整状态）、`phaseChanged`、`metrics`、`heartbeat`、`commandRejected`（Watch → iPhone）；`command`、`requestStateSync`（iPhone → Watch）。
+- **顺序与去重**：接收端按 `sessionID + sequence` 丢弃重复 / 过期消息；`sessionID` 变化表示 Watch 端新会话（新运动或崩溃恢复），若开始时间相同则保留曲线。
+- **连接状态**（iPhone）：waiting → connected ↔ stale（12 秒无消息）/ disconnected（系统通知断开或发送失败）；从断开恢复时自动 `requestStateSync`。
+- **断线恢复**（Watch）：发送失败或系统通知断开 → 按 2 / 5 / 10 / 20 / 30 秒退避重连（`startMirroringToCompanionDevice`）；一轮失败后提示“暂时无法连接 iPhone”，运动继续本地记录，之后每 60 秒由 `tick()` 再试；重连成功立即发送 `stateSync`。
+- **崩溃恢复**（Watch）：`WKApplicationDelegate.handleActiveWorkoutRecovery()` → `recoverActiveWorkoutSession()` → 恢复状态并重新镜像。
+- **暂停计时**：恢复运动时把指标快照的时间基准移到恢复时刻，避免暂停期间被计入时长。
+- **线程模型**：HealthKit 回调在后台线程，统一经 `DispatchQueue.main.async` + `MainActor.assumeIsolated` 按序交给主线程状态机；回调式 API 在 `nonisolated static` 函数中包装，避免 Swift 6 把回调推断为主线程隔离。
 
-本阶段预留的接口：
+## 5. 运动记录（第四阶段）
 
-| 接口 | 位置 | 对应上面步骤 |
-| --- | --- | --- |
-| `WorkoutConfigurationRequest`、`WorkoutActivityKind`、`WorkoutLocation` | Shared | 第 1 步构造 `HKWorkoutConfiguration` |
-| `WorkoutSessionPhase` | Shared | 第 4 步，映射 `HKWorkoutSessionState` |
-| `WorkoutMetricsSnapshot` | Shared | Watch 从 `HKLiveWorkoutBuilder` 汇总后发送 |
-| `WorkoutMirroringMessage` + `WorkoutMirroringCodec`（带版本号的 JSON 封包） | Shared | 第 3 步 `Data` 的格式 |
-| `WorkoutSessionManaging`（Watch 端，主会话所有者） | Shared | 第 1、3、4 步 |
-| `MirroredWorkoutReceiving`（iPhone 端，镜像接收方） | Shared | 第 2、3 步 |
-| `WatchWorkoutManager` | Watch target | 第 1 步实现位置（本阶段抛 `notImplementedInThisPhase`） |
-| `PhoneWorkoutMirroringCoordinator` | iOS target | 第 2 步实现位置（本阶段不注册 handler） |
+- 保存：Watch 端 `HKLiveWorkoutBuilder.endCollection` + `finishWorkout()` 写入 HealthKit（需要写入权限）。
+- 查询：`HKSampleQueryDescriptor(.workout())` 按开始时间倒序；`HKWorkout.statistics(for:)` 取能量、距离、心率统计；室内 / 室外取 `HKMetadataKeyIndoorWorkout`。
+- 详情：运动区间内的心率样本 → `HeartRateSeries.downsample`（≤ 300 点）+ 最小 / 平均 / 最大 + 心率区间（以本次最高心率为参照，样本间隔 > 60 秒视为缺测）。
 
-## 5. 目录结构
+## 6. 演示模式与测试（第五阶段）
+
+- 启动参数 `-WatchPulseDemoMode YES`（Xcode scheme：`WatchPulse Demo` / `WatchPulseWatch Demo`）：所有服务换成模拟实现；iPhone 运动页可“开始模拟运动 / 模拟断线 / 恢复连接”，由 `SimulatedMirroredWorkout` 在进程内模拟一只 Apple Watch。
+- `-WatchPulseDemoScenario full|empty|failure|needsAuthorization`：UI 测试覆盖各种状态。
+- 测试分层：
+  - `WatchPulseSharedTests`：格式化、睡眠聚合（含随机不变式）、编解码（含模糊）、心率降采样。
+  - `WatchPulseCoreTests`：各 ViewModel 状态流转、Watch 状态机、iPhone 仪表盘、端到端模拟（暂停 / 命令 / 断线 / 重连 / 结束）、稳定性（2 万条乱序重复消息、随机字节、2 小时多次断线、快速切换）。
+  - `WatchPulseUITests`：iOS 模拟器上演示模式的界面流程。
+
+## 7. 目录结构
 
 ```
 WatchPulse/
-├── project.yml                         # XcodeGen 工程定义（工程的唯一来源）
-├── WatchPulse.xcodeproj                # 由 project.yml 生成，已提交，可直接打开
-├── Config/Signing.xcconfig             # Team ID、Bundle ID（真机运行前唯一需要改的地方）
+├── project.yml / WatchPulse.xcodeproj      # XcodeGen 定义与生成的工程
+├── Config/Signing.xcconfig                 # Team ID、Bundle ID（Signing.local.xcconfig 覆盖）
 ├── Packages/WatchPulseKit/
-│   ├── Package.swift
-│   ├── Sources/WatchPulseShared/
-│   │   ├── Models/      HeartRateSample.swift, HealthDataError.swift, HealthAuthorizationRequestStatus.swift
-│   │   └── Workout/     WorkoutConfiguration.swift, WorkoutSessionPhase.swift, WorkoutMetricsSnapshot.swift,
-│   │                    WorkoutMirroringMessage.swift, WorkoutSessionContracts.swift
-│   ├── Sources/WatchPulseCore/
-│   │   ├── Services/    HealthDataService.swift, HealthKitHealthDataService.swift, MockHealthDataService.swift
-│   │   └── ViewModels/  HealthOverviewViewModel.swift
-│   └── Tests/           WatchPulseSharedTests/, WatchPulseCoreTests/
-├── WatchPulse/                         # iOS App target
-│   ├── App/             WatchPulseApp.swift, AppDependencies.swift
-│   ├── Features/HealthOverview/  HealthOverviewView.swift, HeartRateCard.swift
-│   ├── Features/Workout/         PhoneWorkoutMirroringCoordinator.swift
-│   ├── Resources/Assets.xcassets
-│   ├── Info.plist, WatchPulse.entitlements
-├── WatchPulseWatch/                    # watchOS App target（单 target watch App，嵌入 iOS App）
-│   ├── App/WatchPulseWatchApp.swift, Views/WatchHomeView.swift, Workout/WatchWorkoutManager.swift
-│   ├── Resources/Assets.xcassets
-│   ├── Info.plist, WatchPulseWatch.entitlements
-└── .github/workflows/ci.yml            # macOS runner：swift test + iOS/watchOS 模拟器编译
+│   ├── Sources/WatchPulseShared/{Models,Workout}
+│   ├── Sources/WatchPulseCore/{Services,ViewModels,Workout}
+│   └── Tests/{WatchPulseSharedTests,WatchPulseCoreTests}
+├── WatchPulse/                             # iOS：App、Features/{HealthOverview,Trends,Workout}、Shared
+├── WatchPulseWatch/                        # watchOS：App、Views、Workout
+├── WatchPulseUITests/                      # XCUITest（演示模式）
+├── docs/{ARCHITECTURE,DEVICE_VALIDATION}.md
+└── .github/workflows/ci.yml
 ```
-
-## 6. 实现步骤
-
-1. 写共享模型与镜像契约（WatchPulseShared）及单元测试；
-2. 写 `HealthDataService` 协议、Mock、ViewModel 状态机及单元测试；
-3. 写 `HealthKitHealthDataService`（`HKSampleQueryDescriptor`，按 `endDate` 倒序，limit 1）；
-4. 写 iOS 视图（每种状态都有 Preview，使用 Mock）；
-5. 写 Watch 最小 App 与运动管理占位；
-6. 写 `project.yml`、Info.plist、entitlements，生成 `.xcodeproj`；
-7. 构建验证：Linux 上 `swift test`；GitHub Actions macOS runner 上 `swift test` + `xcodebuild` 编译 iOS / watchOS 模拟器；
-8. 真机验收（需要开发者在 Mac + iPhone 上完成，见 README）。

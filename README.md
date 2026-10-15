@@ -1,61 +1,75 @@
 # WatchPulse
 
-日常健康监控 + 实时运动监控应用（iOS + watchOS，SwiftUI + HealthKit）。
+日常健康监控 + Apple Watch 实时运动监控应用（iOS + watchOS，SwiftUI + HealthKit，无后端、无第三方 SDK）。
 
-**当前为第一阶段**：iPhone 通过 HealthKit 读取并显示最新一条真实心率记录（数值、单位、采样时间、来源）。Watch 端只有最小 App 和运动镜像的扩展接口，暂不实现实时运动同步。
+> **验证状态**：所有功能已在云端完成编译（iOS / watchOS 模拟器与真机架构）和自动化测试（单元、模拟端到端、稳定性、演示模式 UI 测试）。
+> **尚未在真机上验证**。编译成功和模拟测试通过都不等于真机功能验收，真机清单见 [docs/DEVICE_VALIDATION.md](docs/DEVICE_VALIDATION.md)。
 
-架构设计、状态机和运动镜像扩展点见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+架构与设计见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
+
+## 功能
+
+| 模块 | 功能 |
+| --- | --- |
+| 健康总览 | 最新心率（值、单位、采样时间、来源）；静息心率、HRV、今日步数、今日活动能量、昨晚睡眠；单项失败不影响其他项 |
+| 历史趋势 | 各指标 7 / 30 / 90 天图表、统计（平均 / 最低 / 最高 / 合计）、每日明细 |
+| Apple Watch 运动 | 跑步 / 步行 / 骑行 / HIIT / 其他，室内 / 室外；实时心率、能量、距离；暂停 / 继续 / 结束；崩溃恢复 |
+| 运动镜像 | Watch 运动自动镜像到 iPhone；iPhone 实时仪表盘与心率曲线；iPhone 远程暂停 / 继续 / 结束；断线检测与自动重连 |
+| 运动记录 | Watch 结束运动后保存到“健康”；iPhone 历史列表（按月）、详情、心率曲线与心率区间 |
+| 演示模式 | 全部模拟数据（界面有明显标注），用于无真机时查看界面与 UI 测试 |
 
 ## 环境要求
 
-- Xcode 16 或更新版本（Swift 6 语言模式）
-- iOS 17+ 的 iPhone、watchOS 10+ 的 Apple Watch（可选）
-- Apple 开发者账号（个人免费账号也可以在真机运行 HealthKit App）
+- Xcode 16 或更新版本（Swift 6 语言模式；CI 使用 Xcode 16.4）
+- iOS 17+ 的 iPhone；watchOS 10+ 的 Apple Watch（运动镜像需要两者配对）
+- Apple 开发者账号
 
 ## 工程结构
 
 | 路径 | 说明 |
 | --- | --- |
 | `WatchPulse.xcodeproj` | 由 `project.yml` 用 [XcodeGen](https://github.com/yonaskolb/XcodeGen) 生成，已提交，可直接打开 |
-| `Packages/WatchPulseKit` | 本地 Swift Package：`WatchPulseShared`（模型/镜像契约）、`WatchPulseCore`（服务/ViewModel/Mock） |
-| `WatchPulse/` | iOS App target |
-| `WatchPulseWatch/` | watchOS App target（嵌入在 iOS App 中） |
+| `Packages/WatchPulseKit` | `WatchPulseShared`（模型、镜像协议）+ `WatchPulseCore`（服务、ViewModel、运动状态机、模拟实现） |
+| `WatchPulse/` · `WatchPulseWatch/` · `WatchPulseUITests/` | iOS App、watchOS App、UI 测试 |
 | `Config/Signing.xcconfig` | Team ID 与 Bundle ID |
 
 修改 `project.yml` 后运行 `brew install xcodegen && xcodegen generate` 重新生成工程。
 
-## 真机运行步骤（验收）
+## Scheme
+
+| Scheme | 用途 |
+| --- | --- |
+| `WatchPulse` | iOS 真实模式（HealthKit）；⌘U 运行包测试与 UI 测试 |
+| `WatchPulse Demo` | iOS 演示模式（模拟数据）；可在模拟器中体验全部界面，包括模拟 Apple Watch 运动和断线恢复 |
+| `WatchPulseWatch` | watchOS 真实模式 |
+| `WatchPulseWatch Demo` | watchOS 演示模式（模拟运动驱动，不写入“健康”） |
+
+## 真机运行步骤
 
 1. 在 `Config/` 下新建 `Signing.local.xcconfig`（已被 git 忽略）：
    ```
    DEVELOPMENT_TEAM = 你的TeamID
    WATCHPULSE_BUNDLE_ID = com.你的标识.WatchPulse
    ```
-   Team ID 可以在 Xcode › Settings › Accounts 或 developer.apple.com › Membership 中查看。Bundle ID 必须在你的账号下唯一。
-2. 打开 `WatchPulse.xcodeproj`，选中 `WatchPulse` target › Signing & Capabilities，确认 Team 正确、**HealthKit** capability 已显示（来自 `WatchPulse.entitlements`）。`WatchPulseWatch` target 同样检查一遍。
-3. 确认 iPhone 上的“健康”App 至少有一条心率记录（佩戴 Apple Watch 测量一次，或在“健康 › 浏览 › 心脏 › 心率”中手动添加一条）。
-4. 选择 `WatchPulse` scheme 和你的 iPhone，⌘R 运行。首次运行需在 iPhone「设置 › 通用 › VPN 与设备管理」中信任开发者证书，并打开「设置 › 隐私与安全性 › 开发者模式」。
-5. App 显示“需要读取心率数据”，点击 **授权读取心率**，在系统授权页中打开“心率”，然后点“允许”。
-6. **验收标准**：页面显示“最新心率”卡片，数值、单位 `count/min`、采样时间、来源与「健康」App 中最新一条心率记录一致。
-
-如果显示“暂无可读取的心率记录”：可能是没有数据，也可能是关闭了读取权限。可在「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查后返回 App，App 回到前台时会自动重新读取。
+2. 打开 `WatchPulse.xcodeproj`，在 Signing & Capabilities 中确认 `WatchPulse`、`WatchPulseWatch` 两个 target 的 Team 正确、**HealthKit** capability 已显示。
+3. 选择 `WatchPulse` scheme 和 iPhone，⌘R 运行。首次需信任开发者证书并开启开发者模式。Watch App 会随 iPhone App 安装，也可直接用 `WatchPulseWatch` scheme 运行到手表。
+4. 按 [docs/DEVICE_VALIDATION.md](docs/DEVICE_VALIDATION.md) 逐项验证并记录结果。
 
 ## 测试
 
 ```bash
-swift test --package-path Packages/WatchPulseKit     # macOS / Linux 均可
+swift test --package-path Packages/WatchPulseKit     # macOS / Linux 均可（不含 HealthKit 的逻辑）
 ```
 
-在 Xcode 中，`WatchPulse` scheme 的 Test（⌘U）会在 iOS 模拟器上运行同一组包测试。
-
-SwiftUI Preview（`HealthOverviewView.swift`）覆盖已读取 / 加载中 / 需要授权 / 无数据 / 读取失败 / 设备不支持六种状态，全部使用 `MockHealthDataService`。示例数据来源明确标注为“预览示例数据（非真实）”，**不能**作为真机验收依据。
+Xcode 中 `WatchPulse` scheme 的 Test（⌘U）在 iOS 模拟器上运行包测试和 UI 测试（UI 测试只使用演示模式数据）。
 
 ## CI
 
-`.github/workflows/ci.yml` 在 GitHub Actions 的 macOS runner 上运行：
-- `swift test`（在 macOS 上会一并编译 HealthKit 实现）；
-- `xcodebuild` 编译 iOS App 和嵌入的 watchOS App（模拟器 + 不签名的真机 arm64）；
-- 检查产物中的 Info.plist 隐私用途说明和 Watch App 嵌入；
-- 在 iOS 模拟器上运行包测试。
+`.github/workflows/ci.yml`（GitHub Actions macOS runner）：
 
-CI 只能证明代码可以编译、逻辑测试能通过，**不能**替代真机签名和 HealthKit 真机读数验收。
+1. `swift test`（macOS 上同时编译 HealthKit 实现）；
+2. `xcodebuild` 编译 iOS App + 嵌入的 watchOS App：模拟器（Swift 警告视为错误）与不签名的真机架构；单独编译 watchOS scheme；
+3. 汇总编译警告；检查产物 Info.plist 隐私说明与 Watch App 嵌入；
+4. iOS 模拟器上运行包测试与演示模式 UI 测试。
+
+CI 只能证明代码可编译、逻辑与界面流程在模拟条件下正确，**不能**替代真机签名、HealthKit 真实数据与 Apple Watch 镜像的验收。
