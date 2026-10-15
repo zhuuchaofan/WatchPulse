@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -67,7 +67,7 @@
 
 /* Begin PBXFileReference section */
 		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
-		02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WatchPulseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WatchPulseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		15846F47C632321DC91AA219 /* WorkoutHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHomeView.swift; sourceTree = "<group>"; };
 		3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryViews.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
@@ -80,7 +80,7 @@
 		64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitMirroringReceiver.swift; sourceTree = "<group>"; };
 		69285459661FE21B2ABB2CE6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6EC593086560A2F9EF04199F /* HeartRateCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeartRateCard.swift; sourceTree = "<group>"; };
-		7232AB9E0CBD11A3430A9600 /* WatchPulse.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = WatchPulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7232AB9E0CBD11A3430A9600 /* WatchPulse.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WatchPulse.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveWorkoutDashboardView.swift; sourceTree = "<group>"; };
 		78F8EB6FDF260DE4D04D22FF /* HealthOverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthOverviewView.swift; sourceTree = "<group>"; };
 		833B9E27C20270DEA0879919 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
@@ -398,7 +398,6 @@
 			packageReferences = (
 				DFA3B7389D457335E295E95B /* XCLocalSwiftPackageReference "Packages/WatchPulseKit" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -523,6 +522,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 54NF5AR7MC;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -692,6 +692,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 54NF5AR7MC;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
