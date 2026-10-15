@@ -12,12 +12,15 @@ public enum MetricCardStatus: Hashable, Sendable {
 public struct MetricCardModel: Hashable, Sendable, Identifiable {
     public let kind: HealthMetricKind
     public let status: MetricCardStatus
+    /// 静息心率 / HRV：与个人基线的比较（有日值时才有，可能为“积累中”）。
+    public let baseline: BaselineComparison?
 
     public var id: HealthMetricKind { kind }
 
-    public init(kind: HealthMetricKind, status: MetricCardStatus) {
+    public init(kind: HealthMetricKind, status: MetricCardStatus, baseline: BaselineComparison? = nil) {
         self.kind = kind
         self.status = status
+        self.baseline = baseline
     }
 }
 
@@ -124,7 +127,8 @@ public final class HealthOverviewViewModel {
 
     nonisolated static func fetchState(from service: any HealthDataService, day: Date) async -> State {
         async let heartRate = capture { try await service.fetchLatestHeartRate() }
-        let cards = await withTaskGroup(of: MetricCardModel.self) { group in
+        async let baselines = Self.fetchBaselines(from: service, day: day)
+        let summaryCards = await withTaskGroup(of: MetricCardModel.self) { group in
             for kind in HealthDashboardSnapshot.cardKinds {
                 group.addTask {
                     switch await capture({ try await service.fetchSummary(for: kind, on: day) }) {
@@ -140,6 +144,8 @@ public final class HealthOverviewViewModel {
             }
             return HealthDashboardSnapshot.cardKinds.compactMap { kind in result.first { $0.kind == kind } }
         }
+        let baselineByKind = await baselines
+        let cards = summaryCards.map { MetricCardModel(kind: $0.kind, status: $0.status, baseline: baselineByKind[$0.kind]) }
 
         let heartRateResult = await heartRate
         var errors = cards.compactMap { card -> HealthDataError? in
@@ -167,6 +173,33 @@ public final class HealthOverviewViewModel {
             return .noData
         }
         return .loaded(HealthDashboardSnapshot(latestHeartRate: latest, cards: cards, heartRateError: heartRateError))
+    }
+}
+
+extension HealthOverviewViewModel {
+    /// 总览卡片上的基线比较。读取失败或没有日值时不显示（卡片本身的状态不受影响）。
+    nonisolated static func fetchBaselines(
+        from service: any HealthDataService,
+        day: Date,
+        calendar: Calendar = .current
+    ) async -> [HealthMetricKind: BaselineComparison] {
+        let windows = BaselineWindows(asOf: day, calendar: calendar)
+        return await withTaskGroup(of: (HealthMetricKind, BaselineComparison?).self) { group in
+            for kind in HealthInsightsViewModel.baselineKinds {
+                group.addTask {
+                    guard case .success(let points) = await capture({ try await service.fetchDailyTrend(for: kind, in: windows.fullInterval) }) else {
+                        return (kind, nil)
+                    }
+                    let daily = DailyMetricSeries(kind: kind, points: points, interval: windows.fullInterval, calendar: calendar)
+                    return (kind, daily.validDayCount > 0 ? BaselineComparison(kind: kind, daily: daily, windows: windows) : nil)
+                }
+            }
+            var result: [HealthMetricKind: BaselineComparison] = [:]
+            for await (kind, comparison) in group {
+                result[kind] = comparison
+            }
+            return result
+        }
     }
 }
 

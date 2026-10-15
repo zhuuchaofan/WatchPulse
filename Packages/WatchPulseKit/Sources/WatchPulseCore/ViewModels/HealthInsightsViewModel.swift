@@ -59,7 +59,7 @@ public enum InsightTrendRange: Int, CaseIterable, Hashable, Sendable, Identifiab
 public final class HealthInsightsViewModel {
     public typealias State = LoadState<HealthInsightsSnapshot>
 
-    public static let baselineKinds: [HealthMetricKind] = [.restingHeartRate, .heartRateVariability]
+    nonisolated public static let baselineKinds: [HealthMetricKind] = [.restingHeartRate, .heartRateVariability]
 
     public private(set) var state: State = .idle
     public var trendRange: InsightTrendRange = .week

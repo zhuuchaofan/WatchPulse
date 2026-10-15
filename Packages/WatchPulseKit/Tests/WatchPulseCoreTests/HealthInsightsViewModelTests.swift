@@ -111,3 +111,25 @@ final class HealthInsightsViewModelTests: XCTestCase {
         XCTAssertNil(days.last?.value, "今天没有数据时为缺测，不是 0")
     }
 }
+
+@MainActor
+final class OverviewBaselineTests: XCTestCase {
+    func testOverviewCardsCarryBaselines() async throws {
+        let viewModel = HealthOverviewViewModel(service: MockHealthDataService.demo())
+        await viewModel.load()
+        let snapshot = try XCTUnwrap(viewModel.state.value)
+        XCTAssertEqual(snapshot.card(for: .restingHeartRate)?.baseline?.sufficiency, .sufficient)
+        XCTAssertNotNil(snapshot.card(for: .heartRateVariability)?.baseline)
+        XCTAssertNil(snapshot.card(for: .stepCount)?.baseline)
+    }
+
+    func testBaselineFailureDoesNotAffectCard() async throws {
+        let service = MockHealthDataService.demo()
+        service.setTrend(.failure(.queryFailed(reason: "test")), for: .restingHeartRate)
+        let viewModel = HealthOverviewViewModel(service: service)
+        await viewModel.load()
+        let card = try XCTUnwrap(viewModel.state.value?.card(for: .restingHeartRate))
+        XCTAssertNil(card.baseline)
+        if case .value = card.status {} else { XCTFail("卡片本身应正常显示") }
+    }
+}
