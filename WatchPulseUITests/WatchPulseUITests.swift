@@ -72,9 +72,12 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertTrue(element(app, "dashboard.heartRateCard").waitForExistence(timeout: 15))
         XCTAssertTrue(element(app, "heartRate.ago").exists)
         // 技术细节默认收起，点开“数据详情”才显示。
-        XCTAssertFalse(app.staticTexts["来源标识"].exists)
+        XCTAssertFalse(app.staticTexts["记录方式"].exists)
         app.buttons["数据详情"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["来源标识"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["记录方式"].waitForExistence(timeout: 5))
+        // 演示数据明确标注为示例；不再展示 Bundle ID 等技术字段。
+        XCTAssertTrue(app.staticTexts["示例数据，不是真实测量"].exists)
+        XCTAssertFalse(app.staticTexts["来源标识"].exists)
     }
 
     @MainActor

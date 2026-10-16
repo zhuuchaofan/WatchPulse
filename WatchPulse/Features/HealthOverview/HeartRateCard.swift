@@ -2,7 +2,8 @@ import SwiftUI
 import WatchPulseCore
 import WatchPulseShared
 
-/// 最新心率卡片：只突出数值、多久前、哪块表测的；单位全称、精确时间、设备型号、来源标识收进“数据详情”（默认收起）。
+/// 最新心率卡片：只突出数值、多久前、哪块表测的；精确时间、手表型号与名称、记录方式收进“数据详情”（默认收起）。
+/// 详情只展示看得懂的说明，不展示 HealthKit 单位字符串、Bundle ID 或硬件代码。
 struct HeartRateCard: View {
     let sample: HeartRateSample
 
@@ -47,16 +48,21 @@ struct HeartRateCard: View {
                 }
 
                 DisclosureGroup("数据详情", isExpanded: $showsDetails) {
-                    VStack(spacing: 10) {
-                        LabeledContent("单位", value: "\(sample.unit)（BPM）")
-                        LabeledContent("采样时间", value: sample.startDate.formatted(date: .abbreviated, time: .standard))
-                        if !sample.isInstantaneous {
-                            LabeledContent("结束时间", value: sample.endDate.formatted(date: .abbreviated, time: .standard))
+                    VStack(alignment: .leading, spacing: 10) {
+                        if sample.isInstantaneous {
+                            LabeledContent("测量时间", value: sample.endDate.formatted(date: .abbreviated, time: .standard))
+                        } else {
+                            LabeledContent("测量时段", value: "\(sample.startDate.formatted(date: .abbreviated, time: .standard)) – \(sample.endDate.formatted(date: .omitted, time: .standard))")
                         }
-                        if let deviceDescription {
-                            LabeledContent("设备", value: deviceDescription)
+                        if let model = sourceDescription.deviceModel {
+                            LabeledContent(sample.source.isAppleWatch ? "手表型号" : "设备", value: model)
                         }
-                        LabeledContent("来源标识", value: sample.source.bundleIdentifier)
+                        if let customName = sourceDescription.customName {
+                            LabeledContent("手表名称", value: customName)
+                            Text("这是你在 iPhone「Watch」App 里给这块手表起的名字，不代表手表品牌。")
+                                .foregroundStyle(.secondary)
+                        }
+                        LabeledContent("记录方式", value: sourceDescription.recordedBy)
                     }
                     .font(.caption)
                     .padding(.top, 6)
@@ -83,15 +89,8 @@ struct HeartRateCard: View {
         .accessibilityElement(children: .contain)
     }
 
-    private var deviceDescription: String? {
-        let parts = [sample.source.deviceName, sample.source.deviceModel, sample.source.productType]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-        var unique: [String] = []
-        for part in parts where !unique.contains(part) {
-            unique.append(part)
-        }
-        return unique.isEmpty ? nil : unique.joined(separator: " · ")
+    private var sourceDescription: HeartRateSourceDescription {
+        HeartRateSourceDescription(source: sample.source)
     }
 }
 
