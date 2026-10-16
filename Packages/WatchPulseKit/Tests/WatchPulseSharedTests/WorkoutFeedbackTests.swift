@@ -112,7 +112,7 @@ final class WorkoutFeedbackTests: XCTestCase {
         XCTAssertEqual(result.excludedCount, 3)
         XCTAssertEqual(Set(result.exclusions.map(\.reason)), [.differentLocation, .differentDevice, .distanceMismatch])
         let line = WorkoutFeedbackPresentation.exclusionLine(result)
-        XCTAssertEqual(line?.hasPrefix("另有 3 次同类运动未纳入比较"), true)
+        XCTAssertEqual(line?.hasPrefix("另有 3 次同类运动没有参与比较"), true)
     }
 
     func testIneligibleWorkoutIsNotCompared() {
