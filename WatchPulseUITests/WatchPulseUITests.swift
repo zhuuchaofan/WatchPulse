@@ -155,6 +155,25 @@ final class WatchPulseUITests: XCTestCase {
     }
 
     @MainActor
+    func testWorkoutDetailShowsPostWorkoutFeedback() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+
+        let row = element(app, "workout.history.row")
+        for _ in 0..<5 where !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let headline = element(app, "workoutDetail.feedback.headline")
+        scrollTo(headline, in: app)
+        XCTAssertTrue(headline.waitForExistence(timeout: 10))
+        // 无论样本是否足够，都要说明对比对象的范围（时间窗与同类运动）。
+        waitForLabel(headline, contains: "天内可比的")
+    }
+
+    @MainActor
     func testCreateEditPauseAndDeleteWeeklyGoal() {
         let app = launch()
         app.tabBars.buttons["目标"].tap()

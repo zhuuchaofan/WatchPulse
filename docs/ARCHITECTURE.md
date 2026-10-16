@@ -187,3 +187,17 @@ WatchPulse/
 | `WorkoutGoalStore`（`UserDefaults` / 内存实现） | Core | 仅本机；存储数据无法解析时先备份原始数据再从空列表开始，并提示用户，不静默覆盖 |
 | `WorkoutGoalsViewModel` | Core | 目标增删改、暂停 / 恢复；运动记录经 `WorkoutAnalysisLoader` 读取（不读取心率曲线），读取失败时目标仍可管理、进度显示 `--` 而不是 0 |
 | 「目标」Tab（`WorkoutGoalsView`） | iOS | 列表、进度条、说明（疑似重复 / 无距离 / 可能不完整）、新建 / 编辑表单（目标值初始为空）；演示模式目标只存内存 |
+
+## 11. v0.3 T3：运动后反馈
+
+规则见 [ROADMAP_V02_V10.md](ROADMAP_V02_V10.md) 1.3 T3。只描述本次与自己过去同类运动的数值差异（高 / 低 / 相近），不评价进步或退步，不做健康判断；“相同心率下的速度”等进步指标属于 T4。
+
+| 组件 | 位置 | 说明 |
+| --- | --- | --- |
+| `WorkoutFeedbackCalculator`、`WorkoutFeedback` | Shared | 对比对象 = 本次之前 90 天内、`WorkoutComparability` 判定可比的同类运动；每项指标（时长、距离、均速 / 配速、平均心率、个人区间分布）只用对该指标可比的运动，取最近 5 次的平均；少于 3 次该项不下判断；本次不满足进步比较资格时只展示数据。同类但不可比的运动计数并列出原因；结果与输入顺序无关 |
+| `WorkoutFeedbackPresentation` | Shared | 文案：每条结论带对比对象与样本数；“相近”阈值为 ±5%（心率 ±3 次/分、区间占比 ±5 个百分点）；缺失显示 `--` |
+| `WorkoutAnalysisLoader.load(limit:selectHeartRateTargets:)` | Core | 由调用方决定为哪些运动读取心率；反馈只读取本次与更早的同类运动（最多 21 条） |
+| `WorkoutFeedbackViewModel` | Core | 读取最近 200 条运动；打开的是被合并的确认重复记录时按主记录计算；读取条数达上限时提示更早的运动可能未参与 |
+| 运动详情“运动后反馈”小节（`WorkoutFeedbackSection`） | iOS | 位于汇总数据之后；iPhone 端暂无用户确认的个人心率区间，区间分布显示“未设置个人心率区间” |
+
+`WorkoutAnalysisRecord` 新增 `mergedWorkoutIDs`，`WorkoutAnalysisSet.record(containing:)` 可从任一原始记录找到主记录。

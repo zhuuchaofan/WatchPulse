@@ -117,19 +117,23 @@ private struct WorkoutRow: View {
 
 struct WorkoutDetailScreen: View {
     @State private var viewModel: WorkoutDetailViewModel
+    @State private var feedbackViewModel: WorkoutFeedbackViewModel
 
     init(workout: WorkoutRecord, service: any WorkoutHistoryService) {
         _viewModel = State(initialValue: WorkoutDetailViewModel(workout: workout, service: service))
+        // iPhone 端暂无用户确认的个人心率区间，区间分布不参与比较（不推算最大心率）。
+        _feedbackViewModel = State(initialValue: WorkoutFeedbackViewModel(workout: workout, service: service))
     }
 
     var body: some View {
-        WorkoutDetailView(viewModel: viewModel)
+        WorkoutDetailView(viewModel: viewModel, feedbackViewModel: feedbackViewModel)
     }
 }
 
-/// 运动详情：汇总数据 + 心率曲线 + 心率区间。
+/// 运动详情：汇总数据 + 运动后反馈 + 心率曲线 + 心率区间。
 struct WorkoutDetailView: View {
     let viewModel: WorkoutDetailViewModel
+    var feedbackViewModel: WorkoutFeedbackViewModel?
 
     private var workout: WorkoutRecord { viewModel.workout }
 
@@ -165,6 +169,10 @@ struct WorkoutDetailView: View {
                     LabeledContent("最高心率", value: "\(Int(maximum.rounded())) 次/分")
                 }
                 LabeledContent("来源", value: workout.sourceName)
+            }
+
+            if let feedbackViewModel {
+                WorkoutFeedbackSection(viewModel: feedbackViewModel)
             }
 
             Section {
@@ -333,6 +341,9 @@ private struct HeartRateZoneBars: View {
     let service = MockWorkoutHistoryService.demo()
     let workout = SimulatedWorkoutHistory.workouts(endingBefore: .now, count: 1)[0]
     return NavigationStack {
-        WorkoutDetailView(viewModel: WorkoutDetailViewModel(workout: workout, service: service))
+        WorkoutDetailView(
+            viewModel: WorkoutDetailViewModel(workout: workout, service: service),
+            feedbackViewModel: WorkoutFeedbackViewModel(workout: workout, service: service)
+        )
     }
 }
