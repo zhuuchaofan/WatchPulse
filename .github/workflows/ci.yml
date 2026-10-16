@@ -9,6 +9,8 @@ jobs:
   build-and-test:
     runs-on: macos-15
     timeout-minutes: 60
+    permissions:
+      contents: write  # 只用于把截图推送到 ci-screenshots 分支
     steps:
       - uses: actions/checkout@v5
 
@@ -117,3 +119,35 @@ jobs:
           path: screenshots/*.png
           retention-days: 90
           if-no-files-found: warn
+
+      # 截图同时提交到独立的 ci-screenshots 分支（screenshots/<分支>/<提交>/），便于不下载附件直接查看。
+      # 只在 push 事件上做，避免同一提交的 push / pull_request 两次运行重复提交；不影响其他分支。
+      - name: Publish screenshots to ci-screenshots branch
+        if: ${{ !cancelled() && github.event_name == 'push' && env.SIM_UDID != '' }}
+        env:
+          BRANCH_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          ls screenshots/*.png >/dev/null 2>&1 || { echo "no screenshots"; exit 0; }
+          SHORT_SHA="${GITHUB_SHA::7}"
+          DEST="screenshots/${BRANCH_NAME//\//_}/${SHORT_SHA}"
+          WORK="$RUNNER_TEMP/ci-screenshots"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin ci-screenshots >/dev/null; then
+            git clone --quiet --depth 1 --branch ci-screenshots "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "$WORK"
+          else
+            git init --quiet "$WORK"
+            git -C "$WORK" checkout --quiet --orphan ci-screenshots
+            git -C "$WORK" remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          fi
+          mkdir -p "$WORK/$DEST"
+          cp screenshots/*.png "$WORK/$DEST/"
+          git -C "$WORK" add -A
+          git -C "$WORK" commit --quiet -m "Screenshots for ${BRANCH_NAME} @ ${SHORT_SHA}"
+          for i in 1 2 3 4; do
+            if git -C "$WORK" push --quiet origin ci-screenshots; then break; fi
+            sleep $((i * 4))
+            git -C "$WORK" pull --quiet --rebase origin ci-screenshots
+          done
+          echo "::notice title=screenshots-branch::${DEST}"
