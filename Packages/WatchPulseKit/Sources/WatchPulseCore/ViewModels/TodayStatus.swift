@@ -5,12 +5,13 @@ import WatchPulseShared
 ///
 /// 只把静息心率 / 心率变异性与**你自己**的平时水平比较，不合成分数，不判断恢复程度或健康状况；
 /// 数据不足时如实说明“还在了解”，不包装成正常结论。
+///
+/// 差值的显示阈值（1 次/分、1 毫秒）只是取整，没有经过校准，因此首页**不再**用“和平时有些不同 / 差不多”下结论：
+/// 只说明对比的时间范围，并列出最近 7 天与平时的数值，由用户自己看。
 public struct TodayStatus: Hashable, Sendable {
     public enum Level: Hashable, Sendable {
-        /// 与平时接近。
-        case steady
-        /// 与平时有差异（只描述差异，不下结论）。
-        case changed
+        /// 平时水平已够用：列出最近 7 天与平时的数值（不判断差异大小）。
+        case compared
         /// 平时水平还在积累。
         case learning
         /// 没有静息心率 / 心率变异性可比较。
@@ -36,12 +37,15 @@ public struct TodayStatus: Hashable, Sendable {
     public let reason: String
     /// 建议的下一步。
     public let action: Action
+    /// 对比用的“最近 7 天”（不含今天）。只有 `.compared` 才有。
+    public let observation: DateInterval?
 
-    public init(level: Level, headline: String, reason: String, action: Action) {
+    public init(level: Level, headline: String, reason: String, action: Action, observation: DateInterval? = nil) {
         self.level = level
         self.headline = headline
         self.reason = reason
         self.action = action
+        self.observation = observation
     }
 
     static let comparedKinds: [HealthMetricKind] = [.restingHeartRate, .heartRateVariability]
@@ -50,26 +54,14 @@ public struct TodayStatus: Hashable, Sendable {
         let baselines = comparedKinds.compactMap { snapshot.card(for: $0)?.baseline }
         let ready = baselines.filter { $0.sufficiency == .sufficient }
 
-        if !ready.isEmpty {
-            let changed = ready.filter { ($0.direction ?? .flat) != .flat }
-            guard let first = changed.first else {
-                let names = ready.map(\.kind.title).joined(separator: "和")
-                return TodayStatus(
-                    level: .steady,
-                    headline: "和平时差不多",
-                    reason: "最近 7 天的\(names)和你自己的平时水平接近。",
-                    action: .openTraining
-                )
-            }
-            let parts = changed.map { comparison -> String in
-                let word = comparison.direction == .up ? "高" : "低"
-                return "\(comparison.kind.title)比平时\(word) \(comparison.kind.formattedValueWithUnit(abs(comparison.delta ?? 0)))"
-            }
+        if let first = ready.first {
+            let names = ready.map(\.kind.title).joined(separator: "和")
             return TodayStatus(
-                level: .changed,
-                headline: "和平时有些不同",
-                reason: "最近 7 天，\(parts.joined(separator: "，"))。这只是和你自己的过去比较，不代表健康状况。",
-                action: .openTrend(first.kind)
+                level: .compared,
+                headline: ready.count > 1 ? "\(names)都有记录，可以和你的平时对比" : "\(names)有记录，可以和你的平时对比",
+                reason: "只和你自己之前 4 周的典型值比较，这里只列数值，不判断好坏。",
+                action: .openTrend(first.kind),
+                observation: first.windows.observation
             )
         }
 

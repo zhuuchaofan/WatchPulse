@@ -17,7 +17,7 @@ struct HealthOverviewView: View {
         NavigationStack {
             content
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemGroupedBackground))
+                .background(Theme.background.ignoresSafeArea())
                 .navigationTitle("今日")
                 .navigationDestination(for: HealthMetricKind.self) { kind in
                     MetricTrendScreen(kind: kind, service: service)
@@ -69,7 +69,7 @@ struct HealthOverviewView: View {
                 Button("允许读取健康数据") {
                     Task { await viewModel.requestAuthorizationAndLoad() }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.themePrimary)
                 .accessibilityIdentifier("dashboard.authorize")
             }
 
@@ -86,7 +86,7 @@ struct HealthOverviewView: View {
                     Button("重新读取") {
                         Task { await viewModel.load() }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.themePrimary)
                     OpenSettingsButton()
                 }
                 lastCheckedFooter
@@ -102,16 +102,16 @@ struct HealthOverviewView: View {
                 Button("重试") {
                     Task { await viewModel.load() }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.themePrimary)
             }
 
         case .loaded(let snapshot):
             ScrollView {
-                VStack(spacing: 12) {
+                VStack(spacing: Theme.cardSpacing) {
                     if viewModel.dataOrigin.isSimulated {
                         DemoModeBanner()
                     }
-                    TodayHeroCard(status: TodayStatus.make(from: snapshot), onOpenTraining: onOpenTraining)
+                    TodayHeroCard(status: TodayStatus.make(from: snapshot), snapshot: snapshot, onOpenTraining: onOpenTraining)
 
                     NavigationLink(value: HealthMetricKind.sleep) {
                         sleepCard(snapshot.card(for: .sleep))
@@ -119,38 +119,22 @@ struct HealthOverviewView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("today.sleep")
 
-                    NavigationLink(value: HealthMetricKind.restingHeartRate) {
-                        bodyCard(snapshot)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("today.body")
-
                     NavigationLink(value: HealthMetricKind.stepCount) {
                         activityCard(snapshot)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("today.activity")
 
-                    if snapshot.cards.contains(where: { $0.baseline != nil }) {
-                        // “平时水平”首次出现，在此用一句话解释。
-                        Text(BaselineComparison.baselineExplanation)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .accessibilityIdentifier("dashboard.baselineExplanation")
-                    }
-
                     NavigationLink(value: AllMetricsRoute()) {
-                        HStack {
+                        HStack(spacing: 12) {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("全部指标").font(.headline)
-                                Text("最新心率、各项指标与趋势").font(.footnote).foregroundStyle(.secondary)
+                                Text("全部指标").font(.headline).foregroundStyle(Theme.text)
+                                Text(Self.allMetricsSubtitle(snapshot)).font(.footnote).foregroundStyle(Theme.secondaryText)
                             }
-                            Spacer()
-                            Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
+                            Spacer(minLength: 0)
+                            Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(Theme.secondaryText)
                         }
-                        .padding()
-                        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                        .cardStyle(padding: 16)
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -158,48 +142,70 @@ struct HealthOverviewView: View {
 
                     lastCheckedFooter
                 }
-                .padding()
+                .padding(.horizontal, Theme.gutter)
+                .padding(.vertical, 8)
             }
             .refreshable { await viewModel.load() }
         }
     }
 
+    static func allMetricsSubtitle(_ snapshot: HealthDashboardSnapshot) -> String {
+        guard let sample = snapshot.latestHeartRate else { return "最新心率、趋势与每日明细" }
+        let ago = sample.endDate.formatted(.relative(presentation: .named))
+        return "最新心率 \(HealthMetricKind.heartRate.formattedValueWithUnit(sample.beatsPerMinute))（\(ago)）、趋势与每日明细"
+    }
+
     // MARK: - 次级卡片
 
     private func sleepCard(_ card: MetricCardModel?) -> some View {
-        TodayCard(title: "睡眠", systemImage: "bed.double.fill", tint: .indigo) {
+        VStack(alignment: .leading, spacing: 12) {
             switch card?.status {
             case .value(let summary)?:
                 let text = Self.sleepText(summary)
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(text.value).font(.title.weight(.bold)).monospacedDigit()
-                    Text(text.note).font(.footnote).foregroundStyle(.secondary)
+                CardHeader(title: "睡眠", systemImage: "moon", trailing: summary.sleepNight.map(Self.sleepTimeRange))
+                VStack(alignment: .leading, spacing: 2) {
+                    MetricNumber(value: text.value, style: .title)
+                    Text(text.note).font(.footnote).foregroundStyle(Theme.secondaryText)
+                }
+                if let night = summary.sleepNight, !night.isInBedOnly {
+                    SleepStageBar(night: night)
+                }
+                if let source = summary.sleepNight?.primarySourceName {
+                    Text("来自 \(source)").font(.footnote).foregroundStyle(Theme.secondaryText)
                 }
             case .failed?:
-                Text("暂时读不到睡眠记录").font(.subheadline).foregroundStyle(.orange)
+                CardHeader(title: "睡眠", systemImage: "moon")
+                Text("暂时读不到睡眠记录").font(.subheadline).foregroundStyle(Theme.notice)
             case .noData?, nil:
-                Text("昨晚没有睡眠记录").font(.subheadline).foregroundStyle(.secondary)
-                Text("睡觉时佩戴 Apple Watch，就能在这里看到。").font(.caption).foregroundStyle(.secondary)
+                CardHeader(title: "睡眠", systemImage: "moon")
+                Text("昨晚没有睡眠记录").font(.subheadline).foregroundStyle(Theme.text)
+                Text("睡觉时佩戴 Apple Watch，就能在这里看到。").font(.footnote).foregroundStyle(Theme.secondaryText)
             }
         }
-    }
-
-    private func bodyCard(_ snapshot: HealthDashboardSnapshot) -> some View {
-        TodayCard(title: "身体状态", systemImage: "heart.fill", tint: .red) {
-            HStack(alignment: .top, spacing: 16) {
-                TodayMetricColumn(kind: .restingHeartRate, card: snapshot.card(for: .restingHeartRate))
-                TodayMetricColumn(kind: .heartRateVariability, card: snapshot.card(for: .heartRateVariability))
-            }
-        }
+        .cardStyle()
+        .accessibilityElement(children: .combine)
     }
 
     private func activityCard(_ snapshot: HealthDashboardSnapshot) -> some View {
-        TodayCard(title: "今天的活动", systemImage: "figure.walk", tint: .orange) {
-            HStack(alignment: .top, spacing: 16) {
-                TodayMetricColumn(kind: .stepCount, card: snapshot.card(for: .stepCount))
-                TodayMetricColumn(kind: .activeEnergy, card: snapshot.card(for: .activeEnergy))
+        VStack(alignment: .leading, spacing: 12) {
+            CardHeader(title: "今天的活动", systemImage: "figure.walk", trailing: "截至 \(Date.now.formatted(date: .omitted, time: .shortened))")
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 16) { activityColumns(snapshot) }
+                VStack(alignment: .leading, spacing: 12) { activityColumns(snapshot) }
             }
         }
+        .cardStyle()
+        .accessibilityElement(children: .combine)
+    }
+
+    @ViewBuilder
+    private func activityColumns(_ snapshot: HealthDashboardSnapshot) -> some View {
+        ActivityColumn(kind: .stepCount, card: snapshot.card(for: .stepCount))
+        ActivityColumn(kind: .activeEnergy, card: snapshot.card(for: .activeEnergy))
+    }
+
+    static func sleepTimeRange(_ night: SleepNight) -> String {
+        "\(night.start.formatted(date: .omitted, time: .shortened))–\(night.end.formatted(date: .omitted, time: .shortened))"
     }
 
     /// 睡眠时长与说明。有分夜数据时用“昨晚 / 前天”等说法，只有卧床记录时如实说明。
@@ -232,56 +238,66 @@ struct HealthOverviewView: View {
 
 // MARK: - 状态卡
 
-/// 今日状态：结论（大字）+ 原因 + 下一步。不打分，只和自己的平时比较。
+/// 今日状态：时间范围 + 结论 + 最近 7 天与平时的数值 + 下一步。不打分，只和自己的平时比较，不判断差异大小。
 private struct TodayHeroCard: View {
     let status: TodayStatus
+    let snapshot: HealthDashboardSnapshot
     let onOpenTraining: () -> Void
-
-    private var tint: Color {
-        switch status.level {
-        case .steady: return .green
-        case .changed: return .blue
-        case .learning, .limited: return .gray
-        }
-    }
-
-    private var symbol: String {
-        switch status.level {
-        case .steady: return "checkmark.circle.fill"
-        case .changed: return "chart.line.uptrend.xyaxis"
-        case .learning: return "clock.fill"
-        case .limited: return "applewatch"
-        }
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(Date.now, format: .dateTime.month().day().weekday(.wide))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Image(systemName: symbol)
-                    .font(.title2)
-                    .foregroundStyle(tint)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "heart")
+                    .foregroundStyle(Theme.sage)
                     .accessibilityHidden(true)
+                Text(periodText)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
+                    .accessibilityIdentifier("today.period")
             }
             Text(status.headline)
-                .font(.largeTitle.bold())
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.text)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("today.headline")
+
+            NavigationLink(value: HealthMetricKind.restingHeartRate) {
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: 12) { tiles }
+                    VStack(spacing: 12) { tiles }
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("today.body")
+
             Text(status.reason)
-                .font(.body)
-                .foregroundStyle(.secondary)
+                .font(.subheadline)
+                .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("today.reason")
             actionButton
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(20)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .cardStyle()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("today.hero")
+    }
+
+    /// 例如“最近 7 天（10/9–10/15）对比之前 4 周”。
+    private var periodText: String {
+        guard let observation = status.observation else {
+            return Date.now.formatted(.dateTime.month().day().weekday(.wide))
+        }
+        let last = observation.end.addingTimeInterval(-1)
+        let range = "\(observation.start.formatted(.dateTime.month(.defaultDigits).day()))–\(last.formatted(.dateTime.month(.defaultDigits).day()))"
+        return "最近 7 天（\(range)）对比之前 4 周"
+    }
+
+    @ViewBuilder
+    private var tiles: some View {
+        BodyMetricTile(kind: .restingHeartRate, card: snapshot.card(for: .restingHeartRate))
+        BodyMetricTile(kind: .heartRateVariability, card: snapshot.card(for: .heartRateVariability))
     }
 
     @ViewBuilder
@@ -289,13 +305,11 @@ private struct TodayHeroCard: View {
         switch status.action {
         case .openTrend(let kind):
             NavigationLink(value: kind) { actionLabel }
-                .buttonStyle(.borderedProminent)
-                .tint(tint)
+                .buttonStyle(.themePrimary)
                 .accessibilityIdentifier("today.action")
         case .openTraining:
             Button(action: onOpenTraining) { actionLabel }
-                .buttonStyle(.borderedProminent)
-                .tint(tint)
+                .buttonStyle(.themePrimary)
                 .accessibilityIdentifier("today.action")
         }
     }
@@ -305,70 +319,102 @@ private struct TodayHeroCard: View {
             Text(status.action.title)
             Image(systemName: "chevron.right").font(.caption.weight(.bold))
         }
-        .font(.subheadline.weight(.semibold))
     }
 }
 
-/// 次级卡片外框：标题行 + 内容 + 右侧箭头，整张卡片是一个无障碍元素。
-private struct TodayCard<Content: View>: View {
-    let title: String
-    let systemImage: String
-    let tint: Color
-    let content: Content
-
-    init(title: String, systemImage: String, tint: Color, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.systemImage = systemImage
-        self.tint = tint
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label(title, systemImage: systemImage)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(tint)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
-            }
-            content
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// 卡片里的一项指标：名称、数值与单位，必要时附“比平时高 / 低”。
-private struct TodayMetricColumn: View {
+/// 状态卡里的一项身体指标：平时水平够用时显示最近 7 天的典型值与平时值；否则显示最新值并说明还在积累。
+private struct BodyMetricTile: View {
     let kind: HealthMetricKind
     let card: MetricCardModel?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(kind.title).font(.caption).foregroundStyle(.secondary)
+            Text(kind.title).font(.footnote).foregroundStyle(Theme.secondaryText)
+            if let baseline = card?.baseline, baseline.sufficiency == .sufficient,
+               let recent = baseline.observationMedian, let usual = baseline.referenceMedian {
+                MetricNumber(value: kind.formattedValue(recent), unit: kind.unitLabel, style: .title)
+                Text("平时 \(kind.formattedValue(usual))").font(.footnote).foregroundStyle(Theme.secondaryText)
+            } else {
+                switch card?.status {
+                case .value(let summary)?:
+                    MetricNumber(value: kind.formattedValue(summary.value), unit: kind.unitLabel, style: .title)
+                    Text(card?.baseline == nil ? "暂时没有平时水平" : "平时水平还在积累")
+                        .font(.footnote).foregroundStyle(Theme.secondaryText)
+                case .failed?:
+                    Text("暂时读不到").font(.subheadline).foregroundStyle(Theme.notice)
+                case .noData?, nil:
+                    Text("暂无记录").font(.subheadline).foregroundStyle(Theme.secondaryText)
+                }
+            }
+        }
+        .tile()
+    }
+}
+
+/// 活动卡里的一项：名称与今日累计值。
+private struct ActivityColumn: View {
+    let kind: HealthMetricKind
+    let card: MetricCardModel?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(kind.title).font(.footnote).foregroundStyle(Theme.secondaryText)
             switch card?.status {
             case .value(let summary)?:
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(kind.formattedValue(summary.value))
-                        .font(.title2.weight(.bold))
-                        .monospacedDigit()
-                    Text(kind.unitLabel).font(.caption).foregroundStyle(.secondary)
-                }
-                if let baseline = card?.baseline {
-                    Text(baseline.plainShortText).font(.caption).foregroundStyle(.secondary)
-                } else if kind.aggregation == .cumulative {
-                    Text("今日累计").font(.caption).foregroundStyle(.secondary)
-                }
+                MetricNumber(value: kind.formattedValue(summary.value), unit: kind.unitLabel.isEmpty ? nil : kind.unitLabel, style: .title2)
             case .failed?:
-                Text("暂时读不到").font(.subheadline).foregroundStyle(.orange)
+                Text("暂时读不到").font(.subheadline).foregroundStyle(Theme.notice)
             case .noData?, nil:
-                Text("暂无记录").font(.subheadline).foregroundStyle(.secondary)
+                Text("暂无记录").font(.subheadline).foregroundStyle(Theme.secondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// 睡眠分期条：深睡 / 核心 / 快速眼动 / 清醒。只有分期数据时显示；无障碍读出各段时长。
+private struct SleepStageBar: View {
+    let night: SleepNight
+
+    private static let stages: [(SleepStage, String)] = [(.deep, "深睡"), (.core, "核心"), (.rem, "快速眼动"), (.awake, "清醒")]
+
+    private var segments: [(name: String, duration: TimeInterval, color: Color)] {
+        Self.stages.compactMap { stage, name in
+            guard let duration = night.stageDurations[stage], duration > 0 else { return nil }
+            return (name, duration, color(for: stage))
+        }
+    }
+
+    private func color(for stage: SleepStage) -> Color {
+        switch stage {
+        case .deep: return Theme.sageText
+        case .core: return Theme.sage
+        case .rem: return Theme.sage.opacity(0.45)
+        default: return Theme.line
+        }
+    }
+
+    var body: some View {
+        let segments = segments
+        let total = segments.map(\.duration).reduce(0, +)
+        if total > 0 {
+            VStack(alignment: .leading, spacing: 8) {
+                GeometryReader { proxy in
+                    HStack(spacing: 2) {
+                        ForEach(segments, id: \.name) { segment in
+                            segment.color
+                                .frame(width: max(2, (proxy.size.width - CGFloat(segments.count - 1) * 2) * segment.duration / total))
+                        }
+                    }
+                }
+                .frame(height: 12)
+                .clipShape(Capsule())
+                .accessibilityHidden(true)
+                Text(segments.map { "\($0.name) \(MetricFormatting.duration(seconds: $0.duration))" }.joined(separator: "  "))
+                    .font(.caption)
+                    .foregroundStyle(Theme.secondaryText)
+            }
+        }
     }
 }
 
@@ -398,7 +444,7 @@ private struct AllMetricsView: View {
                 .padding()
             }
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.background.ignoresSafeArea())
         .navigationTitle("全部指标")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await viewModel.load() }
