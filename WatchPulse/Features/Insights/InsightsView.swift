@@ -278,6 +278,20 @@ private struct CompletionCard: View {
 private struct GoalCompletionRow: View {
     let item: WorkoutGoalItem
 
+    static func symbol(for outcome: WorkoutGoalWeekProgress.Outcome) -> String {
+        switch outcome {
+        case .achieved: return "checkmark.circle.fill"
+        case .beforeGoalCreated: return "circle.dashed"
+        case .inProgress, .notAchieved: return "circle"
+        }
+    }
+
+    static func completionText(counted: [WorkoutGoalWeekProgress], hasWeeksBeforeGoal: Bool) -> String {
+        let achieved = counted.filter(\.isAchieved).count
+        let summary = "近 \(counted.count) 周有 \(achieved) 周达到目标"
+        return hasWeeksBeforeGoal ? summary + "（设定前的周不计入）" : summary
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(item.goal.title).font(.headline)
@@ -288,18 +302,20 @@ private struct GoalCompletionRow: View {
                     .font(.subheadline)
                     .monospacedDigit()
                 ProgressView(value: min(current.fraction, 1)).tint(.green)
-                // 旧 → 新：之前几周（完整周）+ 本周（未结束）。
+                // 旧 → 新：之前几周（完整周）+ 本周（未结束）。目标设定前的整周不计入达成统计。
                 let weeks = Array(previous.reversed()) + [current]
+                let counted = weeks.filter(\.countsTowardCompletion)
                 HStack(spacing: 6) {
                     ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
-                        Image(systemName: week.isAchieved ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(week.isAchieved ? Color.green : Color.secondary)
+                        Image(systemName: Self.symbol(for: week.outcome))
+                            .foregroundStyle(week.outcome == .achieved ? Color.green : Color.secondary)
                     }
-                    Text("近 \(weeks.count) 周有 \(weeks.filter(\.isAchieved).count) 周达到目标")
+                    Text(Self.completionText(counted: counted, hasWeeksBeforeGoal: counted.count < weeks.count))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("progress.completion.summary")
             case .paused?:
                 Text("已暂停，不计算进度").font(.footnote).foregroundStyle(.secondary)
             case nil:

@@ -254,6 +254,80 @@ final class WorkoutGoalTests: XCTestCase {
         XCTAssertEqual(current.value, 2_700)
     }
 
+    // MARK: 设定前
+
+    private func goal(createdAt: Date, target: Double = 2) throws -> WorkoutGoal {
+        try WorkoutGoal(id: Fixture.uuid(501), metric: .workoutCount, activity: nil, target: target, createdAt: createdAt)
+    }
+
+    func testWeeksBeforeGoalCreationAreMarkedNotCountedAsMissed() throws {
+        // 目标在上上周三设定；本周 = 6/1 周一开始。
+        let cal = calendar("UTC")
+        let now = date("2026-06-04 12:00:00", in: "UTC")
+        let created = date("2026-05-20 15:00:00", in: "UTC")
+        let set = records([
+            workout(1, start: date("2026-05-12 08:00:00", in: "UTC")), // 设定前的整周（5/11–5/17）
+            workout(2, start: date("2026-05-13 08:00:00", in: "UTC")),
+        ])
+        guard case .active(let current, let previous) = WorkoutGoalProgressCalculator.progress(
+            for: try goal(createdAt: created), records: set, now: now, calendar: cal
+        ) else { return XCTFail() }
+        // previous: 5/25 周、5/18 周（设定当周）、5/11 周（设定前）。
+        XCTAssertEqual(previous.map(\.isBeforeGoalCreated), [false, false, true])
+        XCTAssertEqual(previous[2].value, 2, "设定前的周仍如实显示数值")
+        XCTAssertTrue(previous[2].isAchieved, "数值达到了目标值")
+        XCTAssertEqual(previous[2].outcome, .beforeGoalCreated, "但目标还不存在，不算达成也不算未达成")
+        XCTAssertEqual(previous[1].outcome, .notAchieved)
+        XCTAssertEqual(previous[0].outcome, .notAchieved)
+        XCTAssertEqual(current.outcome, .inProgress)
+        XCTAssertFalse(current.isBeforeGoalCreated)
+        let weeks = previous + [current]
+        XCTAssertEqual(weeks.filter(\.countsTowardCompletion).count, 3, "近 N 周只数设定之后（含设定当周）的周")
+    }
+
+    func testCreationWeekCountsWorkoutsFromBeforeCreationTime() throws {
+        // 周三设定目标；周一、周二已经运动过 → 设定当周按整周计 2 次。
+        let cal = calendar("UTC")
+        let created = date("2026-06-03 20:00:00", in: "UTC")
+        let now = date("2026-06-04 12:00:00", in: "UTC")
+        let set = records([
+            workout(1, start: date("2026-06-01 07:00:00", in: "UTC")),
+            workout(2, start: date("2026-06-02 07:00:00", in: "UTC")),
+        ])
+        guard case .active(let current, let previous) = WorkoutGoalProgressCalculator.progress(
+            for: try goal(createdAt: created), records: set, now: now, calendar: cal
+        ) else { return XCTFail() }
+        XCTAssertEqual(current.value, 2)
+        XCTAssertEqual(current.outcome, .achieved)
+        XCTAssertFalse(current.isBeforeGoalCreated)
+        XCTAssertTrue(previous.allSatisfy(\.isBeforeGoalCreated), "设定当周之前的三周都是“设定前”")
+        XCTAssertTrue(previous.allSatisfy { $0.outcome == .beforeGoalCreated })
+    }
+
+    func testGoalCreatedExactlyAtWeekStartMarksOnlyEarlierWeeks() throws {
+        let cal = calendar("UTC")
+        let created = date("2026-05-25 00:00:00", in: "UTC") // 上周一 0 点整
+        let now = date("2026-06-04 12:00:00", in: "UTC")
+        guard case .active(_, let previous) = WorkoutGoalProgressCalculator.progress(
+            for: try goal(createdAt: created), records: [], now: now, calendar: cal
+        ) else { return XCTFail() }
+        XCTAssertEqual(previous.map(\.isBeforeGoalCreated), [false, true, true])
+        XCTAssertEqual(previous[0].outcome, .notAchieved)
+    }
+
+    func testCreationWeekFollowsCallerTimeZone() throws {
+        // 东京周一 01:00 设定 = UTC 周日 16:00：东京日历下属于新的一周，UTC 日历下属于上一周。
+        let created = date("2026-06-01 01:00:00", in: "Asia/Tokyo")
+        let now = date("2026-06-04 12:00:00", in: "Asia/Tokyo")
+        guard case .active(_, let tokyo) = WorkoutGoalProgressCalculator.progress(
+            for: try goal(createdAt: created), records: [], now: now, calendar: calendar("Asia/Tokyo")
+        ), case .active(_, let utc) = WorkoutGoalProgressCalculator.progress(
+            for: try goal(createdAt: created), records: [], now: now, calendar: calendar("UTC")
+        ) else { return XCTFail() }
+        XCTAssertTrue(tokyo[0].isBeforeGoalCreated, "东京：上一周整周在设定之前")
+        XCTAssertFalse(utc[0].isBeforeGoalCreated, "UTC：设定时刻落在上一周内，上一周是设定当周")
+    }
+
     func testIncompleteDataIsFlagged() throws {
         let cal = calendar("UTC")
         let now = date("2026-06-04 12:00:00", in: "UTC")

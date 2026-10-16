@@ -324,6 +324,30 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
     }
 
+    /// 刚设定的目标：之前几周标“设定前”，进步页的达成统计不把这些周算作未达成。
+    @MainActor
+    func testWeeksBeforeNewGoalAreMarkedNotMissed() {
+        let app = launch()
+        app.tabBars.buttons["目标"].tap()
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
+        element(app, "goals.add").tap()
+        let target = element(app, "goalEditor.target")
+        XCTAssertTrue(target.waitForExistence(timeout: 10))
+        target.tap()
+        target.typeText("3")
+        app.buttons["goalEditor.save"].tap()
+        XCTAssertTrue(element(app, "goals.progress").waitForExistence(timeout: 10))
+        let before = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "设定前")).firstMatch
+        XCTAssertTrue(before.waitForExistence(timeout: 10), "目标设定之前的周应标为“设定前”")
+
+        app.tabBars.buttons["进步"].tap()
+        let summary = element(app, "progress.completion.summary")
+        scrollTo(summary, in: app)
+        XCTAssertTrue(summary.waitForExistence(timeout: 10))
+        waitForLabel(summary, contains: "近 1 周")
+        waitForLabel(summary, contains: "设定前的周不计入")
+    }
+
     // MARK: - 训练中心
 
     @MainActor

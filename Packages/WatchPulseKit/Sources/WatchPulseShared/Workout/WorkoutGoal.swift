@@ -192,6 +192,9 @@ public struct WorkoutGoalWeekProgress: Hashable, Sendable {
     public let workoutsWithoutDistance: Int
     /// 本周尚未结束。
     public let isCurrentWeek: Bool
+    /// 整周都在目标设定之前（周结束时刻不晚于 `createdAt`）。这一周只如实显示数值，**不算达成或未达成**。
+    /// 设定当周照常按整周统计（包括设定前几天的运动），因为目标本身就是“每周”目标。
+    public let isBeforeGoalCreated: Bool
     /// 读取的运动记录可能没有覆盖整周（读取条数达到上限），数值可能偏低。
     public let mayBeIncomplete: Bool
     public let containsSimulatedData: Bool
@@ -199,6 +202,25 @@ public struct WorkoutGoalWeekProgress: Hashable, Sendable {
     /// 完成比例，可大于 1（不截断，超额如实显示）。
     public var fraction: Double { target > 0 ? value / target : 0 }
     public var isAchieved: Bool { value >= target }
+
+    /// 这一周在“近 N 周有 M 周达成”里怎么算。
+    public enum Outcome: Hashable, Sendable {
+        /// 目标设定之前的整周：不参与达成统计。
+        case beforeGoalCreated
+        /// 本周还没结束且尚未达到。
+        case inProgress
+        case achieved
+        case notAchieved
+    }
+
+    public var outcome: Outcome {
+        if isBeforeGoalCreated { return .beforeGoalCreated }
+        if isAchieved { return .achieved }
+        return isCurrentWeek ? .inProgress : .notAchieved
+    }
+
+    /// 是否计入“近 N 周有 M 周达成”的 N。
+    public var countsTowardCompletion: Bool { !isBeforeGoalCreated }
 }
 
 /// 目标进度：暂停的目标没有进度。
@@ -213,7 +235,8 @@ public enum WorkoutGoalProgress: Hashable, Sendable {
 /// - 只使用具备统计资格的记录（`WorkoutEligibility`）：疑似重复只计一次，时间无效的记录不计；
 /// - 距离只计有距离记录的运动，缺失不补 0；
 /// - 周按调用方传入的 `Calendar` 划分，记录按**开始时刻**归属，时长取运动有效秒数，跨时区 / 夏令时不重复、不丢失；
-/// - 演示数据与真实数据不混合：分析集合本身只有一种来源。
+/// - 演示数据与真实数据不混合：分析集合本身只有一种来源；
+/// - 目标设定之前的整周标为“设定前”（`isBeforeGoalCreated`），不算未达成；设定当周按整周统计。
 public enum WorkoutGoalProgressCalculator {
     public static func progress(
         for goal: WorkoutGoal,
@@ -281,6 +304,7 @@ public enum WorkoutGoalProgressCalculator {
             suspectedDuplicatesExcluded: summary.suspectedExcludedCount,
             workoutsWithoutDistance: withoutDistance,
             isCurrentWeek: isCurrent,
+            isBeforeGoalCreated: week.end <= goal.createdAt,
             mayBeIncomplete: dataCoverageStart.map { $0 > week.start } ?? false,
             containsSimulatedData: summary.containsSimulatedData
         )
