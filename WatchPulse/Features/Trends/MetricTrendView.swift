@@ -25,6 +25,15 @@ struct MetricTrendView: View {
                 .accessibilityIdentifier("trend.periodPicker")
             }
 
+            if let explanation = viewModel.kind.explanation {
+                Section {
+                    Text(explanation)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("trend.explanation")
+                }
+            }
+
             LoadStateView(state: viewModel.state, retry: { await viewModel.load() }) { trend in
                 trendContent(trend)
             }

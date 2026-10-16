@@ -60,13 +60,20 @@ public struct WorkoutHeartRateDetail: Hashable, Sendable {
     public let statistics: HeartRateSeriesStatistics
     /// 原始样本数。
     public let sampleCount: Int
-    /// 各心率区间的时长（秒）。
+    /// 各心率区间的时长（秒）。口径是“本次相对区间”（见 `zoneBasis`），不可跨运动比较。
     public let zoneDurations: [HeartRateZone: TimeInterval]
+    /// `zoneDurations` 所用的口径：以本次运动观测到的最高心率为参照，不是用户确认的最大心率。
+    public let zoneBasis: HeartRateZoneBasis
+    /// 心率数据的归属可信度（覆盖率、异常样本、可用级别）。展示不等于可用于比较。
+    public let heartRateEvidence: HeartRateEvidence
     /// 曲线数据的归属方式；非 `.workoutAssociated` 时界面需提示可能包含其他来源。
     public let attribution: HeartRateAttribution
 }
 
-/// 以本次运动最高心率为参照的简单心率区间（不需要年龄等个人信息）。
+/// **本次相对区间**：以本次运动最高心率为参照的简单心率区间（不需要年龄等个人信息）。
+///
+/// 参照值随每次运动变化，因此只用于单次运动详情，**不可跨运动比较**，也不是个人训练区间
+/// （后者见 `TrainingZone` / `HeartRateZoneSettings`，用于实时提醒与历史进步分析）。
 public enum HeartRateZone: Int, CaseIterable, Comparable, Sendable {
     case warmUp = 1
     case fatBurn
@@ -74,13 +81,26 @@ public enum HeartRateZone: Int, CaseIterable, Comparable, Sendable {
     case anaerobic
     case maximum
 
+    /// 界面名称。参照的是本次运动出现过的最高心率而不是真实最大心率，
+    /// 因此只描述相对强弱，不使用“燃脂 / 无氧 / 极限”等训练效果用语。
     public var title: String {
         switch self {
-        case .warmUp: return "热身"
-        case .fatBurn: return "燃脂"
-        case .aerobic: return "有氧"
-        case .anaerobic: return "无氧"
-        case .maximum: return "极限"
+        case .warmUp: return "很低"
+        case .fatBurn: return "较低"
+        case .aerobic: return "中等"
+        case .anaerobic: return "较高"
+        case .maximum: return "很高"
+        }
+    }
+
+    /// 区间的划分范围（占本次最高心率的比例），用于可展开的“划分方式”。
+    public var rangeDescription: String {
+        switch self {
+        case .warmUp: return "低于 60%"
+        case .fatBurn: return "60%–70%"
+        case .aerobic: return "70%–80%"
+        case .anaerobic: return "80%–90%"
+        case .maximum: return "90% 及以上"
         }
     }
 
@@ -157,6 +177,8 @@ public final class WorkoutDetailViewModel {
                 statistics: statistics,
                 sampleCount: points.count,
                 zoneDurations: HeartRateZone.durations(for: points),
+                zoneBasis: .sessionRelative(observedMaximum: statistics.maximum),
+                heartRateEvidence: HeartRateEvidence.evaluate(series, for: workout),
                 attribution: series.attribution
             ))
         case .failure(let error):

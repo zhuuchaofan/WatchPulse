@@ -23,7 +23,7 @@ private struct CyclingStatisticsRow: View {
             }
             .font(.footnote)
             if let longest = statistics.longestRideMeters {
-                Text("单次最长 \(MetricFormatting.distance(meters: longest))。均速 = 有距离记录的骑行总距离 ÷ 运动时长（不含暂停）。")
+                Text("单次最长 \(MetricFormatting.distance(meters: longest))。均速按骑行时间计算，不含暂停；没有距离记录的骑行不计入。")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -45,11 +45,16 @@ struct WorkoutHistorySection: View {
                     CyclingStatisticsRow(statistics: cycling)
                 }
             }
+            // 仅标注，不隐藏：所有 HealthKit 原始记录都照常显示。
+            let deduplication = WorkoutDeduplicator.deduplicate(workouts)
             ForEach(WorkoutHistoryViewModel.groupedByMonth(workouts), id: \.month) { group in
                 Section(group.month.formatted(.dateTime.year().month(.wide))) {
                     ForEach(group.workouts) { workout in
                         NavigationLink(value: workout) {
-                            WorkoutRow(workout: workout)
+                            WorkoutRow(
+                                workout: workout,
+                                duplicateLabel: WorkoutAnalysisPresentation.duplicateLabel(for: workout.id, in: deduplication)
+                            )
                         }
                         .accessibilityIdentifier("workout.history.row")
                     }
@@ -70,6 +75,7 @@ struct WorkoutHistorySection: View {
 
 private struct WorkoutRow: View {
     let workout: WorkoutRecord
+    var duplicateLabel: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -83,6 +89,12 @@ private struct WorkoutRow: View {
                 Text(workout.startDate.formatted(.dateTime.month().day().weekday().hour().minute()))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                if let duplicateLabel {
+                    Text(duplicateLabel)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("workout.history.duplicateLabel")
+                }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
@@ -105,19 +117,23 @@ private struct WorkoutRow: View {
 
 struct WorkoutDetailScreen: View {
     @State private var viewModel: WorkoutDetailViewModel
+    @State private var feedbackViewModel: WorkoutFeedbackViewModel
 
     init(workout: WorkoutRecord, service: any WorkoutHistoryService) {
         _viewModel = State(initialValue: WorkoutDetailViewModel(workout: workout, service: service))
+        // iPhone 端暂无用户确认的个人心率区间，区间分布不参与比较（不推算最大心率）。
+        _feedbackViewModel = State(initialValue: WorkoutFeedbackViewModel(workout: workout, service: service))
     }
 
     var body: some View {
-        WorkoutDetailView(viewModel: viewModel)
+        WorkoutDetailView(viewModel: viewModel, feedbackViewModel: feedbackViewModel)
     }
 }
 
-/// 运动详情：汇总数据 + 心率曲线 + 心率区间。
+/// 运动详情：汇总数据 + 运动后反馈 + 心率曲线 + 心率区间。
 struct WorkoutDetailView: View {
     let viewModel: WorkoutDetailViewModel
+    var feedbackViewModel: WorkoutFeedbackViewModel?
 
     private var workout: WorkoutRecord { viewModel.workout }
 
@@ -155,6 +171,37 @@ struct WorkoutDetailView: View {
                 LabeledContent("来源", value: workout.sourceName)
             }
 
+            if let feedbackViewModel {
+                WorkoutFeedbackSection(viewModel: feedbackViewModel)
+            }
+
+            // 默认一句话结论；覆盖率、来源、设备等判断依据收进可展开的详情。
+            Section {
+                if let detail = viewModel.state.value {
+                    Text(WorkoutAnalysisPresentation.heartRateSummary(detail.heartRateEvidence))
+                        .font(.footnote)
+                        .accessibilityIdentifier("workoutDetail.credibilitySummary")
+                }
+                DisclosureGroup("查看判断依据") {
+                    VStack(alignment: .leading, spacing: 4) {
+                        if let detail = viewModel.state.value {
+                            ForEach(Array(WorkoutAnalysisPresentation.heartRateLines(detail.heartRateEvidence).enumerated()), id: \.offset) { _, line in
+                                Text(line)
+                            }
+                        }
+                        ForEach(Array(WorkoutAnalysisPresentation.sourceLines(workout.source).enumerated()), id: \.offset) { _, line in
+                            Text(line)
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .font(.footnote)
+                .accessibilityIdentifier("workoutDetail.credibilityDetails")
+            } header: {
+                Text("数据可信度")
+            }
+
             Section("心率曲线") {
                 LoadStateView(
                     state: viewModel.state,
@@ -186,10 +233,23 @@ struct WorkoutDetailView: View {
             if let detail = viewModel.state.value, !detail.zoneDurations.isEmpty {
                 Section {
                     HeartRateZoneBars(durations: detail.zoneDurations)
+                    Text("按这次运动中出现过的最高心率（\(detail.zoneBasis.maximumHeartRate) 次/分）划分，只反映这次运动里的强弱变化，不代表燃脂、有氧等训练效果，也不能和其他运动比较。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("workoutDetail.zoneExplanation")
+                    DisclosureGroup("划分方式") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            ForEach(HeartRateZone.allCases.reversed(), id: \.self) { zone in
+                                Text("\(zone.title)：本次最高心率的 \(zone.rangeDescription)")
+                            }
+                            Text("本次最高心率不一定是你的最大心率。个人心率区间请在 Apple Watch 的 WatchPulse「心率区间与提醒」中设置。")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .font(.footnote)
                 } header: {
-                    Text("心率区间")
-                } footer: {
-                    Text("以本次运动最高心率为参照：<60% 热身、60–70% 燃脂、70–80% 有氧、80–90% 无氧、≥90% 极限。")
+                    Text("心率强度分布（相对本次）")
                 }
             }
         }
@@ -305,6 +365,9 @@ private struct HeartRateZoneBars: View {
     let service = MockWorkoutHistoryService.demo()
     let workout = SimulatedWorkoutHistory.workouts(endingBefore: .now, count: 1)[0]
     return NavigationStack {
-        WorkoutDetailView(viewModel: WorkoutDetailViewModel(workout: workout, service: service))
+        WorkoutDetailView(
+            viewModel: WorkoutDetailViewModel(workout: workout, service: service),
+            feedbackViewModel: WorkoutFeedbackViewModel(workout: workout, service: service)
+        )
     }
 }

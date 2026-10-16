@@ -15,6 +15,8 @@ public struct WorkoutRecord: Identifiable, Hashable, Codable, Sendable {
     public let maximumHeartRate: Double?
     public let minimumHeartRate: Double?
     public let sourceName: String
+    /// 来源 / 设备 / 外部标识。旧记录与演示数据为 `nil`，读取请用 `source`。
+    public let sourceInfo: WorkoutSourceInfo?
 
     public init(
         id: UUID,
@@ -28,7 +30,8 @@ public struct WorkoutRecord: Identifiable, Hashable, Codable, Sendable {
         averageHeartRate: Double? = nil,
         maximumHeartRate: Double? = nil,
         minimumHeartRate: Double? = nil,
-        sourceName: String
+        sourceName: String,
+        sourceInfo: WorkoutSourceInfo? = nil
     ) {
         self.id = id
         self.activity = activity
@@ -42,6 +45,7 @@ public struct WorkoutRecord: Identifiable, Hashable, Codable, Sendable {
         self.maximumHeartRate = maximumHeartRate
         self.minimumHeartRate = minimumHeartRate
         self.sourceName = sourceName
+        self.sourceInfo = sourceInfo
     }
 }
 

@@ -49,6 +49,7 @@ final class WatchPulseUITests: XCTestCase {
     func testDashboardShowsSimulatedDataBannerAndMetrics() {
         let app = launch()
         XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 15), "模拟数据必须有明确标注")
+        XCTAssertFalse(element(app, "demoBanner").label.contains("HealthKit"), "不向普通用户展示框架名")
         XCTAssertTrue(element(app, "dashboard.heartRateCard").exists)
         // 演示心率并非来自 Apple Watch，卡片会显示来源提示。
         XCTAssertTrue(app.descendants(matching: .any)
@@ -136,6 +137,136 @@ final class WatchPulseUITests: XCTestCase {
         let chart = element(app, "workoutDetail.heartRateChart")
         scrollTo(chart, in: app)
         XCTAssertTrue(chart.waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testWorkoutDetailShowsDataCredibilitySection() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+
+        let row = element(app, "workout.history.row")
+        for _ in 0..<5 where !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 10), "演示模式必须显示模拟数据标识")
+        // 运动后反馈位于其上方，需要向下滚动。
+        let header = app.staticTexts["数据可信度"]
+        scrollTo(header, in: app)
+        XCTAssertTrue(header.waitForExistence(timeout: 10))
+
+        // 默认只显示通俗结论；覆盖率、来源等判断依据收起，点开才显示。
+        let summary = element(app, "workoutDetail.credibilitySummary")
+        XCTAssertTrue(summary.waitForExistence(timeout: 10))
+        XCTAssertFalse(summary.label.contains("可展示"))
+        let technical = app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "来源：")).firstMatch
+        XCTAssertFalse(technical.exists, "技术依据默认收起")
+        let disclosure = app.buttons["查看判断依据"].firstMatch
+        scrollTo(disclosure, in: app)
+        disclosure.tap()
+        XCTAssertTrue(technical.waitForExistence(timeout: 5))
+    }
+
+    @MainActor
+    func testWorkoutDetailRelativeZonesAvoidTrainingEffectClaims() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+
+        let row = element(app, "workout.history.row")
+        for _ in 0..<5 where !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let explanation = element(app, "workoutDetail.zoneExplanation")
+        scrollTo(explanation, in: app, attempts: 10)
+        XCTAssertTrue(explanation.waitForExistence(timeout: 10))
+        waitForLabel(explanation, contains: "不能和其他运动比较")
+        // 以本次最高心率为 100% 的区间不能叫“无氧 / 极限”。
+        for word in ["无氧", "极限"] {
+            XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", word)).firstMatch.exists, word)
+        }
+        XCTAssertTrue(app.staticTexts["很高"].exists)
+    }
+
+    @MainActor
+    func testGoalsWithoutAnyWorkoutRecordsExplainTheZero() {
+        let app = launch(scenario: "empty")
+        app.tabBars.buttons["目标"].tap()
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
+
+        element(app, "goals.add").tap()
+        let target = element(app, "goalEditor.target")
+        XCTAssertTrue(target.waitForExistence(timeout: 10))
+        target.tap()
+        target.typeText("3")
+        app.buttons["goalEditor.save"].tap()
+
+        // 没有读到运动时，0 次可能是未授权，不能当作正常进度静默显示。
+        let hint = element(app, "goals.recordsEmpty")
+        XCTAssertTrue(hint.waitForExistence(timeout: 10))
+        waitForLabel(hint, contains: "检查")
+    }
+
+    @MainActor
+    func testWorkoutDetailShowsPostWorkoutFeedback() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+
+        let row = element(app, "workout.history.row")
+        for _ in 0..<5 where !row.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let headline = element(app, "workoutDetail.feedback.headline")
+        scrollTo(headline, in: app)
+        XCTAssertTrue(headline.waitForExistence(timeout: 10))
+        // 无论样本是否足够，都要说明对比对象的范围（时间窗与同类运动）。
+        waitForLabel(headline, contains: "天内可比的")
+        // iPhone 上没有个人心率区间时，区间比较这一项整体隐藏，不显示无法补救的提示。
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "暂不比较区间分布")).firstMatch.exists)
+    }
+
+    @MainActor
+    func testCreateEditPauseAndDeleteWeeklyGoal() {
+        let app = launch()
+        app.tabBars.buttons["目标"].tap()
+
+        XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 10), "演示模式必须显示模拟数据标识")
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10), "初始没有任何预设目标")
+
+        element(app, "goals.add").tap()
+        let target = element(app, "goalEditor.target")
+        XCTAssertTrue(target.waitForExistence(timeout: 10))
+        // 工具栏按钮要按 Button 查找：按标识匹配到的第一个元素可能是其外层容器，`isEnabled` 恒为 true。
+        let save = app.buttons["goalEditor.save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 10))
+        XCTAssertFalse(save.isEnabled, "未输入数值时不能保存")
+        target.tap()
+        target.typeText("3")
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.staticTexts["每周运动 3 次"].waitForExistence(timeout: 10))
+        let progress = element(app, "goals.progress")
+        XCTAssertTrue(progress.waitForExistence(timeout: 10))
+        waitForLabel(progress, contains: "本周")
+
+        // 编辑 → 暂停 → 恢复 → 删除。
+        element(app, "goals.row").tap()
+        element(app, "goalEditor.togglePause").tap()
+        XCTAssertTrue(app.staticTexts["已暂停，不计算进度"].waitForExistence(timeout: 10))
+        element(app, "goals.row").tap()
+        element(app, "goalEditor.togglePause").tap()
+        XCTAssertTrue(element(app, "goals.progress").waitForExistence(timeout: 10))
+        element(app, "goals.row").tap()
+        element(app, "goalEditor.delete").tap()
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
     }
 
     @MainActor

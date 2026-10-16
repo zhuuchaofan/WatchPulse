@@ -22,7 +22,7 @@ public final class LiveWorkoutMonitor {
             switch self {
             case .waiting: return "等待 Apple Watch"
             case .connected: return "已连接"
-            case .stale: return "信号弱，等待数据…"
+            case .stale: return "数据暂时中断，等待中…"
             case .disconnected: return "连接已断开，正在等待恢复"
             }
         }

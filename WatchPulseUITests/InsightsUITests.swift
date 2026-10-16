@@ -59,9 +59,23 @@ final class InsightsUITests: XCTestCase {
         let resting = element(app, "insights.restingHeartRate")
         XCTAssertTrue(resting.waitForExistence(timeout: 10))
         waitFor(resting, contains: "积累中")
+        // 数据不足不能说成与平时一样，并给出下一步。
+        waitFor(resting, contains: "继续日常佩戴")
         let sleep = element(app, "insights.sleep")
         scrollTo(sleep, in: app)
         waitFor(sleep, contains: "至少 4 晚")
+    }
+
+    @MainActor
+    func testConceptsAreExplainedWithoutStatisticalJargon() {
+        let app = launch(scenario: "full")
+        let explanation = element(app, "insights.baselineExplanation")
+        XCTAssertTrue(explanation.waitForExistence(timeout: 10))
+        waitFor(explanation, contains: "平时水平")
+        let hrv = element(app, "insights.hrv")
+        XCTAssertTrue(hrv.waitForExistence(timeout: 10))
+        waitFor(hrv, contains: "HRV")
+        XCTAssertFalse(hrv.label.contains("中位数"), "统计口径收进“数据依据与来源”")
     }
 
     @MainActor
