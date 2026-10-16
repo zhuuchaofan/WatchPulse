@@ -36,7 +36,8 @@ public struct WorkoutVolumeSummary: Hashable, Sendable {
         interval: DateInterval,
         calendar: Calendar
     ) -> WorkoutVolumeSummary {
-        let inRange = records.filter { interval.contains($0.workout.startDate) }
+        // 半开区间 [start, end)：`DateInterval.contains` 包含终点，相邻两周 / 两天会把恰好落在边界上的运动各算一次。
+        let inRange = records.filter { $0.workout.startDate >= interval.start && $0.workout.startDate < interval.end }
         let counted = inRange.filter(\.eligibility.canCountInStatistics)
         let withDistance = counted.filter { $0.eligibility.statisticsMetrics.contains(.distance) }
         let totalDistance = withDistance.compactMap(\.workout.distanceMeters).reduce(0, +)
