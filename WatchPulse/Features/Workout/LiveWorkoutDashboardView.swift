@@ -139,7 +139,8 @@ struct LiveWorkoutDashboardView: View {
             let values = visible.map(\.beatsPerMinute)
             let yLower = ((values.min() ?? 60) - 5).rounded(.down)
             let yUpper = ((values.max() ?? 120) + 5).rounded(.up)
-            let showsSeconds = upper.timeIntervalSince(lower) <= 180
+            // 刚开始运动时用 30 秒刻度（带秒）；之后每分钟一个刻度，5 分钟窗口约 5~6 个标签，不拥挤。
+            let showsSeconds = upper.timeIntervalSince(lower) <= 90
             VStack(alignment: .leading, spacing: 8) {
                 Text("心率曲线").font(.headline)
                 Chart(visible) { point in
@@ -153,7 +154,7 @@ struct LiveWorkoutDashboardView: View {
                 .chartXScale(domain: lower...upper)
                 .chartYScale(domain: yLower...yUpper)
                 .chartXAxis {
-                    AxisMarks(preset: .aligned, values: .automatic(desiredCount: 3)) { _ in
+                    AxisMarks(preset: .aligned, values: showsSeconds ? .stride(by: .second, count: 30) : .stride(by: .minute)) { _ in
                         AxisGridLine()
                         AxisValueLabel(
                             format: showsSeconds
