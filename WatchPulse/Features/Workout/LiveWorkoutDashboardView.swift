@@ -228,8 +228,9 @@ private struct SaveStatusLabel: View {
                 systemImage: "checkmark.circle.fill"
             )
             .foregroundStyle(isSimulated ? .orange : .green)
-        case .failed(let reason):
-            Label("运动已结束，但保存失败：\(reason)", systemImage: "xmark.octagon.fill")
+        case .failed:
+            // 原因来自系统错误，只用于调试，不显示给用户。
+            Label(WorkoutSessionError.saveFailed(reason: "").localizedDescription, systemImage: "xmark.octagon.fill")
                 .foregroundStyle(.red)
         case .saving, .pending:
             Label("运动已结束，尚未收到保存结果。请在 Apple Watch 或「健康」App 中确认。", systemImage: "questionmark.circle")

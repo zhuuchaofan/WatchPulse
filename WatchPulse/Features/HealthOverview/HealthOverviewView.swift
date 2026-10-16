@@ -50,7 +50,7 @@ struct HealthOverviewView: View {
             ContentUnavailableView(
                 "此设备不支持健康数据",
                 systemImage: "heart.slash",
-                description: Text("HealthKit 在当前设备上不可用，请在 iPhone 上运行 WatchPulse。")
+                description: Text("这台设备无法使用“健康”数据。请在 iPhone 上使用 WatchPulse。")
             )
 
         case .needsAuthorization:
@@ -113,6 +113,14 @@ struct HealthOverviewView: View {
                             .accessibilityIdentifier("metricCard.\(card.kind.rawValue)")
                         }
                     }
+                    if snapshot.cards.contains(where: { $0.baseline != nil }) {
+                        // 卡片上的“较基线”首次出现，在此用一句话解释。
+                        Text(BaselineComparison.baselineExplanation)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier("dashboard.baselineExplanation")
+                    }
                     lastCheckedFooter
                 }
                 .padding()
@@ -153,7 +161,7 @@ struct HealthOverviewView: View {
     “健康”中没有 WatchPulse 可以读取的记录。可能的原因：
     • 还没有相关数据（例如尚未佩戴 Apple Watch）
     • 未允许 WatchPulse 读取，可在「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查
-    出于隐私保护，HealthKit 不会告诉 App 读取权限是否被关闭。
+    出于隐私保护，iPhone 不会告诉 App 读取权限是否被关闭。
     """
 }
 

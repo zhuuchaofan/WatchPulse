@@ -50,9 +50,9 @@ public enum WorkoutFeedbackUnavailableReason: Hashable, Sendable {
     public var message: String {
         switch self {
         case .noData: return "本次没有该数据"
-        case .workoutNotEligible: return "本次运动不参与比较"
-        case .heartRateNotComparable(let usability): return "本次心率\(usability.title)，不用于比较"
-        case .noPersonalZones: return "未设置个人心率区间，不比较区间分布"
+        case .workoutNotEligible: return "这次运动暂不参与比较"
+        case .heartRateNotComparable: return "本次心率记录不够完整，不用于比较"
+        case .noPersonalZones: return "还没有可用的个人心率区间，暂不比较区间分布"
         }
     }
 }

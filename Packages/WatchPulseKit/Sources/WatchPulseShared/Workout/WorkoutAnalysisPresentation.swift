@@ -3,10 +3,10 @@ import Foundation
 extension HeartRateUsability {
     public var title: String {
         switch self {
-        case .unavailable: return "无心率数据"
-        case .displayOnly: return "仅可展示"
-        case .summary: return "可用于汇总统计"
-        case .comparable: return "可用于跨运动比较"
+        case .unavailable: return "没有心率数据"
+        case .displayOnly: return "仅供参考"
+        case .summary: return "可用于平均值统计"
+        case .comparable: return "可与过去的运动比较"
         }
     }
 }
@@ -25,15 +25,32 @@ public enum WorkoutAnalysisPresentation {
         return nil
     }
 
-    /// “数据可信度”小节中的心率说明行。第一行为级别，其后为覆盖 / 样本 / 限制原因。
+    /// “数据可信度”小节默认显示的一句话结论（通俗说明能做什么、不能做什么）。
+    /// 覆盖率、样本数等技术依据见 `heartRateLines`，放在可展开的详情中。
+    public static func heartRateSummary(_ evidence: HeartRateEvidence) -> String {
+        switch evidence.usability {
+        case .comparable:
+            return "心率记录完整，可以和过去的运动比较。"
+        case .summary:
+            return "心率记录基本完整，可以看平均心率，但不用于和过去的运动比较。"
+        case .displayOnly:
+            return "心率记录不完整，或可能混入其他设备的数据。曲线仅供参考，不计入统计和比较。"
+        case .unavailable:
+            return evidence.reasons.contains(.notLoaded)
+                ? "这次运动的心率数据没有读取成功，暂时无法判断。"
+                : "这次运动没有可用的心率数据。"
+        }
+    }
+
+    /// “数据可信度”详情中的心率说明行。第一行为级别，其后为覆盖 / 样本 / 限制原因。
     public static func heartRateLines(_ evidence: HeartRateEvidence) -> [String] {
         var lines = ["心率：\(evidence.usability.title)"]
         guard evidence.rawSampleCount > 0 else {
             return lines + evidence.reasons.map(\.message)
         }
         let coverage = Int((evidence.coverage * 100).rounded())
-        var detail = "采样覆盖率 \(coverage)%，有效样本 \(evidence.validSampleCount) 个"
-        if evidence.anomalousSampleCount > 0 { detail += "，已排除异常样本 \(evidence.anomalousSampleCount) 个" }
+        var detail = "运动期间有心率记录的时间占 \(coverage)%，有效心率点 \(evidence.validSampleCount) 个"
+        if evidence.anomalousSampleCount > 0 { detail += "，已排除明显异常的 \(evidence.anomalousSampleCount) 个" }
         lines.append(detail)
         lines.append(contentsOf: evidence.reasons.map(\.message))
         return lines

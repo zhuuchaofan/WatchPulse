@@ -58,7 +58,7 @@ struct InsightsView: View {
                     LoadStateView(
                         state: viewModel.state,
                         noDataTitle: "暂无可分析的数据",
-                        noDataMessage: "“健康”中没有可读取的静息心率、心率变异性或睡眠记录。可能尚无记录，也可能未授予读取权限：请在「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查。",
+                        noDataMessage: "没有读到静息心率、心率变异性或睡眠记录。可能还没有数据，也可能没有开启读取权限，可以在「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查。",
                         retry: { await viewModel.load() }
                     ) { snapshot in
                         InsightsContent(viewModel: viewModel, snapshot: snapshot)
@@ -77,9 +77,15 @@ private struct InsightsContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("你的近况（与自己的历史比较）")
-                .font(.headline)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("你的近况（与自己的平时比较）")
+                    .font(.headline)
+                Text(BaselineComparison.baselineExplanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("insights.baselineExplanation")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
             BaselineCard(kind: .restingHeartRate, state: snapshot.restingHeartRate)
                 .accessibilityIdentifier("insights.restingHeartRate")
@@ -111,12 +117,18 @@ private struct BaselineCard: View {
                     Spacer()
                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                 }
+                if let explanation = kind.explanation {
+                    Text(explanation)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 switch state {
                 case .value(let comparison):
                     values(comparison)
                 case .noData:
                     Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
-                    Text("没有可读取的记录（可能未授权或尚无记录）。").font(.caption).foregroundStyle(.secondary)
+                    Text("没有读到记录。可能还没有数据，也可能没有开启读取权限。").font(.caption).foregroundStyle(.secondary)
                 case .failed(let error):
                     Label("读取失败", systemImage: "exclamationmark.triangle")
                         .font(.footnote.weight(.semibold))
@@ -136,7 +148,7 @@ private struct BaselineCard: View {
     private func values(_ comparison: BaselineComparison) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             column("近 7 天", comparison.observationMedian)
-            column("基线", comparison.referenceMedian)
+            column("平时（基线）", comparison.referenceMedian)
             Spacer(minLength: 0)
             if let direction = comparison.direction {
                 Image(systemName: icon(direction))
@@ -146,12 +158,13 @@ private struct BaselineCard: View {
         }
         Text(comparison.shortText)
             .font(.footnote.weight(.semibold))
-        Text(comparison.detailText)
+        // 默认只给通俗结论；中位数、样本天数在“数据依据与来源”中展开查看。
+        Text(comparison.plainText)
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         if comparison.excludedDays > 0 {
-            Text("已排除 \(comparison.excludedDays) 个超出合理范围的日值。")
+            Text("有 \(comparison.excludedDays) 天的数值明显异常（可能是记录错误），没有计入。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -198,7 +211,7 @@ private struct SleepInsightCard: View {
                     content(insight)
                 case .noData:
                     Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
-                    Text("近两周没有可读取的睡眠记录（可能未授权或尚无记录）。").font(.caption).foregroundStyle(.secondary)
+                    Text("近两周没有读到睡眠记录。可能还没有数据，也可能没有开启读取权限。").font(.caption).foregroundStyle(.secondary)
                 case .failed(let error):
                     Label("读取失败", systemImage: "exclamationmark.triangle")
                         .font(.footnote.weight(.semibold))
@@ -311,7 +324,7 @@ private struct InsightTrendCharts: View {
             chart(.restingHeartRate, color: .red)
             chart(.heartRateVariability, color: .pink)
             chart(.sleep, color: .indigo)
-            Text("缺测的日子不画点，不按 0 处理。")
+            Text("没有数据的日子留空，不当作 0。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -355,9 +368,12 @@ private struct DataBasisSection: View {
         DisclosureGroup("数据依据与来源") {
             VStack(alignment: .leading, spacing: 6) {
                 Text("近 7 天：\(range(snapshot.windows.observation))（不含今天）")
-                Text("基线：\(range(snapshot.windows.reference))，取有效日值的中位数")
+                Text("基线：\(range(snapshot.windows.reference))，取每天数值的中位数（排在中间的值，不受个别极端天影响）")
                 Text("需要基线期至少 \(BaselineComparison.minimumReferenceDays) 天、近期至少 \(BaselineComparison.minimumObservationDays) 天有数据，否则显示“积累中”。")
-                Text("数据来自 Apple“健康”中的静息心率、心率变异性（SDNN）与睡眠记录，只在本机计算，不上传。")
+                ForEach(detailLines, id: \.self) { line in
+                    Text(line)
+                }
+                Text("数据来自 Apple“健康”中的静息心率、心率变异性（Apple 记录的是 SDNN 指标）与睡眠记录，只在本机计算，不上传。")
                 Text("更新于 \(snapshot.generatedAt.formatted(date: .omitted, time: .shortened))")
             }
             .font(.caption)
@@ -373,6 +389,14 @@ private struct DataBasisSection: View {
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier("insights.disclaimer")
+    }
+
+    /// 各指标的统计明细（中位数、样本天数），只在展开后显示。
+    private var detailLines: [String] {
+        [snapshot.restingHeartRate, snapshot.heartRateVariability].compactMap { state -> String? in
+            guard let comparison = state.value else { return nil }
+            return "\(comparison.kind.title)：\(comparison.detailText)"
+        }
     }
 
     private func range(_ interval: DateInterval) -> String {

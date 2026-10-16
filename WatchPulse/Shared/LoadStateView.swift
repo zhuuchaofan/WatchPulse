@@ -20,7 +20,7 @@ struct LoadStateView<Value: Hashable & Sendable, Content: View>: View {
             ContentUnavailableView(
                 "此设备不支持健康数据",
                 systemImage: "heart.slash",
-                description: Text("HealthKit 在当前设备上不可用。")
+                description: Text("这台设备无法使用“健康”数据。请在 iPhone 上使用 WatchPulse。")
             )
 
         case .needsAuthorization:

@@ -2,7 +2,7 @@ import Foundation
 
 /// 运动后反馈的界面文案。只描述数值差异与证据（对比对象、样本数），不评价进步 / 退步，不做健康判断。
 public enum WorkoutFeedbackPresentation {
-    public static let disclaimer = "只描述本次与过去同类运动的数值差异，不评价进步或退步；路线、天气、设备等都会影响数据。"
+    public static let disclaimer = "这里只列出本次和过去同类运动的数值差别，不评价进步或退步。路线、天气、身体状态和设备都会影响数据。"
 
     /// 顶部说明：比较了什么，或为什么不比较。
     public static func headline(_ feedback: WorkoutFeedback) -> String {
@@ -10,12 +10,12 @@ public enum WorkoutFeedbackPresentation {
         let days = Int((feedback.configuration.lookback / 86_400).rounded())
         switch feedback.status {
         case .compared:
-            return "与本次之前 \(days) 天内可比的\(kind)比较（同来源与设备、距离或时长相近），每项最多取最近 \(feedback.configuration.maximumSamples) 次。"
+            return "与你之前 \(days) 天内可比的\(kind)比较：由同一设备记录、距离或时长相近，每项取最近几次（最多 \(feedback.configuration.maximumSamples) 次）。"
         case .insufficientSamples(let found, let required):
-            return "本次之前 \(days) 天内可比的\(kind)有 \(found) 次，至少需要 \(required) 次才做比较。以下只展示本次数据。"
+            return "之前 \(days) 天内可比的\(kind)有 \(found) 次，至少需要 \(required) 次才能比较。下面先只显示本次数据；之后多记录几次相似的运动，就会出现对比。"
         case .notEligible(let blockers):
             let reasons = blockers.map(\.message).joined(separator: "；")
-            return "本次运动不参与比较\(reasons.isEmpty ? "" : "：\(reasons)")。以下只展示本次数据。"
+            return "这次运动暂不和过去比较\(reasons.isEmpty ? "" : "：\(reasons)")。下面只显示本次数据。"
         }
     }
 
@@ -62,7 +62,7 @@ public enum WorkoutFeedbackPresentation {
                 : "\(Int((abs(relative) * 100).rounded()))%"
             return "比\(reference)\(word(for: item.metric, direction: direction, activity: activity)) \(amount)"
         case .insufficientSamples(let found, let required):
-            return "可比样本不足（\(found)/\(required) 次），不做比较"
+            return "可比较的记录还不够（\(found)/\(required) 次），暂不比较"
         case .unavailable(let reason):
             return reason.message
         }
@@ -81,13 +81,13 @@ public enum WorkoutFeedbackPresentation {
     public static func exclusionLine(_ feedback: WorkoutFeedback) -> String? {
         guard feedback.excludedCount > 0 else { return nil }
         let reasons = feedback.exclusions.map { "\($0.reason.message)（\($0.count) 次）" }.joined(separator: "；")
-        return "另有 \(feedback.excludedCount) 次同类运动未纳入比较：\(reasons)。"
+        return "另有 \(feedback.excludedCount) 次同类运动没有参与比较：\(reasons)。"
     }
 
     public static func caveatLines(_ feedback: WorkoutFeedback) -> [String] {
         feedback.caveats.map {
             switch $0 {
-            case .deviceNotRecorded: return "部分对比运动与本次都没有记录设备信息，只按来源判断，无法发现设备更换。"
+            case .deviceNotRecorded: return "部分运动没有记录设备信息，如果中途换过手表，这里可能发现不了。"
             }
         }
     }
@@ -107,9 +107,9 @@ public enum WorkoutFeedbackPresentation {
     public static func zoneSummary(_ zones: WorkoutZoneFeedback) -> String {
         switch zones.outcome {
         case .compared(let baseline):
-            return "与最近 \(baseline.sampleCount) 次可比运动的平均占比比较（口径相同的个人心率区间）"
+            return "括号内为最近 \(baseline.sampleCount) 次可比运动的平均占比（使用相同的个人心率区间设置）"
         case .insufficientSamples(let found, let required):
-            return "使用相同个人区间配置的可比样本不足（\(found)/\(required) 次），只展示本次分布"
+            return "用相同心率区间设置记录的可比运动还不够（\(found)/\(required) 次），只显示本次分布"
         case .unavailable(let reason):
             return reason.message
         }

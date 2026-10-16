@@ -24,8 +24,8 @@ final class WorkoutAnalysisPresentationTests: XCTestCase {
         let series = WorkoutHeartRateSeries(points: Fixture.heartRate(for: workout, to: 1_800), attribution: .sameDevice)
         let evidence = HeartRateEvidence.evaluate(series, for: workout)
         let lines = WorkoutAnalysisPresentation.heartRateLines(evidence)
-        XCTAssertTrue(lines.contains { $0.contains("仅可展示") })
-        XCTAssertTrue(lines.contains { $0.contains("覆盖率 50%") })
+        XCTAssertTrue(lines.contains { $0.contains("仅供参考") })
+        XCTAssertTrue(lines.contains { $0.contains("占 50%") })
         XCTAssertTrue(lines.contains { $0.contains("同一设备") })
         XCTAssertFalse(lines.joined().contains("疾病"))
     }
@@ -35,12 +35,12 @@ final class WorkoutAnalysisPresentationTests: XCTestCase {
         let evidence = HeartRateEvidence.evaluate(
             WorkoutHeartRateSeries(points: Fixture.heartRate(for: workout), attribution: .workoutAssociated), for: workout
         )
-        XCTAssertTrue(WorkoutAnalysisPresentation.heartRateLines(evidence).first!.contains("可用于跨运动比较"))
+        XCTAssertTrue(WorkoutAnalysisPresentation.heartRateLines(evidence).first!.contains("可与过去的运动比较"))
     }
 
     func testUnavailableWording() {
         let lines = WorkoutAnalysisPresentation.heartRateLines(HeartRateEvidence.unavailable(reason: .notLoaded))
-        XCTAssertTrue(lines.first!.contains("无心率数据") || lines.first!.contains("未读取"))
+        XCTAssertTrue(lines.first!.contains("没有心率数据"))
     }
 
     func testSourceLinesShowDeviceAndNeverInventValues() {

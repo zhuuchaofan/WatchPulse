@@ -17,26 +17,39 @@ public enum WorkoutSessionError: Error, Hashable, Sendable {
 }
 
 extension WorkoutSessionError: LocalizedError {
+    /// 给普通用户看的说明：发生了什么、下一步能做什么。**不包含**系统原始错误信息。
     public var errorDescription: String? {
         switch self {
         case .healthDataUnavailable:
-            return "此设备不支持健康数据。"
-        case .authorizationFailed(let reason):
-            return "运动授权失败：\(reason)"
-        case .sessionStartFailed(let reason):
-            return "无法开始运动：\(reason)"
-        case .sessionFailed(let reason):
-            return "运动会话出错：\(reason)"
+            return "这台设备无法使用“健康”数据，不能记录运动。"
+        case .authorizationFailed:
+            return "没能获得记录运动所需的权限。请在 iPhone「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查后再试。"
+        case .sessionStartFailed:
+            return "运动没有开始，请再试一次。如果一直失败，请重启 Apple Watch。"
+        case .sessionFailed:
+            return "运动记录中断了。已记录的部分可能没有保存，请在「健康」App 中查看。"
         case .noActiveSession:
             return "当前没有进行中的运动。"
         case .invalidTransition(let phase, let action):
             return "运动\(phase.title)时无法\(action)。"
         case .notConnected:
-            return "未连接到对端设备。"
+            return "Apple Watch 与 iPhone 没有连接。"
         case .mirroringUnavailable:
             return "暂时无法连接 iPhone，运动仍在 Apple Watch 上记录。"
-        case .saveFailed(let reason):
-            return "保存运动失败：\(reason)"
+        case .saveFailed:
+            return "运动已结束，但没能保存到“健康”。请在「健康」App 中查看这次运动是否存在。"
+        }
+    }
+
+    /// 开发调试用的诊断信息（含系统原始错误）。不要显示给用户。
+    public var diagnosticDescription: String {
+        switch self {
+        case .authorizationFailed(let reason): return "authorizationFailed: \(reason)"
+        case .sessionStartFailed(let reason): return "sessionStartFailed: \(reason)"
+        case .sessionFailed(let reason): return "sessionFailed: \(reason)"
+        case .saveFailed(let reason): return "saveFailed: \(reason)"
+        case .invalidTransition(let phase, let action): return "invalidTransition: \(phase.rawValue) → \(action)"
+        default: return String(describing: self)
         }
     }
 }

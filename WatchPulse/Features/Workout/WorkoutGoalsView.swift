@@ -22,7 +22,7 @@ struct WorkoutGoalsView: View {
 
                 if viewModel.recoveredFromUnreadableData {
                     Section {
-                        Label("之前保存的目标无法读取，原始数据已备份，目标列表从空开始。", systemImage: "exclamationmark.triangle")
+                        Label("之前保存的目标无法读取，请重新添加。原来的数据已另存一份，不会被覆盖。", systemImage: "exclamationmark.triangle")
                             .font(.footnote)
                     }
                 }
@@ -64,8 +64,16 @@ struct WorkoutGoalsView: View {
                 }
 
                 Section {
+                    // 默认只给结论；计算细节收进可展开的说明。
+                    DisclosureGroup("进度怎么计算") {
+                        Text("进度来自「健康」中的全部运动记录，包括 Apple Watch「体能训练」和其他 App。疑似重复的记录只计一次；没有距离的运动不计入距离。每周从日历设置的第一天开始。")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.footnote)
+                    .accessibilityIdentifier("goals.howCalculated")
                 } footer: {
-                    Text("进度根据「健康」中的运动记录计算（包括 Apple Watch「体能训练」和其他 App 的记录）；疑似重复的记录只计一次，没有距离的运动不计入距离。每周从日历设置的第一天开始。目标仅保存在本机，删除 App 或换机且未恢复备份会丢失。")
+                    Text("目标只保存在这台 iPhone 上。删除 App 或换手机且没有恢复备份时，目标会丢失。")
                 }
             }
             .navigationTitle("目标")
@@ -100,20 +108,34 @@ struct WorkoutGoalsView: View {
         case .idle, .loading:
             Section { ProgressView("正在读取运动记录…") }
         case .healthDataUnavailable:
-            Section { Text("此设备不支持健康数据，无法计算进度。").font(.footnote) }
+            Section { Text("这台设备无法使用“健康”数据，无法计算进度。").font(.footnote) }
         case .needsAuthorization:
             Section { Text("请先在「健康」页完成授权，才能计算进度。").font(.footnote) }
-        case .failed(let error):
+        case .failed:
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("运动记录读取失败，暂时无法计算进度：\(error.localizedDescription)").font(.footnote)
+                    // 不拼接错误原文：系统错误信息只用于调试。
+                    Text("暂时没能读取运动记录，本周进度无法更新。目标设置不受影响，可以点“重试”。").font(.footnote)
                     Button("重试") { Task { await viewModel.load() } }
                         .buttonStyle(.bordered)
                 }
                 .accessibilityIdentifier("goals.recordsFailed")
             }
-        case .noData, .loaded:
+        case .noData:
+            emptyRecordsHint
+        case .loaded(let set) where set.records.isEmpty:
+            emptyRecordsHint
+        case .loaded:
             EmptyView()
+        }
+    }
+
+    /// “健康”不告诉 App 是否被拒绝读取：0 次可能是没运动，也可能是没有读取权限，不能当作正常进度。
+    private var emptyRecordsHint: some View {
+        Section {
+            Text("没有读到任何运动记录，所以进度显示为 0。如果你最近有运动，请到「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查是否允许读取“体能训练”。")
+                .font(.footnote)
+                .accessibilityIdentifier("goals.recordsEmpty")
         }
     }
 }

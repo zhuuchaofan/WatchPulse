@@ -35,14 +35,14 @@ public enum HeartRateIssue: String, Hashable, Codable, Sendable {
 
     public var message: String {
         switch self {
-        case .noSamples: return "没有心率样本"
+        case .noSamples: return "没有心率记录"
         case .attributionAllSources: return "心率按运动时间段读取，可能包含其他设备的数据"
-        case .attributionSameDeviceTimeRange: return "心率为同一设备在运动时间段内的样本，未与运动直接关联"
-        case .lowCoverage: return "心率采样覆盖不足"
-        case .partialCoverage: return "心率采样覆盖不完整"
-        case .tooFewSamples: return "心率样本过少"
-        case .manyAnomalies: return "心率中含较多异常样本"
-        case .notLoaded: return "未读取心率数据"
+        case .attributionSameDeviceTimeRange: return "心率来自同一设备在运动时间段内的记录，没有直接附在这次运动上"
+        case .lowCoverage: return "运动中大部分时间没有心率记录"
+        case .partialCoverage: return "运动中有一部分时间没有心率记录"
+        case .tooFewSamples: return "心率记录点太少"
+        case .manyAnomalies: return "心率中有较多明显异常的数值"
+        case .notLoaded: return "心率数据没有读取成功"
         }
     }
 }

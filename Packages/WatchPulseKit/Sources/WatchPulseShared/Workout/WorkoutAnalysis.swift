@@ -42,8 +42,8 @@ public enum WorkoutAnalysisBlocker: String, Hashable, Codable, Sendable {
         switch self {
         case .invalidTimeRange: return "起止时间或时长无效"
         case .excludedAsSuspectedDuplicate: return "疑似与另一条记录重复，统计时按一次计入"
-        case .suspectedDuplicate: return "疑似与另一条记录重复，不参与进步比较"
-        case .locationUnknown: return "室内 / 室外未知，不参与进步比较"
+        case .suspectedDuplicate: return "疑似与另一条记录重复"
+        case .locationUnknown: return "没有记录是室内还是室外"
         }
     }
 }
