@@ -48,6 +48,7 @@ struct RootView: View {
                 viewModel: insightsViewModel,
                 service: environment.healthDataService,
                 progressViewModel: progressViewModel,
+                workoutService: environment.workoutHistoryService,
                 goalsViewModel: goalsViewModel,
                 onOpenGoals: { selection = .goals }
             )

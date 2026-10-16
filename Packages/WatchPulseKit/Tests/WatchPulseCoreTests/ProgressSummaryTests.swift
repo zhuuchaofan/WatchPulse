@@ -61,16 +61,21 @@ final class ProgressSummaryTests: XCTestCase {
     func testEmptySetHasNoLatestWorkout() {
         let summary = ProgressSummary.make(from: set([]), readLimit: 200, now: now, calendar: calendar)
         XCTAssertNil(summary.latestWorkout)
-        XCTAssertNil(summary.latestFeedback)
         XCTAssertEqual(summary.weeks.map(\.workoutCount), [0, 0, 0, 0])
     }
 
-    func testFewComparableWorkoutsAreNotCompared() {
+    func testLatestWorkoutIsMostRecentStart() {
         let summary = ProgressSummary.make(
             from: set([workout(1, daysAgo: 1), workout(2, daysAgo: 3)]),
             readLimit: 200, now: now, calendar: calendar
         )
-        guard let feedback = summary.latestFeedback else { return XCTFail("应有最近一次运动的反馈") }
+        XCTAssertEqual(summary.latestWorkout?.id, workout(1, daysAgo: 1).id)
+    }
+
+    func testBriefHeadlineForFewComparableWorkoutsHasNoConclusion() {
+        let records = set([workout(1, daysAgo: 1), workout(2, daysAgo: 3)]).records
+        guard let latest = records.first else { return XCTFail("应有最近一次运动") }
+        let feedback = WorkoutFeedbackCalculator.feedback(for: latest, among: records)
         if case .compared = feedback.status { XCTFail("可比运动不足时不下比较结论") }
         XCTAssertFalse(WorkoutFeedbackPresentation.briefHeadline(feedback).contains("样本"))
     }

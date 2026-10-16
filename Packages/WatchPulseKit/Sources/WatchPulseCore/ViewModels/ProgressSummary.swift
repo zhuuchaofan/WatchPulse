@@ -17,18 +17,18 @@ public struct WeeklyVolume: Hashable, Sendable, Identifiable {
     }
 }
 
-/// 「进步」页的数据：最近 4 周趋势 + 最近一次运动与过去同类运动的比较。
+/// 「进步」页的数据：最近 4 周趋势 + 最近一次运动。
 ///
 /// 由已有的 `WorkoutAnalysisSet` 计算：次数 / 时长 / 距离沿用 `WorkoutVolumeSummary`（疑似重复只计一次，
-/// 缺失距离不补 0），比较沿用 `WorkoutFeedbackCalculator`（只描述数值高低，不评价进步或退步）。
+/// 缺失距离不补 0）。最近一次运动与过去的比较不在这里计算，而由界面用 `WorkoutFeedbackViewModel` 读取，
+/// 与运动页、运动详情的结论保持一致（这里的心率只读取了最近少量运动，不足以支撑同类比较）。
 public struct ProgressSummary: Hashable, Sendable {
     public static let weekCount = 4
 
     /// 从最早的一周到本周，共 `weekCount` 项。
     public let weeks: [WeeklyVolume]
-    /// 最近一次运动（按开始时间）的比较结果；没有任何运动记录时为 `nil`。
+    /// 最近一次运动（按开始时间）；没有任何运动记录时为 `nil`。
     public let latestWorkout: WorkoutRecord?
-    public let latestFeedback: WorkoutFeedback?
     /// 因疑似重复而未重复计入的条数。
     public let suspectedExcludedCount: Int
     /// 读取条数达到上限，较早的周可能偏低。
@@ -86,7 +86,6 @@ public struct ProgressSummary: Hashable, Sendable {
         return ProgressSummary(
             weeks: weeks,
             latestWorkout: latest?.workout,
-            latestFeedback: latest.map { WorkoutFeedbackCalculator.feedback(for: $0, among: set.records) },
             suspectedExcludedCount: inRange.suspectedExcludedCount,
             mayBeIncomplete: set.rawWorkoutCount >= readLimit && (oldest.map { $0 > covered.start } ?? false),
             containsSimulatedData: set.origin.isSimulated
