@@ -81,13 +81,26 @@ public enum HeartRateZone: Int, CaseIterable, Comparable, Sendable {
     case anaerobic
     case maximum
 
+    /// 界面名称。参照的是本次运动出现过的最高心率而不是真实最大心率，
+    /// 因此只描述相对强弱，不使用“燃脂 / 无氧 / 极限”等训练效果用语。
     public var title: String {
         switch self {
-        case .warmUp: return "热身"
-        case .fatBurn: return "燃脂"
-        case .aerobic: return "有氧"
-        case .anaerobic: return "无氧"
-        case .maximum: return "极限"
+        case .warmUp: return "很低"
+        case .fatBurn: return "较低"
+        case .aerobic: return "中等"
+        case .anaerobic: return "较高"
+        case .maximum: return "很高"
+        }
+    }
+
+    /// 区间的划分范围（占本次最高心率的比例），用于可展开的“划分方式”。
+    public var rangeDescription: String {
+        switch self {
+        case .warmUp: return "低于 60%"
+        case .fatBurn: return "60%–70%"
+        case .aerobic: return "70%–80%"
+        case .anaerobic: return "80%–90%"
+        case .maximum: return "90% 及以上"
         }
     }
 

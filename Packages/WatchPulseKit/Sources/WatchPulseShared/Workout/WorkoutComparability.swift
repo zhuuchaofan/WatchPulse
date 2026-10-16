@@ -17,10 +17,10 @@ public enum WorkoutComparabilityReason: String, Hashable, Codable, Sendable {
         switch self {
         case .differentActivity: return "运动类型不同"
         case .differentLocation: return "室内 / 室外不同"
-        case .notEligible: return "其中一次不满足进步比较的数据要求"
-        case .differentSource: return "数据来源不同，口径可能不一致"
-        case .differentDevice: return "记录设备发生变化，该次运动不参与对比"
-        case .deviceUnknown: return "设备信息缺失，无法确认是否可比"
+        case .notEligible: return "其中一次运动的数据不完整"
+        case .differentSource: return "数据来源不同，记录方式可能不一致"
+        case .differentDevice: return "记录设备不同"
+        case .deviceUnknown: return "没有记录设备信息，无法确认是否可比"
         case .durationMismatch: return "时长相差过大"
         case .distanceMismatch: return "距离相差过大"
         }

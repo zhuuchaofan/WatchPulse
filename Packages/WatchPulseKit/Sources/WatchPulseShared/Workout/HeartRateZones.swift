@@ -12,13 +12,15 @@ public enum TrainingZone: Int, CaseIterable, Codable, Comparable, Sendable, Iden
 
     public var title: String { "Z\(rawValue)" }
 
+    /// 区间名称。边界来自用户输入的最大心率或默认百分比，并不对应实测的乳酸阈等生理指标，
+    /// 因此用通俗的强度描述，不使用“燃脂 / 乳酸阈 / 无氧”。
     public var name: String {
         switch self {
         case .z1: return "热身"
-        case .z2: return "燃脂"
+        case .z2: return "轻松"
         case .z3: return "有氧"
-        case .z4: return "乳酸阈"
-        case .z5: return "无氧"
+        case .z4: return "高强度"
+        case .z5: return "最大强度"
         }
     }
 

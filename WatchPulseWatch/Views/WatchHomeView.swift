@@ -388,6 +388,11 @@ private struct WatchZoneSettingsView: View {
 private struct WatchSummaryView: View {
     let controller: WorkoutSessionController
 
+    private static func isSaveFailure(_ error: WorkoutSessionError) -> Bool {
+        if case .saveFailed = error { return true }
+        return false
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
@@ -413,12 +418,13 @@ private struct WatchSummaryView: View {
                 } else if controller.saveStatus.isSaved {
                     Text("已保存到“健康”").font(.footnote).foregroundStyle(.secondary)
                 } else if case .failed = controller.saveStatus {
-                    Text("未能保存到“健康”").font(.footnote).foregroundStyle(.red)
+                    Text(WorkoutSessionError.saveFailed(reason: "").localizedDescription).font(.footnote).foregroundStyle(.red)
                 }
                 if controller.finalStateDelivered == false {
-                    Text("未能把结果同步到 iPhone，请在 iPhone 的「健康」App 中确认").font(.footnote).foregroundStyle(.orange)
+                    Text("没能把结果同步到 iPhone，请在 iPhone 的「健康」App 中确认这次运动").font(.footnote).foregroundStyle(.orange)
                 }
-                if let error = controller.lastError {
+                // 保存失败已在上方说明，不重复显示。
+                if let error = controller.lastError, !Self.isSaveFailure(error) {
                     Text(error.localizedDescription).font(.footnote).foregroundStyle(.red)
                 }
                 Button("完成") {

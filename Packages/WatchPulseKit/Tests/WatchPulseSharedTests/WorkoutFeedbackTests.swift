@@ -74,7 +74,7 @@ final class WorkoutFeedbackTests: XCTestCase {
             XCTAssertEqual(item.outcome, .insufficientSamples(found: 2, required: 3), "\(item.metric)")
             XCTAssertNotNil(item.currentValue, "本次数据照常展示")
         }
-        XCTAssertTrue(WorkoutFeedbackPresentation.headline(result).contains("只展示本次数据"))
+        XCTAssertTrue(WorkoutFeedbackPresentation.headline(result).contains("只显示本次数据"))
     }
 
     func testOnlyEarlierWorkoutsInsideTheLookbackWindowAreUsed() {
@@ -122,7 +122,7 @@ final class WorkoutFeedbackTests: XCTestCase {
         XCTAssertEqual(result.status, .notEligible([.locationUnknown]))
         XCTAssertEqual(result.comparableCount, 0)
         XCTAssertTrue(result.metrics.allSatisfy { $0.outcome == .unavailable(.workoutNotEligible) })
-        XCTAssertTrue(WorkoutFeedbackPresentation.headline(result).contains("室内 / 室外未知"))
+        XCTAssertTrue(WorkoutFeedbackPresentation.headline(result).contains("没有记录是室内还是室外"))
     }
 
     func testDisplayOnlyHeartRateIsNotCompared() {
@@ -209,7 +209,7 @@ final class WorkoutFeedbackTests: XCTestCase {
             WorkoutFeedbackPresentation.comparison(result.metric(.averageSpeed)!, activity: .cycling),
             "与最近 4 次平均（20.0 km/h）相近"
         )
-        XCTAssertTrue(WorkoutFeedbackPresentation.headline(result).hasPrefix("与本次之前 90 天内可比的室外骑行比较"))
+        XCTAssertTrue(WorkoutFeedbackPresentation.headline(result).hasPrefix("与你之前 90 天内可比的室外骑行比较"))
         XCTAssertEqual(WorkoutFeedbackPresentation.pace(metersPerSecond: 1000.0 / 330), "5'30\" /公里")
     }
 

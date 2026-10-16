@@ -43,6 +43,18 @@ public enum HealthMetricKind: String, CaseIterable, Codable, Sendable, Identifia
         }
     }
 
+    /// 不常见概念首次出现时的一句话解释；常见指标为 `nil`。
+    public var explanation: String? {
+        switch self {
+        case .heartRateVariability:
+            return "心率变异性（HRV）是相邻两次心跳间隔的变化幅度，由 Apple Watch 在你安静时测量。不同人差别很大，只适合和自己过去比较。"
+        case .restingHeartRate:
+            return "静息心率是你安静休息时的心率，由 Apple Watch 在日常佩戴中估算。"
+        case .heartRate, .stepCount, .activeEnergy, .sleep:
+            return nil
+        }
+    }
+
     /// 数值单位（展示用）。
     public var unitLabel: String {
         switch self {

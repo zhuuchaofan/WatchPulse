@@ -146,6 +146,27 @@ final class HealthBaselineTests: XCTestCase {
         XCTAssertTrue(up.detailText.contains("基线（此前 28 天中位数）41 毫秒"))
     }
 
+    func testPlainTextAvoidsStatisticalJargonAndNeverCallsMissingDataNormal() {
+        let empty = comparison([:])
+        XCTAssertTrue(empty.plainText.contains("暂时不能和平时比较"), empty.plainText)
+        XCTAssertTrue(empty.plainText.contains("继续日常佩戴"), "数据不足时要给出下一步")
+        XCTAssertFalse(empty.plainText.contains("差不多"), "数据不足不能说成与平时一样")
+
+        var values: [Int: Double] = [:]
+        for daysAgo in 8...35 { values[daysAgo] = 41 }
+        for daysAgo in 1...7 { values[daysAgo] = 45 }
+        let up = comparison(values, kind: .heartRateVariability)
+        XCTAssertEqual(up.plainText, "最近 7 天比平时高 4 毫秒。")
+        for daysAgo in 1...7 { values[daysAgo] = 41.4 }
+        XCTAssertEqual(comparison(values, kind: .heartRateVariability).plainText, "最近 7 天和平时差不多。")
+
+        for text in [empty.plainText, up.plainText, BaselineComparison.baselineExplanation] {
+            for word in ["中位数", "样本", "SDNN"] {
+                XCTAssertFalse(text.contains(word), "“\(text)” 默认文案不应包含 “\(word)”")
+            }
+        }
+    }
+
     func testTextsNeverContainDiagnosticWords() {
         var values: [Int: Double] = [:]
         for daysAgo in 8...35 { values[daysAgo] = 55 }

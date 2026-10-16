@@ -190,7 +190,8 @@ public final class WorkoutSessionController {
             completedWorkout = record
             saveStatus = .saved(workoutID: record.id)
         } catch {
-            let reason = Self.map(error).localizedDescription
+            // 原因只作诊断信息随状态传给 iPhone；界面显示的是 `errorDescription` 中的通俗说明。
+            let reason = Self.map(error).diagnosticDescription
             lastError = .saveFailed(reason: reason)
             saveStatus = .failed(reason: reason)
         }

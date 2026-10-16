@@ -211,6 +211,24 @@ extension BaselineComparison {
         }
     }
 
+    /// 卡片默认显示的通俗结论（不出现中位数、样本数等统计用语；这些见 `detailText`）。
+    public var plainText: String {
+        switch sufficiency {
+        case .insufficient(let referenceDays, let observationDays):
+            return "数据还不够，暂时不能和平时比较：此前 4 周有 \(referenceDays) 天数据（需要 \(Self.minimumReferenceDays) 天），最近 7 天有 \(observationDays) 天（需要 \(Self.minimumObservationDays) 天）。继续日常佩戴 Apple Watch，够了会自动显示。"
+        case .sufficient:
+            guard let direction else { return "" }
+            switch direction {
+            case .flat: return "最近 7 天和平时差不多。"
+            case .up: return "最近 7 天比平时高 \(kind.formattedValueWithUnit(abs(delta ?? 0)))。"
+            case .down: return "最近 7 天比平时低 \(kind.formattedValueWithUnit(abs(delta ?? 0)))。"
+            }
+        }
+    }
+
+    /// “基线”首次出现时的一句话解释。
+    public static let baselineExplanation = "基线就是你的“平时水平”：取此前 4 周的典型值，用来看最近 7 天和平时比有没有变化。"
+
     /// 所有基线文案共用的说明。
     public static let disclaimer = "这里只是把你近期的数据与你自己过去的数据做比较，不代表医疗诊断，也不能判断身体状况。"
 }
