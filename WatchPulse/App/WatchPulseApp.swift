@@ -17,9 +17,9 @@ struct WatchPulseApp: App {
             store: environment.workoutGoalStore,
             service: environment.workoutHistoryService
         ))
-        // 进步页：最近 4 周趋势与可比运动分析；只为最近的少量运动读取心率。
+        // 进步页：最近 4 周趋势只用次数 / 时长 / 距离，不读心率；最近一次运动的对比由页面单独读取（与运动页一致）。
         _progressViewModel = State(initialValue: WorkoutAnalysisViewModel(
-            loader: WorkoutAnalysisLoader(service: environment.workoutHistoryService, maximumHeartRateFetches: 12),
+            loader: WorkoutAnalysisLoader(service: environment.workoutHistoryService, maximumHeartRateFetches: 0),
             limit: 200
         ))
     }

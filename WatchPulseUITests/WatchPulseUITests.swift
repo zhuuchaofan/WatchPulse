@@ -371,7 +371,11 @@ final class WatchPulseUITests: XCTestCase {
     func testTrainingCenterEmptyHistoryExplainsNextStep() {
         let app = launch(scenario: "empty")
         app.tabBars.buttons["运动"].tap()
-        XCTAssertTrue(app.staticTexts["还没有运动记录"].waitForExistence(timeout: 10))
+        // 「最近记录」在本周目标、开始运动和演示控制之后，懒加载列表中需要先滚动到它。
+        XCTAssertTrue(element(app, "workout.waiting").waitForExistence(timeout: 10))
+        let empty = app.staticTexts["还没有运动记录"]
+        scrollTo(empty, in: app)
+        XCTAssertTrue(empty.waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "拒绝")).firstMatch.exists)
     }
 
@@ -379,7 +383,10 @@ final class WatchPulseUITests: XCTestCase {
     func testWorkoutHistoryFailureScenario() {
         let app = launch(scenario: "failure")
         app.tabBars.buttons["运动"].tap()
-        XCTAssertTrue(element(app, "loadState.failed").waitForExistence(timeout: 10))
+        XCTAssertTrue(element(app, "workout.waiting").waitForExistence(timeout: 10))
+        let failed = element(app, "loadState.failed")
+        scrollTo(failed, in: app)
+        XCTAssertTrue(failed.waitForExistence(timeout: 10))
     }
 
     // MARK: - 实时运动（模拟 Apple Watch）

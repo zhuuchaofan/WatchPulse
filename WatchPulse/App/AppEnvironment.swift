@@ -66,6 +66,8 @@ enum DemoScenario: String {
     case needsAuthorization
     /// 只有最近 10 天的静息心率 / HRV、3 晚睡眠：基线“积累中”。
     case insufficient
+    /// 40 次混合类型的运动：同类历史超出最近 12 条，用于核对各页对最近一次运动的比较一致。
+    case longHistory
 
     func makeHealthDataService() -> any HealthDataService {
         switch self {
@@ -88,6 +90,8 @@ enum DemoScenario: String {
             let service = MockHealthDataService.demo()
             service.authorizationStatus = .shouldRequest
             return service
+        case .longHistory:
+            return MockHealthDataService.demo()
         case .insufficient:
             let service = MockHealthDataService.demo()
             let data = SimulatedHealthData(now: Date())
@@ -103,6 +107,8 @@ enum DemoScenario: String {
         switch self {
         case .full, .needsAuthorization, .insufficient:
             return MockWorkoutHistoryService.demo()
+        case .longHistory:
+            return MockWorkoutHistoryService.demo(count: 40)
         case .empty:
             return MockWorkoutHistoryService()
         case .failure:

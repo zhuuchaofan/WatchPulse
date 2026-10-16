@@ -10,6 +10,8 @@ struct InsightsView: View {
     /// 用于进入原有的单项趋势页。
     let service: any HealthDataService
     let progressViewModel: WorkoutAnalysisViewModel
+    /// 最近一次运动的对比与运动页、运动详情使用同一读取方式，三处结论一致。
+    let workoutService: any WorkoutHistoryService
     let goalsViewModel: WorkoutGoalsViewModel
     /// 「设定目标」：由根视图切换到目标页。
     var onOpenGoals: () -> Void = {}
@@ -25,6 +27,7 @@ struct InsightsView: View {
                     }
                     ProgressSection(
                         viewModel: progressViewModel,
+                        workoutService: workoutService,
                         goalsViewModel: goalsViewModel,
                         onOpenGoals: onOpenGoals
                     )
@@ -95,6 +98,7 @@ struct InsightsView: View {
 /// 运动相关的三张卡：最近 4 周趋势、训练完成情况、可比运动分析。
 private struct ProgressSection: View {
     let viewModel: WorkoutAnalysisViewModel
+    let workoutService: any WorkoutHistoryService
     let goalsViewModel: WorkoutGoalsViewModel
     let onOpenGoals: () -> Void
 
@@ -104,7 +108,7 @@ private struct ProgressSection: View {
             let summary = ProgressSummary.make(from: set, readLimit: viewModel.limit, now: .now)
             ProgressTrendCard(summary: summary)
             CompletionCard(viewModel: goalsViewModel, onOpenGoals: onOpenGoals)
-            ComparableCard(summary: summary)
+            ComparableCard(workout: summary.latestWorkout, service: workoutService)
         case .noData:
             ProgressMessageCard(
                 title: "最近 4 周还没有运动记录",
@@ -307,14 +311,15 @@ private struct GoalCompletionRow: View {
 
 /// 可比运动分析：最近一次运动与之前可比的同类运动比较；样本不足或不可比时明确说明原因。
 private struct ComparableCard: View {
-    let summary: ProgressSummary
+    let workout: WorkoutRecord?
+    let service: any WorkoutHistoryService
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("和过去的自己比")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.green)
-            if let workout = summary.latestWorkout, let feedback = summary.latestFeedback {
+            if let workout {
                 HStack(spacing: 8) {
                     Image(systemName: workout.activity.systemImage).foregroundStyle(.green)
                     Text("最近一次：\(workout.activity.title)")
@@ -324,19 +329,9 @@ private struct ComparableCard: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
-                Text(WorkoutFeedbackPresentation.briefHeadline(feedback))
-                    .font(.footnote)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("progress.comparable.headline")
-                ForEach(WorkoutFeedbackPresentation.comparedLines(feedback), id: \.self) { line in
-                    Text(line).font(.subheadline.weight(.medium))
-                }
-                if let line = WorkoutFeedbackPresentation.exclusionLine(feedback) {
-                    Text(line).font(.caption).foregroundStyle(.secondary)
-                }
-                Text(WorkoutFeedbackPresentation.disclaimer)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                // 最近一次运动变化时重新读取；与运动页、运动详情的反馈同一来源。
+                LatestComparison(workout: workout, service: service)
+                    .id(workout.id)
             } else {
                 Text("还没有运动可以比较。").font(.footnote).foregroundStyle(.secondary)
             }
@@ -346,6 +341,64 @@ private struct ComparableCard: View {
         .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("progress.comparable")
+    }
+}
+
+/// 最近一次运动与过去可比同类运动的简短对比，使用 `WorkoutFeedbackViewModel`（与运动页、运动详情相同的
+/// 读取上限与心率读取名额），避免同一次运动在不同页面得出不同结论。
+private struct LatestComparison: View {
+    @State private var viewModel: WorkoutFeedbackViewModel
+
+    init(workout: WorkoutRecord, service: any WorkoutHistoryService) {
+        _viewModel = State(initialValue: WorkoutFeedbackViewModel(workout: workout, service: service))
+    }
+
+    var body: some View {
+        content
+            .task {
+                if viewModel.state == .idle { await viewModel.load() }
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch viewModel.state {
+        case .loaded(let result):
+            let feedback = result.feedback
+            VStack(alignment: .leading, spacing: 10) {
+                Text(WorkoutFeedbackPresentation.briefHeadline(feedback))
+                    .font(.footnote)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("progress.comparable.headline")
+                ForEach(WorkoutFeedbackPresentation.comparedLines(feedback), id: \.self) { line in
+                    Text(line).font(.subheadline.weight(.medium))
+                        .accessibilityIdentifier("progress.comparable.line")
+                }
+                if let line = WorkoutFeedbackPresentation.exclusionLine(feedback) {
+                    Text(line).font(.caption).foregroundStyle(.secondary)
+                }
+                Text(WorkoutFeedbackPresentation.disclaimer)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        case .idle, .loading:
+            HStack {
+                ProgressView()
+                Text("正在和过去的运动比较…").font(.footnote).foregroundStyle(.secondary)
+            }
+        case .noData:
+            Text("这次运动不在已读取的范围内，暂时无法和过去比较。")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        case .failed:
+            VStack(alignment: .leading, spacing: 6) {
+                Text("暂时没能和过去的运动比较。").font(.footnote).foregroundStyle(.secondary)
+                Button("重试") { Task { await viewModel.load() } }
+                    .buttonStyle(.bordered)
+            }
+        case .healthDataUnavailable, .needsAuthorization:
+            EmptyView()
+        }
     }
 }
 
@@ -701,9 +754,10 @@ private func previewInsights(
         viewModel: HealthInsightsViewModel(service: health),
         service: health,
         progressViewModel: WorkoutAnalysisViewModel(
-            loader: WorkoutAnalysisLoader(service: workouts, maximumHeartRateFetches: 12),
+            loader: WorkoutAnalysisLoader(service: workouts, maximumHeartRateFetches: 0),
             limit: 200
         ),
+        workoutService: workouts,
         goalsViewModel: goals
     )
 }
