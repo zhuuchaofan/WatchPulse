@@ -35,6 +35,7 @@
 		D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */; };
 		E5ABA9774353D4B92F9B4517 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38D4CA80C56C32DD0C2DE0E /* RootView.swift */; };
 		F0DEE8E40423873A7D22EB17 /* WorkoutHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15846F47C632321DC91AA219 /* WorkoutHomeView.swift */; };
+		2317B917DB851D0B627AE84B /* WorkoutGoalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B7B65982B9F3939F02BC3A7 /* WorkoutGoalsView.swift */; };
 		F9B5A6F1E187D39E2ACA5BED /* CoreLocationFixProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8894F7D98AD74FC70AA58A5D /* CoreLocationFixProvider.swift */; };
 		FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833B9E27C20270DEA0879919 /* AppEnvironment.swift */; };
 /* End PBXBuildFile section */
@@ -74,6 +75,7 @@
 		00E9E2CF71FA81F587DE3BD7 /* WatchPulseApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseApp.swift; sourceTree = "<group>"; };
 		02FD1685613D4E0FB1EACEFB /* WatchPulseUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = WatchPulseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		15846F47C632321DC91AA219 /* WorkoutHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHomeView.swift; sourceTree = "<group>"; };
+		0B7B65982B9F3939F02BC3A7 /* WorkoutGoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGoalsView.swift; sourceTree = "<group>"; };
 		2A6F2272A87332167F94557A /* InsightsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsUITests.swift; sourceTree = "<group>"; };
 		3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryViews.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
@@ -200,6 +202,7 @@
 				64B86EC9149EA3965A101A0F /* HealthKitMirroringReceiver.swift */,
 				765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */,
 				3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */,
+				0B7B65982B9F3939F02BC3A7 /* WorkoutGoalsView.swift */,
 				15846F47C632321DC91AA219 /* WorkoutHomeView.swift */,
 			);
 			path = Workout;
@@ -470,6 +473,7 @@
 				E5ABA9774353D4B92F9B4517 /* RootView.swift in Sources */,
 				6E6EDB45070BA907E0BF468C /* WatchPulseApp.swift in Sources */,
 				1D921562BD608F16C3CD84FA /* WorkoutHistoryViews.swift in Sources */,
+				2317B917DB851D0B627AE84B /* WorkoutGoalsView.swift in Sources */,
 				F0DEE8E40423873A7D22EB17 /* WorkoutHomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

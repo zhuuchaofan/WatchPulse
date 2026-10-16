@@ -155,6 +155,39 @@ final class WatchPulseUITests: XCTestCase {
     }
 
     @MainActor
+    func testCreateEditPauseAndDeleteWeeklyGoal() {
+        let app = launch()
+        app.tabBars.buttons["目标"].tap()
+
+        XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 10), "演示模式必须显示模拟数据标识")
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10), "初始没有任何预设目标")
+
+        element(app, "goals.add").tap()
+        let target = element(app, "goalEditor.target")
+        XCTAssertTrue(target.waitForExistence(timeout: 10))
+        XCTAssertFalse(element(app, "goalEditor.save").isEnabled, "未输入数值时不能保存")
+        target.tap()
+        target.typeText("3")
+        element(app, "goalEditor.save").tap()
+
+        XCTAssertTrue(app.staticTexts["每周运动 3 次"].waitForExistence(timeout: 10))
+        let progress = element(app, "goals.progress")
+        XCTAssertTrue(progress.waitForExistence(timeout: 10))
+        waitForLabel(progress, contains: "本周")
+
+        // 编辑 → 暂停 → 恢复 → 删除。
+        element(app, "goals.row").tap()
+        element(app, "goalEditor.togglePause").tap()
+        XCTAssertTrue(app.staticTexts["已暂停，不计算进度"].waitForExistence(timeout: 10))
+        element(app, "goals.row").tap()
+        element(app, "goalEditor.togglePause").tap()
+        XCTAssertTrue(element(app, "goals.progress").waitForExistence(timeout: 10))
+        element(app, "goals.row").tap()
+        element(app, "goalEditor.delete").tap()
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
+    }
+
+    @MainActor
     func testWorkoutHistoryFailureScenario() {
         let app = launch(scenario: "failure")
         app.tabBars.buttons["运动"].tap()

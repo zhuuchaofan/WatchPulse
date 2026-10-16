@@ -5,6 +5,7 @@ struct RootView: View {
     let environment: AppEnvironment
     let healthOverviewViewModel: HealthOverviewViewModel
     let insightsViewModel: HealthInsightsViewModel
+    let goalsViewModel: WorkoutGoalsViewModel
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -23,6 +24,9 @@ struct RootView: View {
                 onSimulatedWorkoutCompleted: environment.recordSimulatedWorkout
             )
             .tabItem { Label("运动", systemImage: "figure.run") }
+
+            WorkoutGoalsView(viewModel: goalsViewModel)
+                .tabItem { Label("目标", systemImage: "target") }
 
             InsightsView(viewModel: insightsViewModel, service: environment.healthDataService)
                 .tabItem { Label("分析", systemImage: "chart.line.text.clipboard") }

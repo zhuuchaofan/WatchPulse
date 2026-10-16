@@ -20,6 +20,8 @@ final class AppEnvironment {
     let healthDataService: any HealthDataService
     let workoutHistoryService: any WorkoutHistoryService
     let liveWorkoutMonitor: LiveWorkoutMonitor
+    /// 个人运动目标：真实模式存于本机 `UserDefaults`；演示模式只在内存中，不写入磁盘。
+    let workoutGoalStore: any WorkoutGoalStore
     /// 演示模式下的模拟 Watch 运动。
     let simulatedWorkout: SimulatedMirroredWorkout?
     private let mirroringReceiver: HealthKitMirroringReceiver?
@@ -31,12 +33,14 @@ final class AppEnvironment {
             healthDataService = scenario.makeHealthDataService()
             workoutHistoryService = scenario.makeWorkoutHistoryService()
             liveWorkoutMonitor = LiveWorkoutMonitor(dataOrigin: .simulated)
+            workoutGoalStore = InMemoryWorkoutGoalStore()
             simulatedWorkout = SimulatedMirroredWorkout(monitor: liveWorkoutMonitor)
             mirroringReceiver = nil
         } else {
             healthDataService = HealthKitHealthDataService()
             workoutHistoryService = HealthKitWorkoutHistoryService()
             liveWorkoutMonitor = LiveWorkoutMonitor(dataOrigin: .healthKit)
+            workoutGoalStore = UserDefaultsWorkoutGoalStore(defaults: defaults)
             simulatedWorkout = nil
             mirroringReceiver = HealthKitMirroringReceiver(monitor: liveWorkoutMonitor)
         }
