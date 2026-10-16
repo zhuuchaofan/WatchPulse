@@ -8,6 +8,7 @@ import WatchPulseShared
 struct WorkoutGoalsView: View {
     let viewModel: WorkoutGoalsViewModel
 
+    @Environment(\.scenePhase) private var scenePhase
     @State private var editor: GoalEditorMode?
 
     var body: some View {
@@ -81,9 +82,11 @@ struct WorkoutGoalsView: View {
             .sheet(item: $editor) { mode in
                 GoalEditor(mode: mode, viewModel: viewModel)
             }
-            .task {
-                if viewModel.records == .idle {
-                    await viewModel.load()
+            // 本周进度随新运动变化：每次切到本页、回到前台都重新读取（已有数据保留显示，不闪回加载中）。
+            .task { await viewModel.load() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active, viewModel.records != .idle {
+                    Task { await viewModel.load() }
                 }
             }
             .refreshable { await viewModel.load() }

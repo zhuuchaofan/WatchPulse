@@ -112,6 +112,18 @@ final class WorkoutGoalsViewModelTests: XCTestCase {
         XCTAssertTrue(previous.allSatisfy(\.mayBeIncomplete), "更早的周可能缺记录")
     }
 
+    func testReloadPicksUpNewWorkoutsWithoutClearingProgress() async {
+        let service = MockWorkoutHistoryService(workouts: .value([workout(1, hoursAgo: 24)]))
+        let viewModel = makeViewModel(service: service)
+        await viewModel.load()
+        viewModel.add(metric: .workoutCount, activity: nil, input: 3)
+        XCTAssertEqual(currentWeek(viewModel.items[0])?.value, 1)
+
+        service.insert(workout(2, hoursAgo: 1), heartRates: [])
+        await viewModel.load()
+        XCTAssertEqual(currentWeek(viewModel.items[0])?.value, 2, "新完成的运动计入本周进度")
+    }
+
     func testUnavailableHealthData() async {
         let viewModel = makeViewModel(service: MockWorkoutHistoryService(isHealthDataAvailable: false))
         await viewModel.load()
