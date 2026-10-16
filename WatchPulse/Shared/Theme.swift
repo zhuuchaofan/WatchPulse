@@ -91,7 +91,7 @@ extension View {
         modifier(TileBackground())
     }
 
-    /// 页面底色（滚动视图 / 列表都适用）。
+    /// 页面底色（滚动视图 / 列表都适用）。列表行保持系统分组行底色（浅色白、深色近卡片色）。
     func screenBackground() -> some View {
         scrollContentBackground(.hidden)
             .background(Theme.background.ignoresSafeArea())

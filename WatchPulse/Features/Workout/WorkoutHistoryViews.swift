@@ -25,7 +25,7 @@ private struct CyclingStatisticsRow: View {
             if let longest = statistics.longestRideMeters {
                 Text("单次最长 \(MetricFormatting.distance(meters: longest))。均速按骑行时间计算，不含暂停；没有距离记录的骑行不计入。")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
         .accessibilityElement(children: .combine)
@@ -83,6 +83,7 @@ struct WorkoutAllRecordsView: View {
         List {
             WorkoutHistorySection(viewModel: viewModel)
         }
+        .screenBackground()
         .navigationTitle("全部运动记录")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -140,18 +141,18 @@ struct WorkoutRow: View {
         HStack(spacing: 12) {
             Image(systemName: workout.activity.systemImage)
                 .font(.title2)
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.sage)
                 .frame(width: 36)
             VStack(alignment: .leading, spacing: 2) {
                 Text(workout.activity.title)
                     .font(.headline)
                 Text(workout.startDate.formatted(.dateTime.month().day().weekday().hour().minute()))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                 if let duplicateLabel {
                     Text(duplicateLabel)
                         .font(.caption2)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Theme.notice)
                         .accessibilityIdentifier("workout.history.duplicateLabel")
                 }
             }
@@ -163,11 +164,11 @@ struct WorkoutRow: View {
                 if let distance = workout.distanceMeters {
                     Text(MetricFormatting.distance(meters: distance))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 } else if let energy = workout.activeEnergyKilocalories {
                     Text("\(Int(energy.rounded())) 千卡")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
             }
         }
@@ -253,7 +254,7 @@ struct WorkoutDetailView: View {
                         }
                     }
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                 }
                 .font(.footnote)
                 .accessibilityIdentifier("workoutDetail.credibilityDetails")
@@ -279,11 +280,11 @@ struct WorkoutDetailView: View {
                     }
                     Text("共 \(detail.sampleCount) 个心率样本")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                     if let note = Self.attributionNote(detail.attribution) {
                         Label(note, systemImage: "exclamationmark.triangle")
                             .font(.caption)
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(Theme.notice)
                             .accessibilityIdentifier("workoutDetail.attributionNote")
                     }
                 }
@@ -294,7 +295,7 @@ struct WorkoutDetailView: View {
                     HeartRateZoneBars(durations: detail.zoneDurations)
                     Text("按这次运动中出现过的最高心率（\(detail.zoneBasis.maximumHeartRate) 次/分）划分，只反映这次运动里的强弱变化，不代表燃脂、有氧等训练效果，也不能和其他运动比较。")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                         .accessibilityIdentifier("workoutDetail.zoneExplanation")
                     DisclosureGroup("划分方式") {
                         VStack(alignment: .leading, spacing: 4) {
@@ -304,7 +305,7 @@ struct WorkoutDetailView: View {
                             Text("本次最高心率不一定是你的最大心率。个人心率区间请在 Apple Watch 的 WatchPulse「心率区间与提醒」中设置。")
                         }
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                     }
                     .font(.footnote)
                 } header: {
@@ -312,6 +313,7 @@ struct WorkoutDetailView: View {
                 }
             }
         }
+        .screenBackground()
         .navigationTitle(workout.activity.title)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -323,7 +325,7 @@ struct WorkoutDetailView: View {
 
     private func stat(_ title: String, _ value: Double) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(title).font(.caption).foregroundStyle(Theme.secondaryText)
             Text("\(Int(value.rounded())) 次/分").font(.subheadline.weight(.semibold)).monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -359,20 +361,20 @@ private struct HeartRateCurve: View {
                     yStart: .value("基线", detail.statistics.minimum - 5),
                     yEnd: .value("心率", point.beatsPerMinute)
                 )
-                .foregroundStyle(.red.opacity(0.12))
+                .foregroundStyle(Theme.sage.opacity(0.15))
                 LineMark(
                     x: .value("时间", point.date),
                     y: .value("心率", point.beatsPerMinute)
                 )
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.sage)
             }
             RuleMark(y: .value("平均", detail.statistics.average))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
                 .annotation(position: .top, alignment: .leading) {
                     Text("平均 \(Int(detail.statistics.average.rounded()))")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
         }
         .chartYScale(domain: (detail.statistics.minimum - 5)...(detail.statistics.maximum + 5))
@@ -401,7 +403,7 @@ private struct HeartRateZoneBars: View {
                     Text(MetricFormatting.duration(seconds: seconds))
                         .font(.caption)
                         .monospacedDigit()
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                         .frame(width: 72, alignment: .trailing)
                 }
             }
