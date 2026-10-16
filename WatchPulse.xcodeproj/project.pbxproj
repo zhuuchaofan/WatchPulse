@@ -29,6 +29,7 @@
 		C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */; };
 		C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = 755ED5EED151AA21F5F0A358 /* WatchPulseShared */; };
 		C73DCAECB4DA5A647E206721 /* InsightsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6F2272A87332167F94557A /* InsightsUITests.swift */; };
+		5C2E7A11D4B84F09A3E1C701 /* ScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C2E7A11D4B84F09A3E1C702 /* ScreenshotTests.swift */; };
 		CA59D30A0CBBE053C148CFFC /* LoadStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */; };
 		CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */; };
 		CF1674B37409C0D8048C9E13 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB8CB8C0ADE899B29375B141 /* InsightsView.swift */; };
@@ -79,6 +80,7 @@
 		A1F3C0DE5E7D4B2A9C8E0F12 /* WorkoutFeedbackSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutFeedbackSection.swift; sourceTree = "<group>"; };
 		0B7B65982B9F3939F02BC3A7 /* WorkoutGoalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutGoalsView.swift; sourceTree = "<group>"; };
 		2A6F2272A87332167F94557A /* InsightsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsUITests.swift; sourceTree = "<group>"; };
+		5C2E7A11D4B84F09A3E1C702 /* ScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotTests.swift; sourceTree = "<group>"; };
 		3880D99C404289B18F0CE746 /* WorkoutHistoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHistoryViews.swift; sourceTree = "<group>"; };
 		39E06D9D6A1C25DDD326BD6D /* WatchHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHomeView.swift; sourceTree = "<group>"; };
 		3CAC16507C96D1539C253FDB /* WatchPulseWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchPulseWatchApp.swift; sourceTree = "<group>"; };
@@ -153,6 +155,7 @@
 			children = (
 				B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */,
 				2A6F2272A87332167F94557A /* InsightsUITests.swift */,
+				5C2E7A11D4B84F09A3E1C702 /* ScreenshotTests.swift */,
 				5F587BF96769682F11DCF6FA /* WatchPulseUITests.swift */,
 			);
 			path = WatchPulseUITests;
@@ -499,6 +502,7 @@
 			files = (
 				CD7D22FC017861A496ED4BD9 /* CyclingUITests.swift in Sources */,
 				C73DCAECB4DA5A647E206721 /* InsightsUITests.swift in Sources */,
+				5C2E7A11D4B84F09A3E1C701 /* ScreenshotTests.swift in Sources */,
 				8A1A9ED601C3719574137CC2 /* WatchPulseUITests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

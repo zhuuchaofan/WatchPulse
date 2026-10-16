@@ -80,9 +80,40 @@ jobs:
           print(ios[-1][1]["udid"])
           ')
           echo "Using simulator $UDID"
+          echo "SIM_UDID=$UDID" >> "$GITHUB_ENV"
+          # 截图测试只在下面的截图步骤中运行。
           xcodebuild test \
             -project WatchPulse.xcodeproj \
             -scheme WatchPulse \
             -destination "id=$UDID" \
             -derivedDataPath build/DerivedData \
+            -skip-testing:WatchPulseUITests/ScreenshotTests \
             CODE_SIGNING_ALLOWED=NO
+
+      # 四个页面 × 浅色 / 深色 / 大字号，以及空数据、权限、失败、数据不足状态（演示模式）。
+      # 状态栏固定为 9:41、满电满格，便于改版前后逐张对照。
+      - name: Capture screenshots (demo mode)
+        if: ${{ !cancelled() && env.SIM_UDID != '' }}
+        run: |
+          set -o pipefail
+          xcrun simctl boot "$SIM_UDID" || true
+          xcrun simctl status_bar "$SIM_UDID" override --time "9:41" --batteryState charged --batteryLevel 100 --cellularBars 4 --wifiBars 3 || true
+          mkdir -p screenshots
+          TEST_RUNNER_WATCHPULSE_SCREENSHOT_DIR="$PWD/screenshots" xcodebuild test-without-building \
+            -project WatchPulse.xcodeproj \
+            -scheme WatchPulse \
+            -destination "id=$SIM_UDID" \
+            -derivedDataPath build/DerivedData \
+            -only-testing:WatchPulseUITests/ScreenshotTests \
+            CODE_SIGNING_ALLOWED=NO
+          echo "::notice title=screenshots::$(ls screenshots | wc -l | tr -d ' ') screenshots"
+          ls screenshots
+
+      - name: Upload screenshots
+        if: ${{ !cancelled() && env.SIM_UDID != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ github.sha }}
+          path: screenshots/*.png
+          retention-days: 90
+          if-no-files-found: warn
