@@ -125,21 +125,45 @@ struct LiveWorkoutDashboardView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// 实时曲线只显示最近这么久（秒），更早的数据留给运动结束后的详情页。
+    private static let chartWindow: TimeInterval = 300
+
     @ViewBuilder
     private var heartRateChart: some View {
-        let points = HeartRateSeries.downsample(monitor.heartRateHistory, maxPoints: 240)
-        if points.count >= 2 {
+        let history = HeartRateSeries.downsample(monitor.heartRateHistory, maxPoints: 240)
+        if let first = history.first?.date, let last = history.last?.date, history.count >= 2 {
+            // 起点从运动开始的第一个心率样本算起；满窗口后只保留最近 `chartWindow` 秒。
+            let lower = max(first, last.addingTimeInterval(-Self.chartWindow))
+            let upper = max(last, lower.addingTimeInterval(30))
+            let visible = history.filter { $0.date >= lower.addingTimeInterval(-30) }
+            let values = visible.map(\.beatsPerMinute)
+            let yLower = ((values.min() ?? 60) - 5).rounded(.down)
+            let yUpper = ((values.max() ?? 120) + 5).rounded(.up)
+            let showsSeconds = upper.timeIntervalSince(lower) <= 180
             VStack(alignment: .leading, spacing: 8) {
                 Text("心率曲线").font(.headline)
-                Chart(points) { point in
+                Chart(visible) { point in
                     LineMark(
                         x: .value("时间", point.date),
                         y: .value("心率", point.beatsPerMinute)
                     )
                     .foregroundStyle(.red)
-                    .interpolationMethod(.catmullRom)
+                    .interpolationMethod(.monotone)
                 }
-                .chartYScale(domain: .automatic(includesZero: false))
+                .chartXScale(domain: lower...upper)
+                .chartYScale(domain: yLower...yUpper)
+                .chartXAxis {
+                    AxisMarks(preset: .aligned, values: .automatic(desiredCount: 3)) { _ in
+                        AxisGridLine()
+                        AxisValueLabel(
+                            format: showsSeconds
+                                ? .dateTime.hour().minute().second()
+                                : .dateTime.hour().minute(),
+                            anchor: .top
+                        )
+                    }
+                }
+                .chartPlotStyle { $0.clipped() }
                 .frame(height: 180)
                 .accessibilityIdentifier("live.heartRateChart")
             }

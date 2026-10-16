@@ -267,10 +267,12 @@ public final class LiveWorkoutMonitor {
         }
         latestMetrics = metrics
         if let heartRate = metrics.heartRateBPM {
-            if let last = heartRateHistory.last, last.date >= metrics.timestamp {
+            // 以样本自身的测量时间为准：能量、距离更新时同一个心率样本会被重复携带，不能再画成新点。
+            let sampleDate = min(metrics.heartRateDate ?? metrics.timestamp, metrics.timestamp)
+            if let last = heartRateHistory.last, last.date >= sampleDate {
                 return
             }
-            heartRateHistory.append(HeartRatePoint(date: metrics.timestamp, beatsPerMinute: heartRate))
+            heartRateHistory.append(HeartRatePoint(date: sampleDate, beatsPerMinute: heartRate))
             if heartRateHistory.count > historyLimit {
                 heartRateHistory.removeFirst(heartRateHistory.count - historyLimit)
             }

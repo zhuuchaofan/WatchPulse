@@ -332,6 +332,38 @@ final class LiveWorkoutMonitorTests: XCTestCase {
         XCTAssertEqual(monitor.connection, .connected)
     }
 
+    func testRepeatedHeartRateSampleIsNotPlottedTwice() async throws {
+        let sampleA = clock.date.addingTimeInterval(2)
+        let sampleB = clock.date.addingTimeInterval(7)
+        func snapshot(_ elapsed: TimeInterval, heartRate: Double, sample: Date) -> WorkoutMetricsSnapshot {
+            WorkoutMetricsSnapshot(
+                timestamp: clock.date.addingTimeInterval(elapsed),
+                elapsedTime: elapsed,
+                heartRateBPM: heartRate,
+                heartRateDate: sample
+            )
+        }
+        monitor.receive(try data(sync(.running), sequence: 1))
+        monitor.receive(try data(.metrics(snapshot(3, heartRate: 100, sample: sampleA)), sequence: 2))
+        // 能量 / 距离更新：同一个心率样本被重复携带，不应再追加点。
+        monitor.receive(try data(.metrics(snapshot(4, heartRate: 100, sample: sampleA)), sequence: 3))
+        monitor.receive(try data(.metrics(snapshot(6, heartRate: 100, sample: sampleA)), sequence: 4))
+        monitor.receive(try data(.metrics(snapshot(8, heartRate: 104, sample: sampleB)), sequence: 5))
+
+        XCTAssertEqual(monitor.heartRateHistory.map(\.beatsPerMinute), [100, 104])
+        // 点的时间是样本自身的测量时间，而不是消息到达时间。
+        XCTAssertEqual(monitor.heartRateHistory.map(\.date), [sampleA, sampleB])
+    }
+
+    func testMetricsWithoutHeartRateDateDecodeAndPlotByTimestamp() throws {
+        let legacy = Data("""
+        {"timestamp": 0, "elapsedTime": 5, "heartRateBPM": 120}
+        """.utf8)
+        let decoded = try JSONDecoder().decode(WorkoutMetricsSnapshot.self, from: legacy)
+        XCTAssertNil(decoded.heartRateDate)
+        XCTAssertEqual(decoded.heartRateBPM, 120)
+    }
+
     func testFirstNonSyncMessageRequestsFullState() async throws {
         monitor.receive(try data(.metrics(metrics(5)), sequence: 1))
         XCTAssertTrue(sender.messages.isEmpty, "阶段未知时不请求")

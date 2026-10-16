@@ -14,6 +14,9 @@ public struct WorkoutMetricsSnapshot: Hashable, Codable, Sendable {
     /// GPS 等来源的速度（v0.2 新增，可选）。旧版本消息没有此字段，解码为 `nil`；
     /// 旧版本 App 收到新消息时会忽略此字段。
     public let speed: WorkoutSpeedSample?
+    /// 心率样本本身的测量时间（可选）。`heartRateBPM` 是「最近一次心率」，能量、距离更新时会重复携带同一个样本；
+    /// 有此字段时，接收端据此识别重复样本，只把真实的新样本画进曲线。旧版本 Watch 没有此字段，解码为 `nil`。
+    public let heartRateDate: Date?
 
     public init(
         timestamp: Date,
@@ -21,7 +24,8 @@ public struct WorkoutMetricsSnapshot: Hashable, Codable, Sendable {
         heartRateBPM: Double? = nil,
         activeEnergyKilocalories: Double? = nil,
         distanceMeters: Double? = nil,
-        speed: WorkoutSpeedSample? = nil
+        speed: WorkoutSpeedSample? = nil,
+        heartRateDate: Date? = nil
     ) {
         self.timestamp = timestamp
         self.elapsedTime = elapsedTime
@@ -29,10 +33,11 @@ public struct WorkoutMetricsSnapshot: Hashable, Codable, Sendable {
         self.activeEnergyKilocalories = activeEnergyKilocalories
         self.distanceMeters = distanceMeters
         self.speed = speed
+        self.heartRateDate = heartRateDate
     }
 
     private enum CodingKeys: String, CodingKey {
-        case timestamp, elapsedTime, heartRateBPM, activeEnergyKilocalories, distanceMeters, speed
+        case timestamp, elapsedTime, heartRateBPM, activeEnergyKilocalories, distanceMeters, speed, heartRateDate
     }
 
     public init(from decoder: Decoder) throws {
@@ -42,6 +47,7 @@ public struct WorkoutMetricsSnapshot: Hashable, Codable, Sendable {
         heartRateBPM = try container.decodeIfPresent(Double.self, forKey: .heartRateBPM)
         activeEnergyKilocalories = try container.decodeIfPresent(Double.self, forKey: .activeEnergyKilocalories)
         distanceMeters = try container.decodeIfPresent(Double.self, forKey: .distanceMeters)
+        heartRateDate = try? container.decodeIfPresent(Date.self, forKey: .heartRateDate)
         // v0.2 新增：缺失（旧版本 Watch）或无法解析时为 `nil`，不影响其他指标。
         let decodedSpeed = try? container.decodeIfPresent(WorkoutSpeedSample.self, forKey: .speed)
         speed = decodedSpeed.map {
@@ -66,7 +72,8 @@ extension WorkoutMetricsSnapshot {
             heartRateBPM: heartRateBPM,
             activeEnergyKilocalories: activeEnergyKilocalories,
             distanceMeters: distanceMeters,
-            speed: speed
+            speed: speed,
+            heartRateDate: heartRateDate
         )
     }
 
@@ -78,7 +85,8 @@ extension WorkoutMetricsSnapshot {
             heartRateBPM: heartRateBPM,
             activeEnergyKilocalories: activeEnergyKilocalories,
             distanceMeters: distanceMeters,
-            speed: speed
+            speed: speed,
+            heartRateDate: heartRateDate
         )
     }
 

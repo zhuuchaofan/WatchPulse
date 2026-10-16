@@ -224,7 +224,8 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
     }
 
     nonisolated static func metrics(from builder: HKLiveWorkoutBuilder, at date: Date) -> WorkoutMetricsSnapshot {
-        let heartRate = builder.statistics(for: HKQuantityType(.heartRate))?
+        let heartRateStatistics = builder.statistics(for: HKQuantityType(.heartRate))
+        let heartRate = heartRateStatistics?
             .mostRecentQuantity()?
             .doubleValue(for: HealthKitTypes.beatsPerMinute)
         let energy = builder.statistics(for: HKQuantityType(.activeEnergyBurned))?
@@ -239,7 +240,8 @@ final class HealthKitWorkoutSessionDriver: NSObject, WorkoutSessionDriver, Worko
             elapsedTime: builder.elapsedTime(at: date),
             heartRateBPM: heartRate,
             activeEnergyKilocalories: energy,
-            distanceMeters: distance
+            distanceMeters: distance,
+            heartRateDate: heartRate == nil ? nil : heartRateStatistics?.mostRecentQuantityDateInterval()?.end
         )
     }
 
