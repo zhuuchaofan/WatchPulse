@@ -123,6 +123,16 @@ final class WorkoutVolumeSummaryTests: XCTestCase {
         XCTAssertEqual(WorkoutVolumeSummary.summarize(records([a, b]), interval: week, calendar: cal).workoutCount, 1)
     }
 
+    func testWorkoutStartingExactlyAtBoundaryBelongsToLaterIntervalOnly() {
+        let cal = calendar("UTC")
+        let boundary = date("2026-06-08 00:00:00", in: "UTC")
+        let set = records([workout(1, start: boundary)])
+        let previous = DateInterval(start: date("2026-06-01 00:00:00", in: "UTC"), end: boundary)
+        let next = DateInterval(start: boundary, end: date("2026-06-15 00:00:00", in: "UTC"))
+        XCTAssertEqual(WorkoutVolumeSummary.summarize(set, interval: previous, calendar: cal).workoutCount, 0)
+        XCTAssertEqual(WorkoutVolumeSummary.summarize(set, interval: next, calendar: cal).workoutCount, 1)
+    }
+
     func testEmptySummary() {
         let summary = WorkoutVolumeSummary.summarize([], interval: DateInterval(start: .distantPast, end: .distantFuture), calendar: calendar("UTC"))
         XCTAssertEqual(summary.workoutCount, 0)

@@ -50,6 +50,7 @@ public enum WorkoutAnalysisBlocker: String, Hashable, Codable, Sendable {
 
 /// 分析资格：哪些可以展示，哪些可以统计，哪些可以支持进步比较。
 public struct WorkoutEligibility: Hashable, Codable, Sendable {
+    /// 时间区间合法即可展示（路线图 1.3.1-D）。这只约束分析层；运动历史列表仍照常列出全部原始记录。
     public let canDisplay: Bool
     public let statisticsMetrics: Set<WorkoutMetric>
     public let progressMetrics: Set<WorkoutMetric>
@@ -203,6 +204,6 @@ public enum WorkoutAnalysisBuilder {
                 if zones != nil { progress.insert(.heartRateZoneDistribution) }
             }
         }
-        return WorkoutEligibility(canDisplay: true, statisticsMetrics: statistics, progressMetrics: progress, blockers: blockers)
+        return WorkoutEligibility(canDisplay: completeness.hasValidTimeRange, statisticsMetrics: statistics, progressMetrics: progress, blockers: blockers)
     }
 }

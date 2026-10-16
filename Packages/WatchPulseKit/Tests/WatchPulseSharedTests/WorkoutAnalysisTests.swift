@@ -69,7 +69,7 @@ final class WorkoutAnalysisTests: XCTestCase {
         XCTAssertTrue(record.eligibility.blockers.contains(.locationUnknown))
     }
 
-    func testInvalidTimeRangeIsDisplayedButNeverCounted() throws {
+    func testInvalidTimeRangeIsNeitherDisplayedNorCounted() throws {
         let valid = Fixture.workout(1)
         let broken = WorkoutRecord(
             id: Fixture.uuid(2), activity: .running, location: .outdoor,
@@ -77,7 +77,8 @@ final class WorkoutAnalysisTests: XCTestCase {
         )
         let set = build([valid, broken])
         let record = try XCTUnwrap(set.records.first { $0.id == broken.id })
-        XCTAssertTrue(record.eligibility.canDisplay)
+        XCTAssertEqual(set.records.count, 2, "分析集合仍保留该记录，便于追溯")
+        XCTAssertFalse(record.eligibility.canDisplay, "路线图 1.3.1-D：时间区间合法才可展示")
         XCTAssertFalse(record.eligibility.canCountInStatistics)
         XCTAssertFalse(record.eligibility.canCompareProgress)
         XCTAssertTrue(record.eligibility.blockers.contains(.invalidTimeRange))

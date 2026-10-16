@@ -26,6 +26,8 @@ public struct WorkoutKey: Hashable, Codable, Sendable {
     public let activity: WorkoutActivityKind
     public let duration: TimeInterval
     public let sourceKey: String
+    /// 外部标识 / 同步标识（路线图 1.3.2 指纹的一部分）；写入方未提供时为空。
+    public let externalKeys: [String]?
 
     public init(workout: WorkoutRecord) {
         workoutID = workout.id
@@ -33,14 +35,20 @@ public struct WorkoutKey: Hashable, Codable, Sendable {
         activity = workout.activity
         duration = workout.duration
         sourceKey = workout.source.sourceKey
+        let keys = workout.source.duplicateKeys
+        externalKeys = keys.isEmpty ? nil : keys
     }
 
-    /// 指纹匹配：活动类型与来源相同，开始时刻与时长各相差不超过 `tolerance` 秒。
+    /// 指纹匹配：活动类型与来源相同，开始时刻与时长各相差不超过 `tolerance` 秒；
+    /// 双方都带外部标识时还必须有相同的标识（标识不同说明是另一次运动）。
     public func fingerprintMatches(_ workout: WorkoutRecord, tolerance: TimeInterval = 2) -> Bool {
-        activity == workout.activity
-            && sourceKey == workout.source.sourceKey
-            && abs(startDate.timeIntervalSince(workout.startDate)) <= tolerance
-            && abs(duration - workout.duration) <= tolerance
+        guard activity == workout.activity,
+              sourceKey == workout.source.sourceKey,
+              abs(startDate.timeIntervalSince(workout.startDate)) <= tolerance,
+              abs(duration - workout.duration) <= tolerance else { return false }
+        let candidateKeys = workout.source.duplicateKeys
+        guard let externalKeys, !externalKeys.isEmpty, !candidateKeys.isEmpty else { return true }
+        return !Set(externalKeys).isDisjoint(with: candidateKeys)
     }
 }
 

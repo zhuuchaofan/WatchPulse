@@ -23,10 +23,10 @@ public struct WorkoutDeduplicationConfiguration: Hashable, Sendable {
     public var confirmedTimeTolerance: TimeInterval = 2
     /// 确认重复要求的距离相对容差。
     public var confirmedDistanceTolerance: Double = 0.02
-    /// 疑似重复：起止时间各自允许的最大偏差（秒）。
-    public var suspectedBoundaryTolerance: TimeInterval = 300
-    /// 疑似重复：时间交集 ÷ 并集的最小值，避免“短运动嵌在长运动里”被误判。
-    public var suspectedMinimumOverlapRatio: Double = 0.7
+    /// 疑似重复：起止时间各自允许的最大偏差（秒）。路线图 1.3.1-A：开始、结束各相差 ≤ 120 秒。
+    public var suspectedBoundaryTolerance: TimeInterval = 120
+    /// 疑似重复：时间交集 ÷ 并集的最小值（≥ 80%），避免“短运动嵌在长运动里”被误判。
+    public var suspectedMinimumOverlapRatio: Double = 0.8
     /// 疑似重复：距离相对容差；超过则视为不同的运动。
     public var suspectedDistanceTolerance: Double = 0.10
 

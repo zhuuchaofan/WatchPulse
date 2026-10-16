@@ -97,6 +97,33 @@ final class PerceivedEffortTests: XCTestCase {
         XCTAssertEqual(result.records[0].linkState, .orphaned(since: now))
     }
 
+    func testFingerprintRequiresMatchingExternalIdentifierWhenBothHaveOne() {
+        let old = Fixture.workout(1, source: externallyIdentified("EXT-A"))
+        let otherWorkout = Fixture.workout(7, source: externallyIdentified("EXT-B"))
+        let sameWorkout = Fixture.workout(8, source: externallyIdentified("EXT-A"))
+        XCTAssertFalse(WorkoutKey(workout: old).fingerprintMatches(otherWorkout), "外部标识不同说明是另一次运动")
+        XCTAssertTrue(WorkoutKey(workout: old).fingerprintMatches(sameWorkout))
+        XCTAssertTrue(WorkoutKey(workout: old).fingerprintMatches(Fixture.workout(9)), "一方没有外部标识时只按其余指纹判断")
+    }
+
+    func testKeyWithoutExternalIdentifierDecodesFromEarlierEncoding() throws {
+        // 早期编码没有 externalKeys 字段，仍应可以解码。
+        let key = WorkoutKey(workout: Fixture.workout(1))
+        var object = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(key)) as? [String: Any])
+        object.removeValue(forKey: "externalKeys")
+        let decoded = try JSONDecoder().decode(WorkoutKey.self, from: JSONSerialization.data(withJSONObject: object))
+        XCTAssertNil(decoded.externalKeys)
+        XCTAssertTrue(decoded.fingerprintMatches(Fixture.workout(2)))
+    }
+
+    private func externallyIdentified(_ identifier: String) -> WorkoutSourceInfo {
+        WorkoutSourceInfo(
+            name: Fixture.watch.name, bundleIdentifier: Fixture.watch.bundleIdentifier,
+            deviceName: Fixture.watch.deviceName, deviceModel: Fixture.watch.deviceModel,
+            deviceHardwareVersion: Fixture.watch.deviceHardwareVersion, externalIdentifier: identifier
+        )
+    }
+
     func testOneWorkoutIsNeverClaimedByTwoRecords() {
         let a = Fixture.workout(1)
         let b = Fixture.workout(2) // 同指纹

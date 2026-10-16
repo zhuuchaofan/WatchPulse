@@ -56,6 +56,24 @@ final class WorkoutDeduplicationTests: XCTestCase {
         }
     }
 
+    func testBoundaryToleranceIs120Seconds() {
+        // 路线图 1.3.1-A：开始、结束各相差 ≤ 120 秒才可能疑似重复。
+        let a = Fixture.workout(1)
+        let within = Fixture.workout(2, start: 120, source: Fixture.thirdParty)
+        let beyond = Fixture.workout(3, start: 150, source: Fixture.thirdParty)
+        guard case .suspected = WorkoutDuplicateDetector.relation(a, within) else {
+            return XCTFail("起止各差 120 秒应为疑似重复")
+        }
+        XCTAssertEqual(WorkoutDuplicateDetector.relation(a, beyond), .independent)
+    }
+
+    func testShortWorkoutsWithLowOverlapAreIndependent() {
+        // 两段 5 分钟的运动起止各差 90 秒：交集 ÷ 并集 = 210/390 < 80%。
+        let a = Fixture.workout(1, minutes: 5, distanceKm: nil)
+        let b = Fixture.workout(2, start: 90, minutes: 5, distanceKm: nil, source: Fixture.thirdParty)
+        XCTAssertEqual(WorkoutDuplicateDetector.relation(a, b), .independent)
+    }
+
     func testSuspectedWhenDistanceMissingOnOneSide() {
         let a = Fixture.workout(1)
         let b = Fixture.workout(2, start: 30, distanceKm: nil, source: Fixture.thirdParty)
@@ -164,10 +182,10 @@ final class WorkoutDeduplicationTests: XCTestCase {
     }
 
     func testSuspicionIsNotTransitive() {
-        // A≈B（B 在 A 之后 4 分钟结束），B≈C，但 A 与 C 相差过大。
+        // A≈B（起止各差 100 秒），B≈C，但 A 与 C 相差 200 秒，超过 120 秒。
         let a = Fixture.workout(1, start: 0, minutes: 60, source: sourced(Fixture.watch, external: nil))
-        let b = Fixture.workout(2, start: 240, minutes: 60, source: Fixture.thirdParty)
-        let c = Fixture.workout(3, start: 480, minutes: 60, source: sourced(Fixture.watch, external: nil, bundle: "com.other.app", name: "Other"))
+        let b = Fixture.workout(2, start: 100, minutes: 60, source: Fixture.thirdParty)
+        let c = Fixture.workout(3, start: 200, minutes: 60, source: sourced(Fixture.watch, external: nil, bundle: "com.other.app", name: "Other"))
         let result = WorkoutDeduplicator.deduplicate([a, b, c])
         XCTAssertEqual(result.entries.count, 3)
         // 排序最前的 a 被计入；b 与 a 疑似而被排除；c 只与 b 疑似，b 已被排除，c 不被连带排除。
