@@ -70,13 +70,12 @@ public final class WorkoutFeedbackViewModel {
             }
             let feedback = WorkoutFeedbackCalculator.feedback(for: target, among: set.records, configuration: configuration)
             // 读取的原始条数（含被合并的确认重复记录）达到上限时，更早的运动可能没有读到。
-            let fetched = set.records.count + set.records.reduce(0) { $0 + $1.mergedWorkoutIDs.count }
             let oldest = set.records.map(\.workout.startDate).min()
             let windowStart = target.workout.startDate.addingTimeInterval(-lookback)
             state = .loaded(WorkoutFeedbackResult(
                 feedback: feedback,
                 isMergedDuplicate: target.id != id,
-                mayMissOlderWorkouts: fetched >= limit && (oldest.map { $0 > windowStart } ?? false)
+                mayMissOlderWorkouts: set.rawWorkoutCount >= limit && (oldest.map { $0 > windowStart } ?? false)
             ))
         case .failure(let error):
             state = .from(error)

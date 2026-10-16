@@ -102,6 +102,11 @@ public struct WorkoutAnalysisSet: Hashable, Sendable {
     public var suspectedExcludedFromTotals: Int {
         records.filter { $0.eligibility.blockers.contains(.excludedAsSuspectedDuplicate) }.count
     }
+
+    /// 构建时读取的原始运动条数（含被合并的确认重复记录），用于判断是否达到读取上限。
+    public var rawWorkoutCount: Int {
+        records.reduce(0) { $0 + 1 + $1.mergedWorkoutIDs.count }
+    }
 }
 
 public enum WorkoutAnalysisBuilder {
