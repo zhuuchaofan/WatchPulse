@@ -165,10 +165,14 @@ final class WatchPulseUITests: XCTestCase {
         element(app, "goals.add").tap()
         let target = element(app, "goalEditor.target")
         XCTAssertTrue(target.waitForExistence(timeout: 10))
-        XCTAssertFalse(element(app, "goalEditor.save").isEnabled, "未输入数值时不能保存")
+        // 工具栏按钮要按 Button 查找：按标识匹配到的第一个元素可能是其外层容器，`isEnabled` 恒为 true。
+        let save = app.buttons["goalEditor.save"]
+        XCTAssertTrue(save.waitForExistence(timeout: 10))
+        XCTAssertFalse(save.isEnabled, "未输入数值时不能保存")
         target.tap()
         target.typeText("3")
-        element(app, "goalEditor.save").tap()
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
 
         XCTAssertTrue(app.staticTexts["每周运动 3 次"].waitForExistence(timeout: 10))
         let progress = element(app, "goals.progress")
