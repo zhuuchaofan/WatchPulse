@@ -87,6 +87,15 @@ extension View {
         modifier(CardBackground(padding: padding))
     }
 
+    /// 只加卡片底色与细边（调用方自己控制内边距与宽度）。
+    func cardBackground() -> some View {
+        background(Theme.card, in: RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.cardRadius, style: .continuous)
+                    .strokeBorder(Theme.line, lineWidth: 1)
+            )
+    }
+
     func tile() -> some View {
         modifier(TileBackground())
     }

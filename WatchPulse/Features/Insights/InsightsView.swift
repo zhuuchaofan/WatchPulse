@@ -35,7 +35,7 @@ struct InsightsView: View {
                 }
                 .padding()
             }
-            .background(Color(.systemGroupedBackground))
+            .background(Theme.background.ignoresSafeArea())
             .refreshable { await loadAll() }
             .navigationTitle("进步")
             .navigationDestination(for: HealthMetricKind.self) { kind in
@@ -70,16 +70,16 @@ struct InsightsView: View {
                     .font(.headline)
                 Text("这里会用到静息心率、心率变异性和睡眠记录，只在这台 iPhone 上计算，不会上传。")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                 Button("允许读取") {
                     Task { await viewModel.requestAuthorizationAndLoad() }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.themePrimary)
                 .accessibilityIdentifier("insights.authorize")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            .cardBackground()
         default:
             LoadStateView(
                 state: viewModel.state,
@@ -141,7 +141,7 @@ private struct ProgressSection: View {
                 systemImage: "exclamationmark.triangle"
             ) {
                 Button("重试") { Task { await viewModel.load() } }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.themePrimary)
             }
             .accessibilityIdentifier("progress.failed")
         }
@@ -167,13 +167,13 @@ private struct ProgressMessageCard<Actions: View>: View {
                 .font(.headline)
             Text(message)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
             actions
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground()
         .accessibilityElement(children: .contain)
     }
 }
@@ -186,21 +186,21 @@ private struct ProgressTrendCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("最近 4 周")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.sage)
             Text(summary.headline)
                 .font(.title2.bold())
                 .accessibilityIdentifier("progress.headline")
             Text(summary.detail)
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
 
             if summary.hasAnyWorkout {
                 Chart(summary.weeks) { week in
                     BarMark(x: .value("周", week.label), y: .value("次数", week.workoutCount))
-                        .foregroundStyle(week.isCurrentWeek ? Color.green : Color.green.opacity(0.45))
+                        .foregroundStyle(week.isCurrentWeek ? Theme.apricot : Theme.sage)
                         .annotation(position: .top) {
-                            Text("\(week.workoutCount)").font(.caption2).foregroundStyle(.secondary)
+                            Text("\(week.workoutCount)").font(.caption2).foregroundStyle(Theme.secondaryText)
                         }
                 }
                 .chartYScale(domain: 0...((summary.weeks.map(\.workoutCount).max() ?? 1) + 1))
@@ -213,23 +213,23 @@ private struct ProgressTrendCard: View {
                 if let week = summary.currentWeek {
                     Text("本周 \(week.workoutCount) 次 · 共 \(MetricFormatting.duration(seconds: week.totalDuration))，本周还没结束")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
             }
             if summary.suspectedExcludedCount > 0 {
                 Text("含 \(summary.suspectedExcludedCount) 条疑似重复的记录，已只计一次。")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
             if summary.mayBeIncomplete {
                 Text("运动记录较多，只读取了最近的一部分，较早的周可能偏低。")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("progress.trend")
     }
@@ -245,7 +245,7 @@ private struct CompletionCard: View {
             HStack {
                 Text("训练完成情况")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.sage)
                 Spacer()
                 if !viewModel.goals.isEmpty {
                     Button("管理目标", action: onOpenGoals)
@@ -257,9 +257,9 @@ private struct CompletionCard: View {
                     .font(.headline)
                 Text("设一个每周想完成的运动次数、时长或距离，就能在这里看到每周的完成情况。")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                 Button("设定目标", action: onOpenGoals)
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.themePrimary)
                     .accessibilityIdentifier("progress.setGoal")
             } else {
                 ForEach(viewModel.items) { item in
@@ -269,7 +269,7 @@ private struct CompletionCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("progress.completion")
     }
@@ -301,25 +301,25 @@ private struct GoalCompletionRow: View {
                 Text("本周 \(metric.format(current.value)) / \(metric.format(current.target))")
                     .font(.subheadline)
                     .monospacedDigit()
-                ProgressView(value: min(current.fraction, 1)).tint(.green)
+                ProgressView(value: min(current.fraction, 1)).tint(Theme.sage)
                 // 旧 → 新：之前几周（完整周）+ 本周（未结束）。目标设定前的整周不计入达成统计。
                 let weeks = Array(previous.reversed()) + [current]
                 let counted = weeks.filter(\.countsTowardCompletion)
                 HStack(spacing: 6) {
                     ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
                         Image(systemName: Self.symbol(for: week.outcome))
-                            .foregroundStyle(week.outcome == .achieved ? Color.green : Color.secondary)
+                            .foregroundStyle(week.outcome == .achieved ? Theme.sage : Theme.secondaryText)
                     }
                     Text(Self.completionText(counted: counted, hasWeeksBeforeGoal: counted.count < weeks.count))
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("progress.completion.summary")
             case .paused?:
-                Text("已暂停，不计算进度").font(.footnote).foregroundStyle(.secondary)
+                Text("已暂停，不计算进度").font(.footnote).foregroundStyle(Theme.secondaryText)
             case nil:
-                Text("进度暂时无法显示，可以下拉刷新重试。").font(.footnote).foregroundStyle(.secondary)
+                Text("进度暂时无法显示，可以下拉刷新重试。").font(.footnote).foregroundStyle(Theme.secondaryText)
             }
         }
     }
@@ -334,27 +334,27 @@ private struct ComparableCard: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("和过去的自己比")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.sage)
             if let workout {
                 HStack(spacing: 8) {
-                    Image(systemName: workout.activity.systemImage).foregroundStyle(.green)
+                    Image(systemName: workout.activity.systemImage).foregroundStyle(Theme.sage)
                     Text("最近一次：\(workout.activity.title)")
                         .font(.headline)
                     Spacer()
                     Text(workout.startDate.formatted(.dateTime.month().day()))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
                 // 最近一次运动变化时重新读取；与运动页、运动详情的反馈同一来源。
                 LatestComparison(workout: workout, service: service)
                     .id(workout.id)
             } else {
-                Text("还没有运动可以比较。").font(.footnote).foregroundStyle(.secondary)
+                Text("还没有运动可以比较。").font(.footnote).foregroundStyle(Theme.secondaryText)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("progress.comparable")
     }
@@ -391,26 +391,26 @@ private struct LatestComparison: View {
                         .accessibilityIdentifier("progress.comparable.line")
                 }
                 if let line = WorkoutFeedbackPresentation.exclusionLine(feedback) {
-                    Text(line).font(.caption).foregroundStyle(.secondary)
+                    Text(line).font(.caption).foregroundStyle(Theme.secondaryText)
                 }
                 Text(WorkoutFeedbackPresentation.disclaimer)
                     .font(.caption2)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         case .idle, .loading:
             HStack {
                 ProgressView()
-                Text("正在和过去的运动比较…").font(.footnote).foregroundStyle(.secondary)
+                Text("正在和过去的运动比较…").font(.footnote).foregroundStyle(Theme.secondaryText)
             }
         case .noData:
             Text("这次运动不在已读取的范围内，暂时无法和过去比较。")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
         case .failed:
             VStack(alignment: .leading, spacing: 6) {
-                Text("暂时没能和过去的运动比较。").font(.footnote).foregroundStyle(.secondary)
+                Text("暂时没能和过去的运动比较。").font(.footnote).foregroundStyle(Theme.secondaryText)
                 Button("重试") { Task { await viewModel.load() } }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.themeSecondary)
             }
         case .healthDataUnavailable, .needsAuthorization:
             EmptyView()
@@ -431,7 +431,7 @@ private struct InsightsContent: View {
                     .font(.headline)
                 Text(BaselineComparison.baselineExplanation)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                     .accessibilityIdentifier("insights.baselineExplanation")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -462,32 +462,32 @@ private struct BaselineCard: View {
                 HStack {
                     Label(kind.title, systemImage: kind.systemImage)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(kind == .restingHeartRate ? .red : .pink)
+                        .foregroundStyle(Theme.sage)
                     Spacer()
                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                 }
                 if let explanation = kind.explanation {
                     Text(explanation)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 switch state {
                 case .value(let comparison):
                     values(comparison)
                 case .noData:
-                    Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
-                    Text("没有读到记录。可能还没有数据，也可能还没有允许读取。").font(.caption).foregroundStyle(.secondary)
+                    Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(Theme.secondaryText)
+                    Text("没有读到记录。可能还没有数据，也可能还没有允许读取。").font(.caption).foregroundStyle(Theme.secondaryText)
                 case .failed(let error):
                     Label("暂时读不到", systemImage: "exclamationmark.triangle")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.orange)
-                    Text(error.localizedDescription).font(.caption).foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.notice)
+                    Text(error.localizedDescription).font(.caption).foregroundStyle(Theme.secondaryText)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            .cardBackground()
             .accessibilityElement(children: .combine)
         }
         .buttonStyle(.plain)
@@ -501,7 +501,7 @@ private struct BaselineCard: View {
             Spacer(minLength: 0)
             if let direction = comparison.direction {
                 Image(systemName: icon(direction))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                     .accessibilityHidden(true)
             }
         }
@@ -510,23 +510,23 @@ private struct BaselineCard: View {
         // 默认只给通俗结论；中位数、样本天数在“数据依据与来源”中展开查看。
         Text(comparison.plainText)
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.secondaryText)
             .fixedSize(horizontal: false, vertical: true)
         if comparison.excludedDays > 0 {
             Text("有 \(comparison.excludedDays) 天的数值明显异常（可能是记录错误），没有计入。")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
         }
     }
 
     private func column(_ title: String, _ value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
+            Text(title).font(.caption).foregroundStyle(Theme.secondaryText)
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(value.map(kind.formattedValue) ?? "--")
                     .font(.title2.weight(.bold))
                     .monospacedDigit()
-                Text(kind.unitLabel).font(.caption).foregroundStyle(.secondary)
+                Text(kind.unitLabel).font(.caption).foregroundStyle(Theme.secondaryText)
             }
         }
     }
@@ -551,7 +551,7 @@ private struct SleepInsightCard: View {
                 HStack {
                     Label("睡眠", systemImage: "bed.double.fill")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.indigo)
+                        .foregroundStyle(Theme.sage)
                     Spacer()
                     Image(systemName: "chevron.right").font(.caption).foregroundStyle(.tertiary)
                 }
@@ -559,18 +559,18 @@ private struct SleepInsightCard: View {
                 case .value(let insight):
                     content(insight)
                 case .noData:
-                    Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
-                    Text("近两周没有读到睡眠记录。可能还没有数据，也可能还没有允许读取。").font(.caption).foregroundStyle(.secondary)
+                    Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(Theme.secondaryText)
+                    Text("近两周没有读到睡眠记录。可能还没有数据，也可能还没有允许读取。").font(.caption).foregroundStyle(Theme.secondaryText)
                 case .failed(let error):
                     Label("暂时读不到", systemImage: "exclamationmark.triangle")
                         .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.orange)
-                    Text(error.localizedDescription).font(.caption).foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.notice)
+                    Text(error.localizedDescription).font(.caption).foregroundStyle(Theme.secondaryText)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            .cardBackground()
             .accessibilityElement(children: .combine)
         }
         .buttonStyle(.plain)
@@ -585,25 +585,25 @@ private struct SleepInsightCard: View {
                     .monospacedDigit()
                 Text(SleepAggregator.recencyLabel(for: night, today: .now))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
             if insight.isInBedOnly {
                 Label("只有卧床记录，无法推断实际睡着时长", systemImage: "info.circle")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.notice)
             } else if insight.stages.isEmpty || !insight.hasStages {
                 Text("这一晚没有睡眠分期（例如来自不记录分期的设备或 App）。")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
             if insight.hasStages {
                 StageBar(stages: insight.stages)
                 Text(insight.stages.map { "\($0.stage.insightTitle) \(MetricFormatting.duration(seconds: $0.duration))" }.joined(separator: "  "))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
             if let source = night.primarySourceName {
-                Text("分期来源：\(source)").font(.caption2).foregroundStyle(.secondary)
+                Text("分期来源：\(source)").font(.caption2).foregroundStyle(Theme.secondaryText)
             }
         }
         Divider()
@@ -614,11 +614,11 @@ private struct SleepInsightCard: View {
         } else {
             Text("作息规律需要近两周至少 \(SleepInsight.minimumNightsForRegularity) 晚记录（当前 \(insight.nightCount) 晚）。")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
         }
         Text("睡眠分期比例因人而异，这里只做记录，不作为健康判断。")
             .font(.caption2)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.secondaryText)
     }
 }
 
@@ -641,12 +641,12 @@ private struct StageBar: View {
 
     private func color(_ stage: SleepStage) -> Color {
         switch stage {
-        case .deep: return .indigo
-        case .rem: return .cyan
-        case .core: return .blue
-        case .asleepUnspecified: return .teal
-        case .awake: return .orange
-        case .inBed: return .gray
+        case .deep: return Theme.sageText
+        case .rem: return Theme.sage.opacity(0.45)
+        case .core: return Theme.sage
+        case .asleepUnspecified: return Theme.sage.opacity(0.7)
+        case .awake: return Theme.apricot
+        case .inBed: return Theme.line
         }
     }
 }
@@ -670,15 +670,15 @@ private struct InsightTrendCharts: View {
                 .frame(maxWidth: 160)
                 .accessibilityIdentifier("insights.trendRange")
             }
-            chart(.restingHeartRate, color: .red)
-            chart(.heartRateVariability, color: .pink)
-            chart(.sleep, color: .indigo)
+            chart(.restingHeartRate, color: Theme.sage)
+            chart(.heartRateVariability, color: Theme.sage)
+            chart(.sleep, color: Theme.sage)
             Text("没有数据的日子留空，不当作 0。")
                 .font(.caption2)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground()
     }
 
     @ViewBuilder
@@ -688,9 +688,9 @@ private struct InsightTrendCharts: View {
         VStack(alignment: .leading, spacing: 4) {
             Text("\(kind.title)（\(kind.unitLabel)） · \(valid.count)/\(days.count) 天有数据")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
             if valid.isEmpty {
-                Text("暂无数据").font(.caption).foregroundStyle(.secondary)
+                Text("暂无数据").font(.caption).foregroundStyle(Theme.secondaryText)
                     .frame(maxWidth: .infinity, minHeight: 60)
             } else {
                 Chart(valid) { day in
@@ -726,16 +726,16 @@ private struct DataBasisSection: View {
                 Text("更新于 \(snapshot.generatedAt.formatted(date: .omitted, time: .shortened))")
             }
             .font(.caption)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.secondaryText)
             .padding(.top, 4)
         }
         .accessibilityIdentifier("insights.basis")
         .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .cardBackground()
 
         Text(BaselineComparison.disclaimer)
             .font(.footnote)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Theme.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier("insights.disclaimer")
     }
