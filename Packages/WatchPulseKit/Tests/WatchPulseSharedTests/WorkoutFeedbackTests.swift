@@ -181,6 +181,49 @@ final class WorkoutFeedbackTests: XCTestCase {
         XCTAssertTrue(withoutZones.zones.rows.isEmpty)
     }
 
+    func testZoneSectionIsHiddenOnlyWhenThereAreNoPersonalZones() throws {
+        // 没有个人区间：区间一项整体隐藏，其他指标照常比较，也不生成默认区间。
+        let withoutZones = feedback(target: 10, in: analyse(standardRides()))
+        XCTAssertFalse(WorkoutFeedbackPresentation.showsZoneSection(withoutZones.zones))
+        XCTAssertNil(withoutZones.zones.basis)
+        guard case .compared = withoutZones.metric(.distance)?.outcome else { return XCTFail("其他指标不受影响") }
+
+        // 有区间：照常显示，即使样本不足或心率不可比也要显示原因。
+        let settings = try HeartRateZoneSettings.percentOfMaximum(190)
+        let withZones = feedback(target: 10, in: analyse(standardRides(), bpm: [10: 160], zones: settings))
+        XCTAssertTrue(WorkoutFeedbackPresentation.showsZoneSection(withZones.zones))
+        let few = Array(standardRides().prefix(3))
+        let insufficient = feedback(target: 10, in: analyse(few, bpm: [10: 160], zones: settings))
+        XCTAssertTrue(WorkoutFeedbackPresentation.showsZoneSection(insufficient.zones))
+        let noData = WorkoutZoneFeedback(basis: nil, rows: [], outcome: .unavailable(.noData))
+        XCTAssertTrue(WorkoutFeedbackPresentation.showsZoneSection(noData))
+    }
+
+    func testHeadlineDoesNotClaimSameDeviceWhenDevicesAreUnknown() {
+        // 双方都没有设备信息、来源相同：可以比较，但不能说“由同一设备记录”，设备不确定性单独提示。
+        let source = WorkoutSourceInfo(name: "第三方", bundleIdentifier: "com.example.fit")
+        let rides = [Fixture.workout(10, start: 10 * day, minutes: 66, distanceKm: 22, source: source)]
+            + (1...4).map { Fixture.workout($0, start: Double($0) * day, source: source) }
+        let result = feedback(target: 10, in: analyse(rides))
+        XCTAssertEqual(result.status, .compared)
+        let headline = WorkoutFeedbackPresentation.headline(result)
+        XCTAssertFalse(headline.contains("同一设备"), headline)
+        XCTAssertTrue(headline.contains("记录来源相同"), headline)
+        XCTAssertTrue(WorkoutFeedbackPresentation.caveatLines(result).contains { $0.contains("没有记录设备信息") })
+    }
+
+    func testNonComparableReasonsDoNotBlameMissingData() {
+        // 不能比较可能因为疑似重复、未与运动直接关联等，不能一概说成“数据不完整”。
+        let displayOnly = WorkoutFeedbackUnavailableReason.heartRateNotComparable(.displayOnly).message
+        XCTAssertTrue(displayOnly.contains("不符合比较条件"), displayOnly)
+        XCTAssertTrue(displayOnly.contains("数据可信度"), "指向能看到真实原因的地方")
+        XCTAssertTrue(WorkoutFeedbackUnavailableReason.heartRateNotComparable(.unavailable).message.contains("没有可用的心率"))
+        XCTAssertEqual(WorkoutComparabilityReason.notEligible.message, "其中一次记录不符合比较条件")
+        for text in [displayOnly, WorkoutFeedbackUnavailableReason.heartRateNotComparable(.summary).message, WorkoutComparabilityReason.notEligible.message] {
+            XCTAssertFalse(text.contains("不完整"), text)
+        }
+    }
+
     func testMergedDuplicateResolvesToPrimaryRecord() {
         let phone = WorkoutSourceInfo(
             name: "WatchPulse", bundleIdentifier: "com.example.watchpulse",

@@ -17,7 +17,7 @@ public enum WorkoutComparabilityReason: String, Hashable, Codable, Sendable {
         switch self {
         case .differentActivity: return "运动类型不同"
         case .differentLocation: return "室内 / 室外不同"
-        case .notEligible: return "其中一次运动的数据不完整"
+        case .notEligible: return "其中一次记录不符合比较条件"
         case .differentSource: return "数据来源不同，记录方式可能不一致"
         case .differentDevice: return "记录设备不同"
         case .deviceUnknown: return "没有记录设备信息，无法确认是否可比"

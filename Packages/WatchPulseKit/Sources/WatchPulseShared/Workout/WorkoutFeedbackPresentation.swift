@@ -10,7 +10,7 @@ public enum WorkoutFeedbackPresentation {
         let days = Int((feedback.configuration.lookback / 86_400).rounded())
         switch feedback.status {
         case .compared:
-            return "与你之前 \(days) 天内可比的\(kind)比较：由同一设备记录、距离或时长相近，每项取最近几次（最多 \(feedback.configuration.maximumSamples) 次）。"
+            return "与你之前 \(days) 天内可比的\(kind)比较：记录来源相同、距离或时长相近，每项取最近几次（最多 \(feedback.configuration.maximumSamples) 次）。"
         case .insufficientSamples(let found, let required):
             return "之前 \(days) 天内可比的\(kind)有 \(found) 次，至少需要 \(required) 次才能比较。下面先只显示本次数据；之后多记录几次相似的运动，就会出现对比。"
         case .notEligible(let blockers):
@@ -90,6 +90,13 @@ public enum WorkoutFeedbackPresentation {
             case .deviceNotRecorded: return "部分运动没有记录设备信息，如果中途换过手表，这里可能发现不了。"
             }
         }
+    }
+
+    /// 是否显示区间分布这一项。没有个人心率区间时用户在当前设备上无法补救，整项隐藏（不生成默认区间）；
+    /// 有区间但样本不足、心率不可比等其他情况照常显示原因。
+    public static func showsZoneSection(_ zones: WorkoutZoneFeedback) -> Bool {
+        if zones.rows.isEmpty, case .unavailable(.noPersonalZones) = zones.outcome { return false }
+        return true
     }
 
     public static func zoneTitle(_ zone: Int) -> String {
