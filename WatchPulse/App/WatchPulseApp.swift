@@ -24,6 +24,16 @@ struct WatchPulseApp: App {
         ))
     }
 
+    /// 仅演示模式：`-WatchPulseAppearance dark|light` 固定外观，供 CI 截图覆盖深色模式。真实模式始终跟随系统。
+    private static var demoColorScheme: ColorScheme? {
+        guard AppEnvironment.shared.isDemoMode else { return nil }
+        switch UserDefaults.standard.string(forKey: "WatchPulseAppearance") {
+        case "dark": return .dark
+        case "light": return .light
+        default: return nil
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView(
@@ -33,6 +43,7 @@ struct WatchPulseApp: App {
                 goalsViewModel: goalsViewModel,
                 progressViewModel: progressViewModel
             )
+            .preferredColorScheme(Self.demoColorScheme)
         }
     }
 }
