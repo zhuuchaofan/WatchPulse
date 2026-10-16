@@ -34,7 +34,8 @@ public final class WorkoutGoalsViewModel {
     public init(
         store: any WorkoutGoalStore,
         service: any WorkoutHistoryService,
-        calendar: Calendar = .current,
+        // ViewModel 随 App 常驻：用自动更新的日历，用户改时区或“每周第一天”后不需重启即按新设置划分周。
+        calendar: Calendar = .autoupdatingCurrent,
         fetchLimit: Int = 200,
         now: @escaping @MainActor () -> Date = { Date() }
     ) {
