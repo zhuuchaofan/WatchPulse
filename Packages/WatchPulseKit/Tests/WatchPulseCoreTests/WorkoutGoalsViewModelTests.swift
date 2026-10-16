@@ -112,6 +112,30 @@ final class WorkoutGoalsViewModelTests: XCTestCase {
         XCTAssertTrue(previous.allSatisfy(\.mayBeIncomplete), "更早的周可能缺记录")
     }
 
+    func testFetchLimitCountsMergedDuplicates() async {
+        // 两条带相同外部标识的记录合并为一条：分析条目只有 2 条，但读取的原始记录已达上限 3。
+        func tagged(_ record: WorkoutRecord, bundle: String) -> WorkoutRecord {
+            WorkoutRecord(
+                id: record.id, activity: record.activity, location: record.location,
+                startDate: record.startDate, endDate: record.endDate, duration: record.duration,
+                distanceMeters: record.distanceMeters, sourceName: record.sourceName,
+                sourceInfo: WorkoutSourceInfo(name: record.sourceName, bundleIdentifier: bundle, externalIdentifier: "ride-1")
+            )
+        }
+        let workouts = [
+            tagged(workout(1, hoursAgo: 1), bundle: "com.example.a"),
+            tagged(workout(2, hoursAgo: 1), bundle: "com.example.b"),
+            workout(3, hoursAgo: 100),
+        ]
+        let viewModel = makeViewModel(service: MockWorkoutHistoryService(workouts: .value(workouts)), fetchLimit: 3)
+        await viewModel.load()
+        XCTAssertEqual(viewModel.records.value?.records.count, 2)
+        viewModel.add(metric: .workoutCount, activity: nil, input: 2)
+        guard case .active(let current, let previous)? = viewModel.items[0].progress else { return XCTFail() }
+        XCTAssertEqual(current.value, 1, "确认重复只计一次")
+        XCTAssertTrue(previous.allSatisfy(\.mayBeIncomplete), "读取已达上限，更早的周可能缺记录")
+    }
+
     func testReloadPicksUpNewWorkoutsWithoutClearingProgress() async {
         let service = MockWorkoutHistoryService(workouts: .value([workout(1, hoursAgo: 24)]))
         let viewModel = makeViewModel(service: service)

@@ -79,7 +79,8 @@ public final class WorkoutGoalsViewModel {
         let limit = fetchLimit
         switch await capture({ [loader] in try await loader.load(limit: limit) }) {
         case .success(let set):
-            coverageStart = set.records.count >= limit ? set.records.map(\.workout.startDate).min() : nil
+            // 按读取的原始条数判断（确认重复合并后条目会变少，不能用 `records.count`）。
+            coverageStart = set.rawWorkoutCount >= limit ? set.records.map(\.workout.startDate).min() : nil
             // 没有运动记录也要计算进度（本周 0），因此空集合同样视为已加载。
             records = .loaded(set)
         case .failure(let error):
