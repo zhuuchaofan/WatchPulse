@@ -72,7 +72,7 @@ struct OpenSettingsButton: View {
                 openURL(url)
             }
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.themeSecondary)
         .accessibilityIdentifier("openSettings")
     }
 }
