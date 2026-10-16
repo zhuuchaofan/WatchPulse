@@ -77,12 +77,16 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
-    /// 大字号下按钮可能在屏幕外（懒加载列表），先滑动到可点击。
+    /// 大字号下按钮可能在屏幕外（懒加载列表），上下滑动直到可点击。
     @MainActor
     private func reveal(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
         _ = element.waitForExistence(timeout: 5)
         for _ in 0..<8 where !(element.exists && element.isHittable) {
             app.swipeUp()
+        }
+        // 目标可能在上方（例如点开始后出现的运动中入口），再往回滑。
+        for _ in 0..<10 where !(element.exists && element.isHittable) {
+            app.swipeDown()
         }
         return element.exists && element.isHittable
     }
