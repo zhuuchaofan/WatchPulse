@@ -35,7 +35,7 @@ struct WorkoutGoalsView: View {
                             Text("设定每周的运动次数、总时长或距离。目标数值完全由你决定。")
                         } actions: {
                             Button("添加目标") { editor = .new }
-                                .buttonStyle(.borderedProminent)
+                                .buttonStyle(.themePrimary)
                         }
                         .accessibilityIdentifier("goals.empty")
                     }
@@ -55,7 +55,7 @@ struct WorkoutGoalsView: View {
                                 Button(item.goal.isPaused ? "恢复" : "暂停") {
                                     viewModel.setPaused(!item.goal.isPaused, for: item.goal)
                                 }
-                                .tint(.orange)
+                                .tint(Theme.apricotText)
                             }
                         }
                     } header: {
@@ -68,7 +68,7 @@ struct WorkoutGoalsView: View {
                     DisclosureGroup("进度怎么计算") {
                         Text("进度来自「健康」中的全部运动记录，包括 Apple Watch「体能训练」和其他 App。疑似重复的记录只计一次；没有距离的运动不计入距离。每周从日历设置的第一天开始。")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                     .font(.footnote)
                     .accessibilityIdentifier("goals.howCalculated")
@@ -76,6 +76,7 @@ struct WorkoutGoalsView: View {
                     Text("目标只保存在这台 iPhone 上。删除 App 或换手机且没有恢复备份时，目标会丢失。")
                 }
             }
+            .screenBackground()
             .navigationTitle("目标")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
@@ -117,7 +118,7 @@ struct WorkoutGoalsView: View {
                     // 不拼接错误原文：系统错误信息只用于调试。
                     Text("暂时没能读取运动记录，本周进度无法更新。目标设置不受影响，可以点“重试”。").font(.footnote)
                     Button("重试") { Task { await viewModel.load() } }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.themeSecondary)
                 }
                 .accessibilityIdentifier("goals.recordsFailed")
             }
@@ -152,14 +153,14 @@ private struct GoalRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Image(systemName: item.goal.activity?.systemImage ?? "figure.mixed.cardio")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.sage)
                 Text(item.goal.title)
                     .font(.headline)
                 Spacer()
                 if item.goal.isPaused {
                     Text("已暂停")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
             }
 
@@ -167,31 +168,32 @@ private struct GoalRow: View {
             case nil:
                 Text("本周进度：--")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             case .paused?:
                 Text("已暂停，不计算进度")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             case .active(let current, let previous)?:
                 Text("本周 \(metric.format(current.value)) / \(metric.format(current.target))")
-                    .font(.subheadline)
+                    .font(.title3.weight(.semibold))
                     .monospacedDigit()
+                    .foregroundStyle(Theme.text)
                     .accessibilityIdentifier("goals.progress")
                 ProgressView(value: min(current.fraction, 1))
-                    .tint(.green)
-                Text(weekLabel(current.week) + (current.isAchieved ? " · 已达到目标" : ""))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .tint(Theme.sage)
+                Text(current.isAchieved
+                     ? "本周已达成 · " + weekLabel(current.week)
+                     : "还差 \(metric.format(max(0, current.target - current.value))) · " + weekLabel(current.week))
+                    .font(.footnote)
+                    .foregroundStyle(Theme.secondaryText)
                 ForEach(notes(for: current), id: \.self) { note in
                     Text(note)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.secondaryText)
                 }
                 if !previous.isEmpty {
-                    // 目标设定之前的整周只标“设定前”，不显示为未完成。
-                    Text("之前几周：" + previous.map { "\(weekLabel($0.week)) \($0.isBeforeGoalCreated ? "设定前" : metric.format($0.value))" }.joined(separator: "，"))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    // 旧 → 新；目标设定之前的整周只标“设定前”，不显示为未达成。
+                    WeekChips(weeks: Array(previous.reversed()), label: weekLabel)
                 }
             }
         }
@@ -295,12 +297,12 @@ private struct GoalEditor: View {
                             .keyboardType(metric == .workoutCount ? .numberPad : .decimalPad)
                             .accessibilityIdentifier("goalEditor.target")
                         Text(metric.inputUnit)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondaryText)
                     }
                     if let error {
                         Text(error.message)
                             .font(.footnote)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Theme.apricotText)
                     }
                 } footer: {
                     Text("数值由你决定，WatchPulse 不推荐数值，也不会自动调高。")
@@ -364,4 +366,48 @@ private struct GoalEditor: View {
     WorkoutGoalsView(
         viewModel: WorkoutGoalsViewModel(store: InMemoryWorkoutGoalStore(), service: MockWorkoutHistoryService.demo())
     )
+}
+
+/// 之前几周的完成情况：达成（浅绿底）、未达成（细边）、设定前（虚线边）。只描述，不评价。
+private struct WeekChips: View {
+    let weeks: [WorkoutGoalWeekProgress]
+    let label: (DateInterval) -> String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("之前几周").font(.footnote).foregroundStyle(Theme.secondaryText)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) { chips }
+                VStack(alignment: .leading, spacing: 6) { chips }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var chips: some View {
+        ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+            chip(for: week)
+        }
+    }
+
+    private func chip(for week: WorkoutGoalWeekProgress) -> some View {
+        let start = week.week.start.formatted(.dateTime.month(.defaultDigits).day())
+        let (text, filled, dashed): (String, Bool, Bool) = {
+            switch week.outcome {
+            case .achieved: return ("达成", true, false)
+            case .beforeGoalCreated: return ("设定前", false, true)
+            case .notAchieved, .inProgress: return ("未达成", false, false)
+            }
+        }()
+        return Text("\(start) \(text)")
+            .font(.footnote.weight(filled ? .semibold : .regular))
+            .foregroundStyle(filled ? Theme.sageText : Theme.secondaryText)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(filled ? Theme.mint : Color.clear, in: Capsule())
+            .overlay(
+                Capsule().strokeBorder(Theme.line, style: StrokeStyle(lineWidth: 1, dash: dashed ? [4, 3] : []))
+            )
+            .accessibilityLabel("\(label(week.week)) \(text)")
+    }
 }
