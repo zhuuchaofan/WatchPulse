@@ -147,6 +147,37 @@ final class InsightsUITests: XCTestCase {
         XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
     }
 
+    /// 同类历史超出最近 12 条的混合运动记录：运动页和进步页对最近一次运动显示同样的比较。
+    /// （运动详情与这两处使用同一个 `WorkoutFeedbackViewModel`，由 `LatestWorkoutFeedbackConsistencyTests` 覆盖。）
+    @MainActor
+    func testLatestWorkoutComparisonMatchesBetweenWorkoutAndProgressTabs() {
+        let app = launch(scenario: "longHistory")
+        app.tabBars.buttons["运动"].tap()
+        XCTAssertTrue(element(app, "workout.waiting").waitForExistence(timeout: 10))
+        // 懒加载列表：先滚到「最近一次运动」这一节，再等反馈读取完成。
+        let latest = element(app, "workout.latest")
+        for _ in 0..<6 where !latest.waitForExistence(timeout: 1) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(latest.exists)
+        let workoutHeadline = element(app, "workout.latest.feedback")
+        XCTAssertTrue(workoutHeadline.waitForExistence(timeout: 15))
+        let workoutText = workoutHeadline.label
+        let workoutLines = app.descendants(matching: .any).matching(identifier: "workout.latest.comparedLine")
+            .allElementsBoundByIndex.map(\.label)
+
+        app.tabBars.buttons["进步"].tap()
+        let progressHeadline = element(app, "progress.comparable.headline")
+        XCTAssertTrue(progressHeadline.waitForExistence(timeout: 15))
+        scrollTo(progressHeadline, in: app)
+        let progressLines = app.descendants(matching: .any).matching(identifier: "progress.comparable.line")
+            .allElementsBoundByIndex.map(\.label)
+
+        XCTAssertFalse(workoutText.isEmpty)
+        XCTAssertEqual(progressHeadline.label, workoutText)
+        XCTAssertEqual(progressLines, workoutLines)
+    }
+
     @MainActor
     func testProgressFailureOffersRetry() {
         let app = launch(scenario: "failure")

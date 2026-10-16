@@ -372,6 +372,7 @@ private struct LatestComparison: View {
                     .accessibilityIdentifier("progress.comparable.headline")
                 ForEach(WorkoutFeedbackPresentation.comparedLines(feedback), id: \.self) { line in
                     Text(line).font(.subheadline.weight(.medium))
+                        .accessibilityIdentifier("progress.comparable.line")
                 }
                 if let line = WorkoutFeedbackPresentation.exclusionLine(feedback) {
                     Text(line).font(.caption).foregroundStyle(.secondary)

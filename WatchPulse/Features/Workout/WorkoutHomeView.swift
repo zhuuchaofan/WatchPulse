@@ -346,6 +346,7 @@ private struct LatestWorkoutSection: View {
                     .accessibilityIdentifier("workout.latest.feedback")
                 ForEach(WorkoutFeedbackPresentation.comparedLines(result.feedback), id: \.self) { line in
                     Text(line).font(.footnote.weight(.medium))
+                        .accessibilityIdentifier("workout.latest.comparedLine")
                 }
             }
         case .idle, .loading:
