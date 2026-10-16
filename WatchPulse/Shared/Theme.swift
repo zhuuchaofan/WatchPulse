@@ -21,6 +21,9 @@ enum Theme {
     /// 主按钮底色与其上的文字。
     static let button = dynamic(light: 0x4E7D60, dark: 0x86BB98)
     static let buttonText = dynamic(light: 0xFFFFFF, dark: 0x0F1A13)
+    /// “结束运动”按钮：深杏色底（深色模式为亮杏色底、深色字），与“暂停”明显区分。
+    static let endButton = dynamic(light: 0x9E5220, dark: 0xEFA672)
+    static let endButtonText = dynamic(light: 0xFFFFFF, dark: 0x24160B)
     /// 提示 / 读取失败等需要注意、但不是警报的文字。
     static let notice = apricotText
 
@@ -88,7 +91,7 @@ extension View {
         modifier(TileBackground())
     }
 
-    /// 页面底色（滚动视图 / 列表都适用）。
+    /// 页面底色（滚动视图 / 列表都适用）。列表行保持系统分组行底色（浅色白、深色近卡片色）。
     func screenBackground() -> some View {
         scrollContentBackground(.hidden)
             .background(Theme.background.ignoresSafeArea())

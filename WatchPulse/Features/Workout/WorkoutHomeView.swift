@@ -58,12 +58,12 @@ struct WorkoutHomeView: View {
                                     .font(.headline)
                                 Text("打开 Apple Watch 上的 WatchPulse，选好运动类型再开始，iPhone 会自动显示实时心率、能量和距离。")
                                     .font(.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.secondaryText)
                             }
                         } icon: {
                             Image(systemName: "applewatch.radiowaves.left.and.right")
                                 .font(.title2)
-                                .foregroundStyle(.green)
+                                .foregroundStyle(Theme.sage)
                         }
                         .accessibilityIdentifier("workout.waiting")
                     }
@@ -82,6 +82,7 @@ struct WorkoutHomeView: View {
 
                 WorkoutRecentSection(viewModel: historyViewModel)
             }
+            .screenBackground()
             .navigationTitle("运动")
             .navigationDestination(for: WorkoutRecord.self) { workout in
                 WorkoutDetailScreen(workout: workout, service: historyService)
@@ -125,13 +126,13 @@ private struct LiveWorkoutRow: View {
         HStack {
             Image(systemName: monitor.configuration?.activity.systemImage ?? "figure.run")
                 .font(.title2)
-                .foregroundStyle(.green)
+                .foregroundStyle(Theme.sage)
             VStack(alignment: .leading, spacing: 2) {
                 Text(monitor.configuration?.activity.title ?? "运动")
                     .font(.headline)
                 Text("\(monitor.phase.title) · \(monitor.connection.title)")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
             Spacer()
             TimelineView(.periodic(from: .now, by: 1)) { context in
@@ -210,9 +211,9 @@ private struct WeeklyGoalCard: View {
                 .font(.headline)
             Text("设一个每周想完成的运动次数、时长或距离，数值完全由你决定。")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
             Button("设定目标", action: onOpenGoals)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.themePrimary)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workout.goalEmpty")
@@ -225,7 +226,7 @@ private struct WeeklyGoalCard: View {
                     .font(.headline)
                 Text("暂停期间不计算进度。到「目标」页可以恢复。")
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         }
         .buttonStyle(.plain)
@@ -237,7 +238,7 @@ private struct WeeklyGoalCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Image(systemName: item.goal.activity?.systemImage ?? "figure.mixed.cardio")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.sage)
                     Text(item.goal.title)
                         .font(.headline)
                     Spacer()
@@ -247,7 +248,7 @@ private struct WeeklyGoalCard: View {
                 if others > 0 {
                     Text("还有 \(others) 个目标，点开查看")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
                 }
             }
             .contentShape(Rectangle())
@@ -266,25 +267,25 @@ private struct WeeklyGoalCard: View {
                     .monospacedDigit()
                 Text("/ \(metric.format(current.target))")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
                     .monospacedDigit()
             }
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("workout.goalProgress")
             ProgressView(value: min(current.fraction, 1))
-                .tint(.green)
+                .tint(Theme.sage)
             Text(current.isAchieved ? "本周目标已达成" : "还差 \(metric.format(max(0, current.target - current.value)))就达成本周目标")
                 .font(.footnote)
             if current.mayBeIncomplete {
                 Text("读取的运动记录可能没有覆盖整周，数值可能偏低。")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
             if case .loaded(let set) = viewModel.records, set.records.isEmpty {
                 // 0 次可能是没运动，也可能没有读取权限，不能当作正常进度静默显示。
                 Text("没有读到运动记录，所以进度是 0。如果最近有运动，请检查是否允许读取“体能训练”。")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.secondaryText)
             }
         } else {
             recordsHint
@@ -298,13 +299,13 @@ private struct WeeklyGoalCard: View {
         case .idle, .loading:
             ProgressView("正在读取运动记录…")
         case .healthDataUnavailable:
-            Text("这台设备用不了“健康”，无法计算进度。").font(.footnote).foregroundStyle(.secondary)
+            Text("这台设备用不了“健康”，无法计算进度。").font(.footnote).foregroundStyle(Theme.secondaryText)
         case .needsAuthorization:
-            Text("请先在「今日」页允许读取健康数据，才能计算进度。").font(.footnote).foregroundStyle(.secondary)
+            Text("请先在「今日」页允许读取健康数据，才能计算进度。").font(.footnote).foregroundStyle(Theme.secondaryText)
         case .failed:
-            Text("暂时没能读取运动记录，本周进度无法更新。下拉刷新可以重试。").font(.footnote).foregroundStyle(.secondary)
+            Text("暂时没能读取运动记录，本周进度无法更新。下拉刷新可以重试。").font(.footnote).foregroundStyle(Theme.secondaryText)
         case .noData, .loaded:
-            Text("本周进度暂时无法显示。").font(.footnote).foregroundStyle(.secondary)
+            Text("本周进度暂时无法显示。").font(.footnote).foregroundStyle(Theme.secondaryText)
         }
     }
 }
@@ -352,17 +353,17 @@ private struct LatestWorkoutSection: View {
         case .idle, .loading:
             HStack {
                 ProgressView()
-                Text("正在和过去的运动比较…").font(.footnote).foregroundStyle(.secondary)
+                Text("正在和过去的运动比较…").font(.footnote).foregroundStyle(Theme.secondaryText)
             }
         case .noData:
             Text("这次运动不在已读取的范围内，暂时无法和过去比较。")
                 .font(.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.secondaryText)
         case .failed:
             VStack(alignment: .leading, spacing: 6) {
-                Text("暂时没能和过去的运动比较。").font(.footnote).foregroundStyle(.secondary)
+                Text("暂时没能和过去的运动比较。").font(.footnote).foregroundStyle(Theme.secondaryText)
                 Button("重试") { Task { await feedbackViewModel.load() } }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.themeSecondary)
             }
         case .healthDataUnavailable, .needsAuthorization:
             EmptyView()

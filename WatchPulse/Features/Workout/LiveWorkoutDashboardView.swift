@@ -12,38 +12,40 @@ struct LiveWorkoutDashboardView: View {
 
     private var isCycling: Bool { monitor.configuration?.activity == .cycling }
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: Theme.cardSpacing) {
                 if monitor.dataOrigin.isSimulated {
                     DemoModeBanner()
                 }
                 header
-                ConnectionBadge(connection: monitor.connection)
-                    .accessibilityIdentifier("live.connection")
 
                 if isCycling {
                     CyclingDashboardPanel(monitor: monitor, isLargeMode: isCyclingLargeMode)
-                    if !isCyclingLargeMode {
+                    if !isCyclingLargeMode, monitor.heartRateHistory.count >= 2 {
                         heartRateChart
+                            .cardStyle()
                     }
                 } else {
                     TimelineView(.periodic(from: .now, by: 1)) { context in
                         Text(MetricFormatting.clock(seconds: monitor.elapsedTime(at: context.date)))
-                            .font(.system(size: 56, weight: .semibold, design: .rounded))
+                            .font(.system(.largeTitle, design: .rounded).weight(.semibold))
                             .monospacedDigit()
-                            .foregroundStyle(monitor.phase == .running ? .primary : .secondary)
+                            .foregroundStyle(monitor.phase == .running ? Theme.text : Theme.secondaryText)
+                            .accessibilityLabel("已用时间 \(MetricFormatting.clock(seconds: monitor.elapsedTime(at: context.date)))")
                             .accessibilityIdentifier("live.elapsed")
                     }
-
+                    heartRateCard
                     metricGrid
-                    heartRateChart
                 }
                 controls
             }
-            .padding()
+            .padding(.horizontal, Theme.gutter)
+            .padding(.vertical, 8)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.background.ignoresSafeArea())
         .navigationTitle(isCycling ? "骑行" : "实时运动")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -63,65 +65,99 @@ struct LiveWorkoutDashboardView: View {
         }
     }
 
+    /// 运动类型 · 状态，以及与 Apple Watch 的连接。
     private var header: some View {
-        HStack {
-            Label(
-                monitor.configuration?.activity.title ?? "运动",
-                systemImage: monitor.configuration?.activity.systemImage ?? "figure.run"
-            )
-            .font(.title3.weight(.semibold))
-            Spacer()
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline) { headerContent }
+            VStack(alignment: .leading, spacing: 8) { headerContent }
+        }
+    }
+
+    @ViewBuilder
+    private var headerContent: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: monitor.configuration?.activity.systemImage ?? "figure.run")
+                .foregroundStyle(Theme.sage)
+                .accessibilityHidden(true)
+            Text(monitor.configuration?.activity.title ?? "运动")
+                .font(.headline)
+                .foregroundStyle(Theme.text)
             Text(monitor.phase.title)
                 .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(phaseColor.opacity(0.15), in: Capsule())
                 .foregroundStyle(phaseColor)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 3)
+                .background(phaseBackground, in: Capsule())
                 .accessibilityIdentifier("live.phase")
         }
+        Spacer(minLength: 8)
+        ConnectionBadge(connection: monitor.connection)
+            .accessibilityIdentifier("live.connection")
     }
 
     private var phaseColor: Color {
         switch monitor.phase {
-        case .running: return .green
-        case .paused: return .orange
-        case .ended, .stopped: return .secondary
-        case .notStarted, .prepared: return .blue
+        case .running: return Theme.sageText
+        case .paused: return Theme.apricotText
+        case .ended, .stopped, .notStarted, .prepared: return Theme.secondaryText
         }
+    }
+
+    private var phaseBackground: Color {
+        switch monitor.phase {
+        case .running: return Theme.mint
+        default: return Theme.line
+        }
+    }
+
+    /// 实时心率：大号数字 + 最近 5 分钟曲线。
+    private var heartRateCard: some View {
+        let heartRate = monitor.latestMetrics?.heartRateBPM.map { "\(Int($0.rounded()))" }
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Image(systemName: "heart.fill")
+                    .foregroundStyle(Theme.sage)
+                    .accessibilityHidden(true)
+                Text("心率").font(.subheadline).foregroundStyle(Theme.secondaryText)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(heartRate ?? "--")
+                    .font(.system(size: 64, weight: .semibold, design: .rounded))
+                    .minimumScaleFactor(0.6)
+                    .lineLimit(1)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.text)
+                Text("次/分").font(.body).foregroundStyle(Theme.secondaryText)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("live.heartRate")
+            heartRateChart
+        }
+        .cardStyle()
     }
 
     private var metricGrid: some View {
         let metrics = monitor.latestMetrics
-        return LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            tile("心率", value: metrics?.heartRateBPM.map { "\(Int($0.rounded()))" }, unit: "次/分", image: "heart.fill", tint: .red)
-                .accessibilityIdentifier("live.heartRate")
-            tile("活动能量", value: metrics?.activeEnergyKilocalories.map { "\(Int($0.rounded()))" }, unit: "千卡", image: "flame.fill", tint: .green)
+        let columns = dynamicTypeSize.isAccessibilitySize
+            ? [GridItem(.flexible())]
+            : [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
+        return LazyVGrid(columns: columns, spacing: 12) {
             if monitor.configuration?.activity.tracksDistance ?? true {
-                tile("距离", value: metrics?.distanceMeters.map(MetricFormatting.distance(meters:)), unit: "", image: "location.fill", tint: .cyan)
+                tile("距离", value: metrics?.distanceMeters.map(MetricFormatting.distance(meters:)), unit: "")
             }
+            tile("活动能量", value: metrics?.activeEnergyKilocalories.map { "\(Int($0.rounded()))" }, unit: "千卡")
             if let maximum = monitor.heartRateHistory.map(\.beatsPerMinute).max() {
-                tile("最高心率", value: "\(Int(maximum.rounded()))", unit: "次/分", image: "arrow.up.heart.fill", tint: .pink)
+                tile("最高心率", value: "\(Int(maximum.rounded()))", unit: "次/分")
             }
         }
     }
 
-    private func tile(_ title: String, value: String?, unit: String, image: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Label(title, systemImage: image)
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(tint)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value ?? "--")
-                    .font(.title2.weight(.bold))
-                    .monospacedDigit()
-                if !unit.isEmpty {
-                    Text(unit).font(.footnote).foregroundStyle(.secondary)
-                }
-            }
+    private func tile(_ title: String, value: String?, unit: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title).font(.footnote).foregroundStyle(Theme.secondaryText)
+            MetricNumber(value: value ?? "--", unit: unit.isEmpty ? nil : unit, style: .title2)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
+        .cardStyle(padding: 16)
         .accessibilityElement(children: .combine)
     }
 
@@ -142,13 +178,13 @@ struct LiveWorkoutDashboardView: View {
             // 刚开始运动时用 30 秒刻度（带秒）；之后每分钟一个刻度，5 分钟窗口约 5~6 个标签，不拥挤。
             let showsSeconds = upper.timeIntervalSince(lower) <= 90
             VStack(alignment: .leading, spacing: 8) {
-                Text("心率曲线").font(.headline)
                 Chart(visible) { point in
                     LineMark(
                         x: .value("时间", point.date),
                         y: .value("心率", point.beatsPerMinute)
                     )
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.sage)
+                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                     .interpolationMethod(.monotone)
                 }
                 .chartXScale(domain: lower...upper)
@@ -165,11 +201,10 @@ struct LiveWorkoutDashboardView: View {
                     }
                 }
                 .chartPlotStyle { $0.clipped() }
-                .frame(height: 180)
+                .frame(height: 120)
+                .accessibilityLabel("最近 5 分钟心率，在 \(Int(values.min() ?? 0)) 到 \(Int(values.max() ?? 0)) 次/分之间")
                 .accessibilityIdentifier("live.heartRateChart")
             }
-            .padding()
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14))
         }
     }
 
@@ -179,7 +214,7 @@ struct LiveWorkoutDashboardView: View {
             if let error = monitor.commandError {
                 Label(error, systemImage: "exclamationmark.triangle")
                     .font(.footnote)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Theme.notice)
                     .accessibilityIdentifier("live.commandError")
             }
             if monitor.phase == .stopped {
@@ -193,27 +228,25 @@ struct LiveWorkoutDashboardView: View {
                         Button {
                             monitor.send(.resume)
                         } label: {
-                            Label("继续", systemImage: "play.fill").frame(maxWidth: .infinity)
+                            Label("继续", systemImage: "play.fill")
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.green)
+                        .buttonStyle(LiveControlButtonStyle(kind: .outline))
                         .accessibilityIdentifier("live.resume")
                     } else {
                         Button {
                             monitor.send(.pause)
                         } label: {
-                            Label("暂停", systemImage: "pause.fill").frame(maxWidth: .infinity)
+                            Label("暂停", systemImage: "pause.fill")
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.orange)
+                        .buttonStyle(LiveControlButtonStyle(kind: .outline))
                         .accessibilityIdentifier("live.pause")
                     }
-                    Button(role: .destructive) {
+                    Button {
                         isConfirmingEnd = true
                     } label: {
-                        Label("结束", systemImage: "stop.fill").frame(maxWidth: .infinity)
+                        Label("结束", systemImage: "stop.fill")
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(LiveControlButtonStyle(kind: .end))
                     .accessibilityIdentifier("live.end")
                 }
                 .disabled(monitor.pendingCommand != nil)
@@ -225,7 +258,12 @@ struct LiveWorkoutDashboardView: View {
                 if let pending = monitor.pendingCommand {
                     Text("正在请求 Apple Watch \(pending.title)…")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondaryText)
+                } else {
+                    Text("“结束”需要在确认框里再点一次，避免误触")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondaryText)
+                        .frame(maxWidth: .infinity)
                 }
             } else if monitor.phase == .ended {
                 SaveStatusLabel(status: monitor.saveStatus, isSimulated: monitor.dataOrigin.isSimulated)
@@ -233,7 +271,7 @@ struct LiveWorkoutDashboardView: View {
                 Button("完成") {
                     monitor.reset()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.themePrimary)
                 .accessibilityIdentifier("live.done")
             }
         }
@@ -252,14 +290,14 @@ private struct SaveStatusLabel: View {
                 isSimulated ? "模拟运动已结束（模拟数据，未写入“健康”）" : "运动已结束，Apple Watch 已保存到“健康”",
                 systemImage: "checkmark.circle.fill"
             )
-            .foregroundStyle(isSimulated ? .orange : .green)
+            .foregroundStyle(isSimulated ? Theme.notice : Theme.sageText)
         case .failed:
             // 原因来自系统错误，只用于调试，不显示给用户。
             Label(WorkoutSessionError.saveFailed(reason: "").localizedDescription, systemImage: "xmark.octagon.fill")
-                .foregroundStyle(.red)
+                .foregroundStyle(Theme.apricotText)
         case .saving, .pending:
             Label("运动已结束，尚未收到保存结果。请在 Apple Watch 或「健康」App 中确认。", systemImage: "questionmark.circle")
-                .foregroundStyle(.orange)
+                .foregroundStyle(Theme.notice)
         }
     }
 }
@@ -271,7 +309,6 @@ private struct ConnectionBadge: View {
         Label(connection.title, systemImage: icon)
             .font(.footnote.weight(.semibold))
             .foregroundStyle(color)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var icon: String {
@@ -285,10 +322,32 @@ private struct ConnectionBadge: View {
 
     private var color: Color {
         switch connection {
-        case .connected: return .green
-        case .stale: return .orange
-        case .waiting: return .secondary
-        case .disconnected: return .red
+        case .connected: return Theme.sageText
+        case .stale: return Theme.apricotText
+        case .waiting: return Theme.secondaryText
+        case .disconnected: return Theme.apricotText
         }
+    }
+}
+
+/// 运动中的大按钮：至少 60pt 高，便于运动时点按。
+private struct LiveControlButtonStyle: ButtonStyle {
+    enum Kind { case outline, end }
+    let kind: Kind
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.title3.weight(.semibold))
+            .frame(maxWidth: .infinity, minHeight: 60)
+            .foregroundStyle(kind == .end ? Theme.endButtonText : Theme.sageText)
+            .background {
+                switch kind {
+                case .end: Capsule().fill(Theme.endButton)
+                case .outline: Capsule().strokeBorder(Theme.sageText, lineWidth: 1.5)
+                }
+            }
+            .opacity(isEnabled ? (configuration.isPressed ? 0.75 : 1) : 0.45)
+            .contentShape(Capsule())
     }
 }
