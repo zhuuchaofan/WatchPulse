@@ -60,6 +60,22 @@ public enum HealthKitWorkoutMapping {
     }
     #endif
 
+    /// 来源、设备与外部标识（用于去重与可比较性判断）。缺失的字段保持 `nil`。
+    static func sourceInfo(from workout: HKWorkout) -> WorkoutSourceInfo {
+        let source = workout.sourceRevision.source
+        let device = workout.device
+        let metadata = workout.metadata
+        return WorkoutSourceInfo(
+            name: source.name,
+            bundleIdentifier: source.bundleIdentifier,
+            deviceName: device?.name,
+            deviceModel: device?.model,
+            deviceHardwareVersion: device?.hardwareVersion,
+            externalIdentifier: metadata?[HKMetadataKeyExternalUUID] as? String,
+            syncIdentifier: metadata?[HKMetadataKeySyncIdentifier] as? String
+        )
+    }
+
     /// `HKWorkout` → 运动记录（含心率、能量、距离统计）。
     public static func record(from workout: HKWorkout) -> WorkoutRecord {
         let bpm = HealthKitTypes.beatsPerMinute
@@ -87,7 +103,8 @@ public enum HealthKitWorkoutMapping {
             averageHeartRate: heartRate?.averageQuantity()?.doubleValue(for: bpm),
             maximumHeartRate: heartRate?.maximumQuantity()?.doubleValue(for: bpm),
             minimumHeartRate: heartRate?.minimumQuantity()?.doubleValue(for: bpm),
-            sourceName: workout.sourceRevision.source.name
+            sourceName: workout.sourceRevision.source.name,
+            sourceInfo: sourceInfo(from: workout)
         )
     }
 }

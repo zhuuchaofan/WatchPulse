@@ -60,13 +60,20 @@ public struct WorkoutHeartRateDetail: Hashable, Sendable {
     public let statistics: HeartRateSeriesStatistics
     /// 原始样本数。
     public let sampleCount: Int
-    /// 各心率区间的时长（秒）。
+    /// 各心率区间的时长（秒）。口径是“本次相对区间”（见 `zoneBasis`），不可跨运动比较。
     public let zoneDurations: [HeartRateZone: TimeInterval]
+    /// `zoneDurations` 所用的口径：以本次运动观测到的最高心率为参照，不是用户确认的最大心率。
+    public let zoneBasis: HeartRateZoneBasis
+    /// 心率数据的归属可信度（覆盖率、异常样本、可用级别）。展示不等于可用于比较。
+    public let heartRateEvidence: HeartRateEvidence
     /// 曲线数据的归属方式；非 `.workoutAssociated` 时界面需提示可能包含其他来源。
     public let attribution: HeartRateAttribution
 }
 
-/// 以本次运动最高心率为参照的简单心率区间（不需要年龄等个人信息）。
+/// **本次相对区间**：以本次运动最高心率为参照的简单心率区间（不需要年龄等个人信息）。
+///
+/// 参照值随每次运动变化，因此只用于单次运动详情，**不可跨运动比较**，也不是个人训练区间
+/// （后者见 `TrainingZone` / `HeartRateZoneSettings`，用于实时提醒与历史进步分析）。
 public enum HeartRateZone: Int, CaseIterable, Comparable, Sendable {
     case warmUp = 1
     case fatBurn
@@ -157,6 +164,8 @@ public final class WorkoutDetailViewModel {
                 statistics: statistics,
                 sampleCount: points.count,
                 zoneDurations: HeartRateZone.durations(for: points),
+                zoneBasis: .sessionRelative(observedMaximum: statistics.maximum),
+                heartRateEvidence: HeartRateEvidence.evaluate(series, for: workout),
                 attribution: series.attribution
             ))
         case .failure(let error):

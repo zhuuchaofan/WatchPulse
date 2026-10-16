@@ -155,3 +155,23 @@ WatchPulse/
 | `InsightsView` | iOS `Features/Insights` | 第三个 Tab「分析」；健康页静息心率 / HRV 卡片显示“较基线 ±n / 积累中” |
 
 所有文案只描述数值、天数、来源；不生成“恢复分 / 身体电量”等综合评分，不做医学判断。演示模式下模拟 GPS、模拟区间与模拟健康数据均有明显标注。
+
+## 9. v0.3 T1：运动数据层（数据可信度）
+
+规则与阈值见 [ROADMAP_V02_V10.md](ROADMAP_V02_V10.md) 1.3.1 / 1.3.2。全部为确定性纯逻辑，只读：不写入、不删除、不修改 HealthKit 数据。
+
+| 组件 | 位置 | 说明 |
+| --- | --- | --- |
+| `WorkoutSourceInfo`、`WorkoutRecord.sourceInfo` | Shared | 来源 bundle / 设备 / 外部标识；可选字段，旧记录与演示数据为 `nil`，旧 `sourceName` 保留 |
+| `WorkoutDuplicateDetector`、`WorkoutDeduplicator` | Shared | 确认重复 / 疑似重复 / 独立；疑似重复全部保留、统计只计一次、不传递、与输入顺序无关 |
+| `HeartRateEvidence`、`HeartRateUsability` | Shared | 复用 `HeartRateAttribution`，加入覆盖率与异常样本，分级：无数据 / 仅可展示 / 可汇总 / 可比较 |
+| `HeartRateZoneBasis`、`HeartRateZoneAnalyzer` | Shared | 个人训练区间（用户输入）与本次相对区间的口径标注与可比较性；不推算最大心率 |
+| `WorkoutAnalysisRecord`、`WorkoutAnalysisBuilder`、`WorkoutEligibility` | Shared | 统一分析记录；按指标（时长 / 距离 / 均速 / 平均心率 / 区间 / 相同心率速度）给出统计与进步比较资格 |
+| `WorkoutComparability` | Shared | 活动、室内外、来源、设备族、距离 / 时长量级与区间口径的成对可比较判定，返回具体原因 |
+| `WorkoutVolumeSummary` | Shared | 仅含具备统计资格的记录；Calendar 注入，按开始时刻归属当地日，夏令时 / 时区安全 |
+| `PerceivedEffortRecord`、`PerceivedEffortReconciler` | Shared | T5 存储契约（模型与对账规则）；无 UI、无持久化实现 |
+| `WorkoutAnalysisLoader`、`WorkoutAnalysisViewModel`、`PerceivedEffortStore`（含内存参考实现） | Core | 在 `WorkoutHistoryService` 之上读取、去重、只为主记录读取心率（数量 / 并发有限，单条失败只降级该条） |
+| `HealthKitWorkoutMapping.sourceInfo(from:)` | Core（HealthKit 边缘） | 只增字段：来源、`HKDevice`、`HKMetadataKeyExternalUUID` / `SyncIdentifier` |
+| 运动历史标签、详情“数据可信度”小节、“本次相对区间”标注 | iOS | 只读标注，不改变列表内容与既有流程 |
+
+`HeartRateZone`（本次相对区间）保持不变并标注口径；`WorkoutHeartRateDetail` 新增 `zoneBasis` / `heartRateEvidence`。Workout Mirroring、运动保存与 Demo 模式代码未改动。

@@ -45,11 +45,16 @@ struct WorkoutHistorySection: View {
                     CyclingStatisticsRow(statistics: cycling)
                 }
             }
+            // 仅标注，不隐藏：所有 HealthKit 原始记录都照常显示。
+            let deduplication = WorkoutDeduplicator.deduplicate(workouts)
             ForEach(WorkoutHistoryViewModel.groupedByMonth(workouts), id: \.month) { group in
                 Section(group.month.formatted(.dateTime.year().month(.wide))) {
                     ForEach(group.workouts) { workout in
                         NavigationLink(value: workout) {
-                            WorkoutRow(workout: workout)
+                            WorkoutRow(
+                                workout: workout,
+                                duplicateLabel: WorkoutAnalysisPresentation.duplicateLabel(for: workout.id, in: deduplication)
+                            )
                         }
                         .accessibilityIdentifier("workout.history.row")
                     }
@@ -70,6 +75,7 @@ struct WorkoutHistorySection: View {
 
 private struct WorkoutRow: View {
     let workout: WorkoutRecord
+    var duplicateLabel: String?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -83,6 +89,12 @@ private struct WorkoutRow: View {
                 Text(workout.startDate.formatted(.dateTime.month().day().weekday().hour().minute()))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                if let duplicateLabel {
+                    Text(duplicateLabel)
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("workout.history.duplicateLabel")
+                }
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
@@ -155,6 +167,22 @@ struct WorkoutDetailView: View {
                 LabeledContent("来源", value: workout.sourceName)
             }
 
+            Section {
+                if let detail = viewModel.state.value {
+                    ForEach(Array(WorkoutAnalysisPresentation.heartRateLines(detail.heartRateEvidence).enumerated()), id: \.offset) { _, line in
+                        Text(line).font(.footnote)
+                    }
+                }
+                ForEach(Array(WorkoutAnalysisPresentation.sourceLines(workout.source).enumerated()), id: \.offset) { _, line in
+                    Text(line).font(.footnote)
+                }
+            } header: {
+                Text("数据可信度")
+            } footer: {
+                Text("“可展示”不等于可用于统计或进步比较：心率未与运动直接关联、采样覆盖不足或含异常样本时，只作展示。")
+            }
+            .accessibilityIdentifier("workoutDetail.credibility")
+
             Section("心率曲线") {
                 LoadStateView(
                     state: viewModel.state,
@@ -187,9 +215,9 @@ struct WorkoutDetailView: View {
                 Section {
                     HeartRateZoneBars(durations: detail.zoneDurations)
                 } header: {
-                    Text("心率区间")
+                    Text("心率区间（本次相对区间）")
                 } footer: {
-                    Text("以本次运动最高心率为参照：<60% 热身、60–70% 燃脂、70–80% 有氧、80–90% 无氧、≥90% 极限。")
+                    Text("以本次运动观测到的最高心率 \(detail.zoneBasis.maximumHeartRate) 次/分为参照（不是最大心率）：<60% 热身、60–70% 燃脂、70–80% 有氧、80–90% 无氧、≥90% 极限。不同运动之间不可比较；个人心率区间以 Apple Watch 上的设置为准。")
                 }
             }
         }
