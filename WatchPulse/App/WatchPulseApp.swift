@@ -7,6 +7,7 @@ struct WatchPulseApp: App {
     @State private var healthOverviewViewModel: HealthOverviewViewModel
     @State private var insightsViewModel: HealthInsightsViewModel
     @State private var goalsViewModel: WorkoutGoalsViewModel
+    @State private var progressViewModel: WorkoutAnalysisViewModel
 
     init() {
         let environment = AppEnvironment.shared
@@ -16,6 +17,11 @@ struct WatchPulseApp: App {
             store: environment.workoutGoalStore,
             service: environment.workoutHistoryService
         ))
+        // 进步页：最近 4 周趋势与可比运动分析；只为最近的少量运动读取心率。
+        _progressViewModel = State(initialValue: WorkoutAnalysisViewModel(
+            loader: WorkoutAnalysisLoader(service: environment.workoutHistoryService, maximumHeartRateFetches: 12),
+            limit: 200
+        ))
     }
 
     var body: some Scene {
@@ -24,7 +30,8 @@ struct WatchPulseApp: App {
                 environment: AppEnvironment.shared,
                 healthOverviewViewModel: healthOverviewViewModel,
                 insightsViewModel: insightsViewModel,
-                goalsViewModel: goalsViewModel
+                goalsViewModel: goalsViewModel,
+                progressViewModel: progressViewModel
             )
         }
     }

@@ -3,73 +3,353 @@ import SwiftUI
 import WatchPulseCore
 import WatchPulseShared
 
-/// 分析页：把近期数据与你自己的历史比较（个人基线）、睡眠分期与作息规律。
-/// 只描述数值变化与样本数，不做医学判断，也不合成“恢复分”。
+/// 进步页：最近 4 周趋势 → 训练完成情况 → 和过去的自己比 → 身体状态（与自己的平时比较）。
+/// 只描述数值变化、对比对象与数据是否足够，不评价进步或退步，不做医学判断，也不合成“恢复分”。
 struct InsightsView: View {
     let viewModel: HealthInsightsViewModel
     /// 用于进入原有的单项趋势页。
     let service: any HealthDataService
+    let progressViewModel: WorkoutAnalysisViewModel
+    let goalsViewModel: WorkoutGoalsViewModel
+    /// 「设定目标」：由根视图切换到目标页。
+    var onOpenGoals: () -> Void = {}
 
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         NavigationStack {
-            content
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemGroupedBackground))
-                .navigationTitle("分析")
-                .navigationDestination(for: HealthMetricKind.self) { kind in
-                    MetricTrendScreen(kind: kind, service: service)
+            ScrollView {
+                VStack(spacing: 16) {
+                    if viewModel.dataOrigin.isSimulated || progressViewModel.dataOrigin.isSimulated {
+                        DemoModeBanner()
+                    }
+                    ProgressSection(
+                        viewModel: progressViewModel,
+                        goalsViewModel: goalsViewModel,
+                        onOpenGoals: onOpenGoals
+                    )
+                    bodySection
                 }
+                .padding()
+            }
+            .background(Color(.systemGroupedBackground))
+            .refreshable { await loadAll() }
+            .navigationTitle("进步")
+            .navigationDestination(for: HealthMetricKind.self) { kind in
+                MetricTrendScreen(kind: kind, service: service)
+            }
         }
         .task {
-            if viewModel.state == .idle {
-                await viewModel.load()
-            }
+            if viewModel.state == .idle { await viewModel.load() }
+            // 新的运动随时可能写入“健康”：每次切到本页都重新读取（已有数据保留显示，不闪回加载中）。
+            await progressViewModel.load()
+            await goalsViewModel.load()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active, viewModel.state != .idle {
-                Task { await viewModel.load() }
+                Task { await loadAll() }
             }
         }
     }
 
+    private func loadAll() async {
+        await viewModel.load()
+        await progressViewModel.load()
+        await goalsViewModel.load()
+    }
+
     @ViewBuilder
-    private var content: some View {
+    private var bodySection: some View {
         switch viewModel.state {
         case .needsAuthorization:
-            ContentUnavailableView {
-                Label("需要读取健康数据", systemImage: "heart.text.square")
-            } description: {
-                Text("分析页使用静息心率、心率变异性与睡眠记录，只在本机计算，不会上传。")
-            } actions: {
-                Button("授权读取") {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("身体状态需要读取健康数据", systemImage: "heart.text.square")
+                    .font(.headline)
+                Text("这里会用到静息心率、心率变异性和睡眠记录，只在这台 iPhone 上计算，不会上传。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Button("允许读取") {
                     Task { await viewModel.requestAuthorizationAndLoad() }
                 }
                 .buttonStyle(.borderedProminent)
                 .accessibilityIdentifier("insights.authorize")
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
         default:
-            ScrollView {
-                VStack(spacing: 16) {
-                    if viewModel.dataOrigin.isSimulated {
-                        DemoModeBanner()
-                    }
-                    LoadStateView(
-                        state: viewModel.state,
-                        noDataTitle: "暂无可分析的数据",
-                        noDataMessage: "没有读到静息心率、心率变异性或睡眠记录。可能还没有数据，也可能没有开启读取权限，可以在「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查。",
-                        retry: { await viewModel.load() }
-                    ) { snapshot in
-                        InsightsContent(viewModel: viewModel, snapshot: snapshot)
-                    }
-                }
-                .padding()
+            LoadStateView(
+                state: viewModel.state,
+                noDataTitle: "暂无身体数据可分析",
+                noDataMessage: "没有读到静息心率、心率变异性或睡眠记录。可能还没有数据，也可能还没有允许读取，可以检查读取权限。",
+                retry: { await viewModel.load() }
+            ) { snapshot in
+                InsightsContent(viewModel: viewModel, snapshot: snapshot)
             }
-            .refreshable { await viewModel.load() }
         }
     }
 }
+
+// MARK: - 运动进步
+
+/// 运动相关的三张卡：最近 4 周趋势、训练完成情况、可比运动分析。
+private struct ProgressSection: View {
+    let viewModel: WorkoutAnalysisViewModel
+    let goalsViewModel: WorkoutGoalsViewModel
+    let onOpenGoals: () -> Void
+
+    var body: some View {
+        switch viewModel.state {
+        case .loaded(let set):
+            let summary = ProgressSummary.make(from: set, readLimit: viewModel.limit, now: .now)
+            ProgressTrendCard(summary: summary)
+            CompletionCard(viewModel: goalsViewModel, onOpenGoals: onOpenGoals)
+            ComparableCard(summary: summary)
+        case .noData:
+            ProgressMessageCard(
+                title: "最近 4 周还没有运动记录",
+                message: "完成一次运动后，这里会显示每周的变化。如果“健康”里已经有运动，请检查是否允许 WatchPulse 读取。",
+                systemImage: "figure.run"
+            ) {
+                OpenSettingsButton()
+            }
+            .accessibilityIdentifier("progress.empty")
+            CompletionCard(viewModel: goalsViewModel, onOpenGoals: onOpenGoals)
+        case .idle, .loading:
+            ProgressView("正在读取运动记录…")
+                .frame(maxWidth: .infinity, minHeight: 120)
+        case .healthDataUnavailable:
+            ProgressMessageCard(
+                title: "这台设备用不了“健康”",
+                message: "请在 iPhone 上使用 WatchPulse。",
+                systemImage: "heart.slash"
+            ) { EmptyView() }
+        case .needsAuthorization:
+            ProgressMessageCard(
+                title: "先允许读取运动记录",
+                message: "请先在「今日」页允许读取健康数据。",
+                systemImage: "heart.text.square"
+            ) { EmptyView() }
+        case .failed:
+            ProgressMessageCard(
+                title: "暂时读不到运动记录",
+                message: "目标设置不受影响，稍后再试一次。",
+                systemImage: "exclamationmark.triangle"
+            ) {
+                Button("重试") { Task { await viewModel.load() } }
+                    .buttonStyle(.borderedProminent)
+            }
+            .accessibilityIdentifier("progress.failed")
+        }
+    }
+}
+
+private struct ProgressMessageCard<Actions: View>: View {
+    let title: String
+    let message: String
+    let systemImage: String
+    let actions: Actions
+
+    init(title: String, message: String, systemImage: String, @ViewBuilder actions: () -> Actions) {
+        self.title = title
+        self.message = message
+        self.systemImage = systemImage
+        self.actions = actions()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: systemImage)
+                .font(.headline)
+            Text(message)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            actions
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+    }
+}
+
+/// 最近 4 周每周运动次数。数据少于两周时只陈述事实，不说“上升 / 下降”。
+private struct ProgressTrendCard: View {
+    let summary: ProgressSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("最近 4 周")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.green)
+            Text(summary.headline)
+                .font(.title2.bold())
+                .accessibilityIdentifier("progress.headline")
+            Text(summary.detail)
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if summary.hasAnyWorkout {
+                Chart(summary.weeks) { week in
+                    BarMark(x: .value("周", week.label), y: .value("次数", week.workoutCount))
+                        .foregroundStyle(week.isCurrentWeek ? Color.green : Color.green.opacity(0.45))
+                        .annotation(position: .top) {
+                            Text("\(week.workoutCount)").font(.caption2).foregroundStyle(.secondary)
+                        }
+                }
+                .chartYScale(domain: 0...((summary.weeks.map(\.workoutCount).max() ?? 1) + 1))
+                .chartYAxis(.hidden)
+                .frame(height: 140)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(summary.chartDescription)
+                .accessibilityIdentifier("progress.chart")
+
+                if let week = summary.currentWeek {
+                    Text("本周 \(week.workoutCount) 次 · 共 \(MetricFormatting.duration(seconds: week.totalDuration))，本周还没结束")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            if summary.suspectedExcludedCount > 0 {
+                Text("含 \(summary.suspectedExcludedCount) 条疑似重复的记录，已只计一次。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if summary.mayBeIncomplete {
+                Text("运动记录较多，只读取了最近的一部分，较早的周可能偏低。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("progress.trend")
+    }
+}
+
+/// 训练完成情况：每个未暂停目标本周的进度与近 4 周达成情况。目标由用户设定，这里不评价。
+private struct CompletionCard: View {
+    let viewModel: WorkoutGoalsViewModel
+    let onOpenGoals: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("训练完成情况")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.green)
+                Spacer()
+                if !viewModel.goals.isEmpty {
+                    Button("管理目标", action: onOpenGoals)
+                        .font(.subheadline)
+                }
+            }
+            if viewModel.goals.isEmpty {
+                Text("还没有每周目标")
+                    .font(.headline)
+                Text("设一个每周想完成的运动次数、时长或距离，就能在这里看到每周的完成情况。")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Button("设定目标", action: onOpenGoals)
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("progress.setGoal")
+            } else {
+                ForEach(viewModel.items) { item in
+                    GoalCompletionRow(item: item)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("progress.completion")
+    }
+}
+
+private struct GoalCompletionRow: View {
+    let item: WorkoutGoalItem
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(item.goal.title).font(.headline)
+            switch item.progress {
+            case .active(let current, let previous)?:
+                let metric = item.goal.metric
+                Text("本周 \(metric.format(current.value)) / \(metric.format(current.target))")
+                    .font(.subheadline)
+                    .monospacedDigit()
+                ProgressView(value: min(current.fraction, 1)).tint(.green)
+                // 旧 → 新：之前几周（完整周）+ 本周（未结束）。
+                let weeks = Array(previous.reversed()) + [current]
+                HStack(spacing: 6) {
+                    ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                        Image(systemName: week.isAchieved ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(week.isAchieved ? Color.green : Color.secondary)
+                    }
+                    Text("近 \(weeks.count) 周有 \(weeks.filter(\.isAchieved).count) 周达到目标")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .combine)
+            case .paused?:
+                Text("已暂停，不计算进度").font(.footnote).foregroundStyle(.secondary)
+            case nil:
+                Text("进度暂时无法显示，可以下拉刷新重试。").font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+/// 可比运动分析：最近一次运动与之前可比的同类运动比较；样本不足或不可比时明确说明原因。
+private struct ComparableCard: View {
+    let summary: ProgressSummary
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("和过去的自己比")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.green)
+            if let workout = summary.latestWorkout, let feedback = summary.latestFeedback {
+                HStack(spacing: 8) {
+                    Image(systemName: workout.activity.systemImage).foregroundStyle(.green)
+                    Text("最近一次：\(workout.activity.title)")
+                        .font(.headline)
+                    Spacer()
+                    Text(workout.startDate.formatted(.dateTime.month().day()))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Text(WorkoutFeedbackPresentation.briefHeadline(feedback))
+                    .font(.footnote)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("progress.comparable.headline")
+                ForEach(WorkoutFeedbackPresentation.comparedLines(feedback), id: \.self) { line in
+                    Text(line).font(.subheadline.weight(.medium))
+                }
+                if let line = WorkoutFeedbackPresentation.exclusionLine(feedback) {
+                    Text(line).font(.caption).foregroundStyle(.secondary)
+                }
+                Text(WorkoutFeedbackPresentation.disclaimer)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("还没有运动可以比较。").font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("progress.comparable")
+    }
+}
+
+// MARK: - 身体状态
 
 private struct InsightsContent: View {
     let viewModel: HealthInsightsViewModel
@@ -78,7 +358,7 @@ private struct InsightsContent: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("你的近况（与自己的平时比较）")
+                Text("身体状态（和自己的平时比较）")
                     .font(.headline)
                 Text(BaselineComparison.baselineExplanation)
                     .font(.caption)
@@ -128,9 +408,9 @@ private struct BaselineCard: View {
                     values(comparison)
                 case .noData:
                     Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
-                    Text("没有读到记录。可能还没有数据，也可能没有开启读取权限。").font(.caption).foregroundStyle(.secondary)
+                    Text("没有读到记录。可能还没有数据，也可能还没有允许读取。").font(.caption).foregroundStyle(.secondary)
                 case .failed(let error):
-                    Label("读取失败", systemImage: "exclamationmark.triangle")
+                    Label("暂时读不到", systemImage: "exclamationmark.triangle")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.orange)
                     Text(error.localizedDescription).font(.caption).foregroundStyle(.secondary)
@@ -211,9 +491,9 @@ private struct SleepInsightCard: View {
                     content(insight)
                 case .noData:
                     Text("暂无数据").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
-                    Text("近两周没有读到睡眠记录。可能还没有数据，也可能没有开启读取权限。").font(.caption).foregroundStyle(.secondary)
+                    Text("近两周没有读到睡眠记录。可能还没有数据，也可能还没有允许读取。").font(.caption).foregroundStyle(.secondary)
                 case .failed(let error):
-                    Label("读取失败", systemImage: "exclamationmark.triangle")
+                    Label("暂时读不到", systemImage: "exclamationmark.triangle")
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(.orange)
                     Text(error.localizedDescription).font(.caption).foregroundStyle(.secondary)
@@ -405,33 +685,59 @@ private struct DataBasisSection: View {
     }
 }
 
+// MARK: - Previews（仅使用模拟数据，非真实数据）
+
+@MainActor
+private func previewInsights(
+    health: MockHealthDataService,
+    workouts: MockWorkoutHistoryService,
+    goalInput: Double? = 3
+) -> InsightsView {
+    let goals = WorkoutGoalsViewModel(store: InMemoryWorkoutGoalStore(), service: workouts)
+    if let goalInput {
+        goals.add(metric: .workoutCount, activity: nil, input: goalInput)
+    }
+    return InsightsView(
+        viewModel: HealthInsightsViewModel(service: health),
+        service: health,
+        progressViewModel: WorkoutAnalysisViewModel(
+            loader: WorkoutAnalysisLoader(service: workouts, maximumHeartRateFetches: 12),
+            limit: 200
+        ),
+        goalsViewModel: goals
+    )
+}
+
 #Preview("演示数据") {
-    let service = MockHealthDataService.demo()
-    return InsightsView(viewModel: HealthInsightsViewModel(service: service), service: service)
+    previewInsights(health: MockHealthDataService.demo(), workouts: MockWorkoutHistoryService.demo())
+}
+
+#Preview("还没设目标") {
+    previewInsights(health: MockHealthDataService.demo(), workouts: MockWorkoutHistoryService.demo(), goalInput: nil)
 }
 
 #Preview("数据不足") {
-    let service = MockHealthDataService(trends: [
+    let health = MockHealthDataService(trends: [
         .restingHeartRate: .value((1...6).map { MetricDataPoint(date: Calendar.current.date(byAdding: .day, value: -$0, to: .now)!, value: 60) }),
     ])
-    return InsightsView(viewModel: HealthInsightsViewModel(service: service), service: service)
+    let workouts = MockWorkoutHistoryService(workouts: .value(Array(SimulatedWorkoutHistory.workouts(endingBefore: .now, count: 2))))
+    return previewInsights(health: health, workouts: workouts)
 }
 
 #Preview("无数据") {
-    let service = MockHealthDataService()
-    return InsightsView(viewModel: HealthInsightsViewModel(service: service), service: service)
+    previewInsights(health: MockHealthDataService(), workouts: MockWorkoutHistoryService(), goalInput: nil)
 }
 
 #Preview("需要授权") {
-    let service = MockHealthDataService.demo()
-    service.authorizationStatus = .shouldRequest
-    return InsightsView(viewModel: HealthInsightsViewModel(service: service), service: service)
+    let health = MockHealthDataService.demo()
+    health.authorizationStatus = .shouldRequest
+    return previewInsights(health: health, workouts: MockWorkoutHistoryService.demo())
 }
 
 #Preview("读取失败") {
-    let service = MockHealthDataService(
+    let health = MockHealthDataService(
         trends: [.restingHeartRate: .failure(.protectedDataUnavailable), .heartRateVariability: .failure(.protectedDataUnavailable)],
         sleepNights: .failure(.protectedDataUnavailable)
     )
-    return InsightsView(viewModel: HealthInsightsViewModel(service: service), service: service)
+    return previewInsights(health: health, workouts: MockWorkoutHistoryService(workouts: .failure(.protectedDataUnavailable)))
 }

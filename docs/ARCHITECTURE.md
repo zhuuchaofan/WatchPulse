@@ -152,7 +152,7 @@ WatchPulse/
 | `BaselineWindows` / `BaselineComparison` | Shared | 观察期 = 最近 7 个完整日（不含今天），参考期 = 之前 28 天；中位数；参考 ≥ 14 天且观察 ≥ 4 天才给差值；超出合理范围的日值排除并计数 |
 | `SleepInsight` | Shared | 最近一晚分期与占比、仅卧床标记；≥ 4 晚时给出平均时长与入睡 / 醒来时刻的均值和标准差（墙上时间，跨午夜与夏令时正确） |
 | `HealthInsightsViewModel` | Core | 并发读取 35 天日值与睡眠；每张卡片独立 value / noData / failed；不缓存（H5 视真机性能再定） |
-| `InsightsView` | iOS `Features/Insights` | 第三个 Tab「分析」；健康页静息心率 / HRV 卡片显示“较基线 ±n / 积累中” |
+| `InsightsView` | iOS `Features/Insights` | 第四个 Tab「进步」：最近 4 周趋势、训练完成情况、可比运动分析、身体状态；「今日」页身体状态卡显示“比平时高 / 低 n / 积累中” |
 
 所有文案只描述数值、天数、来源；不生成“恢复分 / 身体电量”等综合评分，不做医学判断。演示模式下模拟 GPS、模拟区间与模拟健康数据均有明显标注。
 

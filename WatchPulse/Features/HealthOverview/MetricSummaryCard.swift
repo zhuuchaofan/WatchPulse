@@ -35,7 +35,7 @@ struct MetricSummaryCard: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
                 if let baseline = card.baseline {
-                    Text(baseline.shortText)
+                    Text(baseline.plainShortText)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(baseline.sufficiency == .sufficient ? Color.primary : Color.secondary)
                         .lineLimit(1)
@@ -51,7 +51,7 @@ struct MetricSummaryCard: View {
                     .foregroundStyle(.secondary)
 
             case .failed(let error):
-                Label("读取失败", systemImage: "exclamationmark.triangle")
+                Label("暂时读不到", systemImage: "exclamationmark.triangle")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(.orange)
                 Text(error.localizedDescription)

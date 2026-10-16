@@ -43,14 +43,56 @@ final class WatchPulseUITests: XCTestCase {
         }
     }
 
-    // MARK: - 健康总览
+    // MARK: - 今日
+
+    /// 进入二级页「全部指标」（最新心率与全部指标卡片都在这里）。
+    @MainActor
+    private func openAllMetrics(_ app: XCUIApplication) {
+        let link = element(app, "today.allMetrics")
+        XCTAssertTrue(link.waitForExistence(timeout: 15))
+        scrollTo(link, in: app)
+        link.tap()
+    }
 
     @MainActor
-    func testDashboardShowsSimulatedDataBannerAndMetrics() {
+    func testTodayShowsConclusionReasonAndAction() {
         let app = launch()
         XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 15), "模拟数据必须有明确标注")
         XCTAssertFalse(element(app, "demoBanner").label.contains("HealthKit"), "不向普通用户展示框架名")
-        XCTAssertTrue(element(app, "dashboard.heartRateCard").exists)
+        // 顶部状态卡：结论 + 原因 + 下一步。
+        XCTAssertTrue(element(app, "today.hero").exists)
+        XCTAssertFalse(element(app, "today.headline").label.isEmpty)
+        XCTAssertFalse(element(app, "today.reason").label.isEmpty)
+        XCTAssertTrue(element(app, "today.action").exists)
+        // 不用医学化用语。
+        for word in ["异常", "疾病", "诊断"] {
+            XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", word)).firstMatch.exists, word)
+        }
+        // 三张次级卡片。
+        for identifier in ["today.sleep", "today.body", "today.activity"] {
+            let card = element(app, identifier)
+            scrollTo(card, in: app)
+            XCTAssertTrue(card.exists, identifier)
+        }
+    }
+
+    @MainActor
+    func testTodayActionOpensTrainingCenter() {
+        let app = launch(scenario: "insufficient")
+        // 平时水平还在积累时，下一步是去看本周训练。
+        let headline = element(app, "today.headline")
+        XCTAssertTrue(headline.waitForExistence(timeout: 15))
+        waitForLabel(headline, contains: "正在了解你的平时水平")
+        element(app, "today.action").tap()
+        XCTAssertTrue(element(app, "workout.goalEmpty").waitForExistence(timeout: 10), "切换到了运动页（训练中心）")
+    }
+
+    @MainActor
+    func testAllMetricsShowsHeartRateAndMetricCards() {
+        let app = launch()
+        XCTAssertTrue(element(app, "today.hero").waitForExistence(timeout: 15))
+        openAllMetrics(app)
+        XCTAssertTrue(element(app, "dashboard.heartRateCard").waitForExistence(timeout: 10))
         // 演示心率并非来自 Apple Watch，卡片会显示来源提示。
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", "非 Apple Watch")).firstMatch.exists)
@@ -69,7 +111,9 @@ final class WatchPulseUITests: XCTestCase {
     @MainActor
     func testHeartRateDetailsCollapsedByDefault() {
         let app = launch()
-        XCTAssertTrue(element(app, "dashboard.heartRateCard").waitForExistence(timeout: 15))
+        XCTAssertTrue(element(app, "today.hero").waitForExistence(timeout: 15))
+        openAllMetrics(app)
+        XCTAssertTrue(element(app, "dashboard.heartRateCard").waitForExistence(timeout: 10))
         XCTAssertTrue(element(app, "heartRate.ago").exists)
         // 技术细节默认收起，点开“数据详情”才显示。
         XCTAssertFalse(app.staticTexts["记录方式"].exists)
@@ -89,7 +133,8 @@ final class WatchPulseUITests: XCTestCase {
     func testTrendScreenSwitchesPeriods() {
         let app = launch()
         XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 15))
-        let steps = element(app, "metricCard.stepCount")
+        // 今日页的“今天的活动”卡片进入步数趋势。
+        let steps = element(app, "today.activity")
         scrollTo(steps, in: app)
         XCTAssertTrue(steps.waitForExistence(timeout: 5))
         steps.tap()
@@ -108,7 +153,7 @@ final class WatchPulseUITests: XCTestCase {
         let authorize = element(app, "dashboard.authorize")
         XCTAssertTrue(authorize.waitForExistence(timeout: 15))
         authorize.tap()
-        XCTAssertTrue(element(app, "dashboard.heartRateCard").waitForExistence(timeout: 10))
+        XCTAssertTrue(element(app, "today.hero").waitForExistence(timeout: 10))
     }
 
     @MainActor
@@ -116,15 +161,17 @@ final class WatchPulseUITests: XCTestCase {
         let app = launch(scenario: "empty")
         XCTAssertTrue(app.staticTexts["暂无可读取的健康数据"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "拒绝")).firstMatch.exists)
+        // 没数据时给出“检查读取权限”入口，而不是只说无数据。
+        XCTAssertTrue(app.buttons["检查读取权限"].exists)
     }
 
     @MainActor
     func testFailureScenarioShowsErrorAndRetry() {
         let app = launch(scenario: "failure")
-        XCTAssertTrue(app.staticTexts["读取失败"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.staticTexts["暂时读不到数据"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.buttons["重试"].exists)
         app.buttons["重试"].tap()
-        XCTAssertTrue(app.staticTexts["读取失败"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["暂时读不到数据"].waitForExistence(timeout: 10))
     }
 
     // MARK: - 运动记录
@@ -275,6 +322,57 @@ final class WatchPulseUITests: XCTestCase {
         element(app, "goals.row").tap()
         element(app, "goalEditor.delete").tap()
         XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
+    }
+
+    // MARK: - 训练中心
+
+    @MainActor
+    func testTrainingCenterShowsGoalStartLatestFeedbackAndRecent() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+        // 本周目标 → 开始运动 → 最近一次运动 → 最近记录。
+        XCTAssertTrue(element(app, "workout.goalEmpty").waitForExistence(timeout: 10), "初始没有任何预设目标")
+        XCTAssertTrue(element(app, "workout.waiting").exists)
+        let latest = element(app, "workout.latest")
+        scrollTo(latest, in: app)
+        XCTAssertTrue(latest.waitForExistence(timeout: 10))
+        let feedback = element(app, "workout.latest.feedback")
+        scrollTo(feedback, in: app)
+        XCTAssertTrue(feedback.waitForExistence(timeout: 10))
+        let row = element(app, "workout.history.row")
+        scrollTo(row, in: app)
+        XCTAssertTrue(row.exists)
+    }
+
+    @MainActor
+    func testTrainingCenterGoalCardLinksToGoalsAndShowsProgress() {
+        let app = launch()
+        app.tabBars.buttons["运动"].tap()
+        let setGoal = app.buttons["设定目标"].firstMatch
+        XCTAssertTrue(setGoal.waitForExistence(timeout: 10))
+        setGoal.tap()
+        // 切换到了目标页。
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
+        element(app, "goals.add").tap()
+        let target = element(app, "goalEditor.target")
+        XCTAssertTrue(target.waitForExistence(timeout: 10))
+        target.tap()
+        target.typeText("3")
+        app.buttons["goalEditor.save"].tap()
+
+        // 回到运动页：本周目标卡显示进度与还差多少。
+        app.tabBars.buttons["运动"].tap()
+        let progress = element(app, "workout.goalProgress")
+        XCTAssertTrue(progress.waitForExistence(timeout: 10))
+        waitForLabel(progress, contains: "/")
+    }
+
+    @MainActor
+    func testTrainingCenterEmptyHistoryExplainsNextStep() {
+        let app = launch(scenario: "empty")
+        app.tabBars.buttons["运动"].tap()
+        XCTAssertTrue(app.staticTexts["还没有运动记录"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "拒绝")).firstMatch.exists)
     }
 
     @MainActor

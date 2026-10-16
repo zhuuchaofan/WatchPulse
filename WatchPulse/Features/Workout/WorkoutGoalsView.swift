@@ -108,9 +108,9 @@ struct WorkoutGoalsView: View {
         case .idle, .loading:
             Section { ProgressView("正在读取运动记录…") }
         case .healthDataUnavailable:
-            Section { Text("这台设备无法使用“健康”数据，无法计算进度。").font(.footnote) }
+            Section { Text("这台设备用不了“健康”，无法计算进度。").font(.footnote) }
         case .needsAuthorization:
-            Section { Text("请先在「健康」页完成授权，才能计算进度。").font(.footnote) }
+            Section { Text("请先在「今日」页允许读取健康数据，才能计算进度。").font(.footnote) }
         case .failed:
             Section {
                 VStack(alignment: .leading, spacing: 8) {
@@ -133,9 +133,12 @@ struct WorkoutGoalsView: View {
     /// “健康”不告诉 App 是否被拒绝读取：0 次可能是没运动，也可能是没有读取权限，不能当作正常进度。
     private var emptyRecordsHint: some View {
         Section {
-            Text("没有读到任何运动记录，所以进度显示为 0。如果你最近有运动，请到「设置 › 隐私与安全性 › 健康 › WatchPulse」中检查是否允许读取“体能训练”。")
-                .font(.footnote)
-                .accessibilityIdentifier("goals.recordsEmpty")
+            VStack(alignment: .leading, spacing: 8) {
+                Text("没有读到任何运动记录，所以进度显示为 0。如果你最近有运动，请检查是否允许 WatchPulse 读取“体能训练”。")
+                    .font(.footnote)
+                    .accessibilityIdentifier("goals.recordsEmpty")
+                OpenSettingsButton()
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 import XCTest
 
-/// 分析页的界面流程测试。**演示模式（模拟数据）**，只验证状态与文案规则，
+/// 进步页的界面流程测试。**演示模式（模拟数据）**，只验证状态与文案规则，
 /// 不代表真机 HealthKit 数据的基线 / 睡眠分析验收。
 final class InsightsUITests: XCTestCase {
     override func setUp() {
@@ -12,7 +12,7 @@ final class InsightsUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments += ["-WatchPulseDemoMode", "YES", "-WatchPulseDemoScenario", scenario]
         app.launch()
-        app.tabBars.buttons["分析"].tap()
+        app.tabBars.buttons["进步"].tap()
         return app
     }
 
@@ -81,8 +81,10 @@ final class InsightsUITests: XCTestCase {
     @MainActor
     func testEmptyShowsNoDataNotDenied() {
         let app = launch(scenario: "empty")
-        let title = app.staticTexts["暂无可分析的数据"]
+        let title = app.staticTexts["暂无身体数据可分析"]
         XCTAssertTrue(title.waitForExistence(timeout: 10))
+        // 运动部分也要明确说明没有记录，而不是留白。
+        XCTAssertTrue(element(app, "progress.empty").waitForExistence(timeout: 10))
         XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "拒绝")).firstMatch.exists)
     }
 
@@ -102,16 +104,53 @@ final class InsightsUITests: XCTestCase {
     }
 
     @MainActor
-    func testHealthTabShowsBaselineOnCards() {
+    func testTodayBodyCardUsesPlainComparisonWording() {
         let app = XCUIApplication()
         app.launchArguments += ["-WatchPulseDemoMode", "YES", "-WatchPulseDemoScenario", "full"]
         app.launch()
-        // 卡片内容合并为一个无障碍元素，基线文字是卡片标签的一部分。
-        let card = element(app, "metricCard.restingHeartRate")
+        // 卡片内容合并为一个无障碍元素；用“平时”而不是“基线”这样的术语。
+        let card = element(app, "today.body")
         for _ in 0..<6 where !card.exists {
             app.swipeUp()
         }
         XCTAssertTrue(card.waitForExistence(timeout: 10))
-        waitFor(card, contains: "基线")
+        waitFor(card, contains: "平时")
+        XCTAssertFalse(card.label.contains("基线"))
+    }
+
+    // MARK: - 运动进步
+
+    @MainActor
+    func testProgressShowsFourWeekTrendCompletionAndComparable() {
+        let app = launch(scenario: "full")
+        XCTAssertTrue(element(app, "progress.trend").waitForExistence(timeout: 10))
+        waitFor(element(app, "progress.headline"), contains: "最近 4 周")
+        XCTAssertTrue(element(app, "progress.chart").exists)
+        // 没有预设目标：说明如何开始，而不是显示 0。
+        let completion = element(app, "progress.completion")
+        XCTAssertTrue(completion.waitForExistence(timeout: 10))
+        XCTAssertTrue(element(app, "progress.setGoal").exists)
+        // 可比运动分析：无论样本是否足够，都说明比较了什么或为什么没有比较。
+        let comparable = element(app, "progress.comparable.headline")
+        scrollTo(comparable, in: app)
+        XCTAssertTrue(comparable.waitForExistence(timeout: 10))
+        XCTAssertFalse(comparable.label.isEmpty)
+    }
+
+    @MainActor
+    func testProgressSetGoalSwitchesToGoalsTab() {
+        let app = launch(scenario: "full")
+        let setGoal = element(app, "progress.setGoal")
+        scrollTo(setGoal, in: app)
+        XCTAssertTrue(setGoal.waitForExistence(timeout: 10))
+        setGoal.tap()
+        XCTAssertTrue(element(app, "goals.empty").waitForExistence(timeout: 10))
+    }
+
+    @MainActor
+    func testProgressFailureOffersRetry() {
+        let app = launch(scenario: "failure")
+        XCTAssertTrue(element(app, "progress.failed").waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["重试"].firstMatch.exists)
     }
 }

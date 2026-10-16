@@ -33,9 +33,11 @@ private struct CyclingStatisticsRow: View {
     }
 }
 
-/// 运动页中的“运动记录”分组。
-struct WorkoutHistorySection: View {
+/// 训练中心里的“最近记录”：近 30 天骑行统计 + 最近几条运动，更早的记录在「全部运动记录」。
+struct WorkoutRecentSection: View {
     let viewModel: WorkoutHistoryViewModel
+
+    static let recentCount = 5
 
     var body: some View {
         switch viewModel.state {
@@ -45,6 +47,70 @@ struct WorkoutHistorySection: View {
                     CyclingStatisticsRow(statistics: cycling)
                 }
             }
+            // 仅标注，不隐藏：所有原始运动记录都照常显示。
+            let deduplication = WorkoutDeduplicator.deduplicate(workouts)
+            let recent = workouts.sorted { $0.startDate > $1.startDate }.prefix(Self.recentCount)
+            Section("最近记录") {
+                ForEach(Array(recent)) { workout in
+                    NavigationLink(value: workout) {
+                        WorkoutRow(
+                            workout: workout,
+                            duplicateLabel: WorkoutAnalysisPresentation.duplicateLabel(for: workout.id, in: deduplication)
+                        )
+                    }
+                    .accessibilityIdentifier("workout.history.row")
+                }
+                if workouts.count > Self.recentCount {
+                    NavigationLink {
+                        WorkoutAllRecordsView(viewModel: viewModel)
+                    } label: {
+                        Text("全部运动记录（\(workouts.count) 条）")
+                    }
+                    .accessibilityIdentifier("workout.history.all")
+                }
+            }
+        default:
+            WorkoutHistoryStateSection(viewModel: viewModel)
+        }
+    }
+}
+
+/// 二级页：全部运动记录，按月分组。
+struct WorkoutAllRecordsView: View {
+    let viewModel: WorkoutHistoryViewModel
+
+    var body: some View {
+        List {
+            WorkoutHistorySection(viewModel: viewModel)
+        }
+        .navigationTitle("全部运动记录")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+/// 运动记录读取中 / 无记录 / 失败时的说明（有记录时不显示）。
+private struct WorkoutHistoryStateSection: View {
+    let viewModel: WorkoutHistoryViewModel
+
+    var body: some View {
+        Section("最近记录") {
+            LoadStateView(
+                state: viewModel.state,
+                noDataTitle: "还没有运动记录",
+                noDataMessage: "用 Apple Watch 上的 WatchPulse 完成一次运动后，记录会出现在这里。如果“健康”里已经有运动，请检查是否允许 WatchPulse 读取。",
+                retry: { await viewModel.load() }
+            ) { _ in EmptyView() }
+        }
+    }
+}
+
+/// 按月分组的完整运动记录。
+struct WorkoutHistorySection: View {
+    let viewModel: WorkoutHistoryViewModel
+
+    var body: some View {
+        switch viewModel.state {
+        case .loaded(let workouts):
             // 仅标注，不隐藏：所有 HealthKit 原始记录都照常显示。
             let deduplication = WorkoutDeduplicator.deduplicate(workouts)
             ForEach(WorkoutHistoryViewModel.groupedByMonth(workouts), id: \.month) { group in
@@ -61,19 +127,12 @@ struct WorkoutHistorySection: View {
                 }
             }
         default:
-            Section("运动记录") {
-                LoadStateView(
-                    state: viewModel.state,
-                    noDataTitle: "暂无运动记录",
-                    noDataMessage: "在 Apple Watch 上用 WatchPulse 完成运动后会出现在这里。若“健康”中已有运动，请检查读取运动的权限。",
-                    retry: { await viewModel.load() }
-                ) { _ in EmptyView() }
-            }
+            WorkoutHistoryStateSection(viewModel: viewModel)
         }
     }
 }
 
-private struct WorkoutRow: View {
+struct WorkoutRow: View {
     let workout: WorkoutRecord
     var duplicateLabel: String?
 
