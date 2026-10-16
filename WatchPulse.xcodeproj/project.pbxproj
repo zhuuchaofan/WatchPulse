@@ -25,6 +25,7 @@
 		9A7EAA85DFC615FFB9B21025 /* LiveWorkoutDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 765F90C500A133CF2BA7AE5C /* LiveWorkoutDashboardView.swift */; };
 		B35A8A43798B3E5B28794004 /* MetricSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F5D60F7CDF979CAF207CCF /* MetricSummaryCard.swift */; };
 		B62A603470186DA8EC47DD66 /* DemoModeBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */; };
+		7D3E6B21A9C84E10B5F2D801 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D3E6B21A9C84E10B5F2D802 /* Theme.swift */; };
 		BE1DEAD9BFE99F0BCE31B85F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 69285459661FE21B2ABB2CE6 /* Assets.xcassets */; };
 		C0CDB44D7066C5521601F080 /* WatchPulseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 1551A4EB081C2E86EDA3D3EC /* WatchPulseCore */; };
 		C1AF0341FBFECE402C4EE246 /* WatchPulseShared in Frameworks */ = {isa = PBXBuildFile; productRef = 755ED5EED151AA21F5F0A358 /* WatchPulseShared */; };
@@ -101,6 +102,7 @@
 		AB8CB8C0ADE899B29375B141 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		B362A1CEC33ECAD67629BC54 /* CyclingUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CyclingUITests.swift; sourceTree = "<group>"; };
 		B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoModeBanner.swift; sourceTree = "<group>"; };
+		7D3E6B21A9C84E10B5F2D802 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		B7ED7F5C548F414307C59225 /* WatchPulseWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = WatchPulseWatch.entitlements; sourceTree = "<group>"; };
 		B81B4C89FAC849BAA6FB3678 /* WatchAppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAppEnvironment.swift; sourceTree = "<group>"; };
 		D27B60D65C47BA37CBC75C9E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -267,6 +269,7 @@
 			isa = PBXGroup;
 			children = (
 				B638042DAD6BBD85DEA86292 /* DemoModeBanner.swift */,
+				7D3E6B21A9C84E10B5F2D802 /* Theme.swift */,
 				DB7B27413CF812CA9E2AEBDF /* LoadStateView.swift */,
 			);
 			path = Shared;
@@ -467,6 +470,7 @@
 				FFB209ECE39CF5E9447DF8C8 /* AppEnvironment.swift in Sources */,
 				108FBB4A4E4D8DB5495CC0D3 /* CyclingDashboardView.swift in Sources */,
 				B62A603470186DA8EC47DD66 /* DemoModeBanner.swift in Sources */,
+				7D3E6B21A9C84E10B5F2D801 /* Theme.swift in Sources */,
 				D473082EA1CDEE3E7218DA1C /* HealthKitMirroringReceiver.swift in Sources */,
 				64E007889CF320B777F1AFE3 /* HealthOverviewView.swift in Sources */,
 				72998FC3C9A0EF87F6708179 /* HeartRateCard.swift in Sources */,

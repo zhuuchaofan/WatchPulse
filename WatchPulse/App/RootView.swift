@@ -55,6 +55,7 @@ struct RootView: View {
             .tabItem { Label("进步", systemImage: "chart.line.uptrend.xyaxis") }
             .tag(Tab.progress)
         }
+        .tint(Theme.sageText)
         .onChange(of: scenePhase) { _, phase in
             // 后台期间计时器暂停；回到前台立即检查一次连接是否已超时。
             if phase == .active {

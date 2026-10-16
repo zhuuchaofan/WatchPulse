@@ -39,37 +39,44 @@ final class TodayStatusTests: XCTestCase {
         HealthDashboardSnapshot(latestHeartRate: nil, cards: cards)
     }
 
-    func testSteadyWhenAllComparisonsAreFlat() {
+    func testComparedListsPeriodWithoutJudgingFlatValues() {
         let status = TodayStatus.make(from: snapshot([
             card(.restingHeartRate, baseline(.restingHeartRate, reference: 60, observation: 60)),
             card(.heartRateVariability, baseline(.heartRateVariability, reference: 50, observation: 50)),
         ]))
-        XCTAssertEqual(status.level, .steady)
-        XCTAssertEqual(status.headline, "和平时差不多")
-        XCTAssertEqual(status.action, .openTraining)
-        XCTAssertTrue(status.reason.contains("静息心率和心率变异性"))
-    }
-
-    func testChangedDescribesDifferenceAgainstOwnUsualOnly() {
-        let status = TodayStatus.make(from: snapshot([
-            card(.restingHeartRate, baseline(.restingHeartRate, reference: 60, observation: 64)),
-            card(.heartRateVariability, baseline(.heartRateVariability, reference: 50, observation: 50)),
-        ]))
-        XCTAssertEqual(status.level, .changed)
-        XCTAssertEqual(status.headline, "和平时有些不同")
-        XCTAssertTrue(status.reason.contains("静息心率比平时高 4 次/分"), status.reason)
-        XCTAssertFalse(status.reason.contains("心率变异性比平时"), "持平的指标不列入差异")
-        XCTAssertTrue(status.reason.contains("不代表健康状况"))
+        XCTAssertEqual(status.level, .compared)
+        XCTAssertEqual(status.headline, "静息心率和心率变异性都有记录，可以和你的平时对比")
         XCTAssertEqual(status.action, .openTrend(.restingHeartRate))
-        XCTAssertEqual(status.action.title, "查看静息心率变化")
+        XCTAssertEqual(status.observation, BaselineWindows(asOf: now, calendar: calendar).observation, "说明对比的是哪 7 天")
+        XCTAssertFalse(status.headline.contains("差不多"), "阈值未校准，不下“差不多”的结论")
     }
 
-    func testLowerIsDescribedAsLowerAndLinksToThatMetric() {
+    /// 原问题：差 1 次/分（取整阈值）就显示“和平时有些不同”，把微小变化突出成身体状态变化。
+    func testSmallDifferenceIsNotHighlightedAsChange() {
+        let tiny = TodayStatus.make(from: snapshot([
+            card(.restingHeartRate, baseline(.restingHeartRate, reference: 60, observation: 61)),
+            card(.heartRateVariability, baseline(.heartRateVariability, reference: 50, observation: 48)),
+        ]))
+        let large = TodayStatus.make(from: snapshot([
+            card(.restingHeartRate, baseline(.restingHeartRate, reference: 60, observation: 70)),
+            card(.heartRateVariability, baseline(.heartRateVariability, reference: 50, observation: 35)),
+        ]))
+        for status in [tiny, large] {
+            XCTAssertEqual(status.level, .compared)
+            XCTAssertFalse(status.headline.contains("不同"), status.headline)
+            XCTAssertFalse((status.headline + status.reason).contains("比平时"), "首页不写差值结论，只列数值")
+            XCTAssertTrue(status.reason.contains("不判断好坏"))
+        }
+        XCTAssertEqual(tiny.headline, large.headline, "差值大小不改变首页结论")
+    }
+
+    func testSingleReadyMetricUsesItsOwnName() {
         let status = TodayStatus.make(from: snapshot([
-            card(.restingHeartRate, baseline(.restingHeartRate, reference: 60, observation: 60)),
+            card(.restingHeartRate, baseline(.restingHeartRate, reference: 60, observation: 60, referenceDays: 5)),
             card(.heartRateVariability, baseline(.heartRateVariability, reference: 50, observation: 40)),
         ]))
-        XCTAssertTrue(status.reason.contains("心率变异性比平时低 10 毫秒"), status.reason)
+        XCTAssertEqual(status.level, .compared)
+        XCTAssertEqual(status.headline, "心率变异性有记录，可以和你的平时对比")
         XCTAssertEqual(status.action, .openTrend(.heartRateVariability))
     }
 
@@ -78,6 +85,7 @@ final class TodayStatusTests: XCTestCase {
             card(.restingHeartRate, baseline(.restingHeartRate, reference: 60, observation: 60, referenceDays: 5)),
         ]))
         XCTAssertEqual(status.level, .learning)
+        XCTAssertNil(status.observation)
         XCTAssertFalse(status.headline.contains("差不多"), "数据不足不能说成与平时一样")
         XCTAssertEqual(status.headline, "正在了解你的平时水平")
     }

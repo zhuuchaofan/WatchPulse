@@ -64,6 +64,10 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertFalse(element(app, "today.headline").label.isEmpty)
         XCTAssertFalse(element(app, "today.reason").label.isEmpty)
         XCTAssertTrue(element(app, "today.action").exists)
+        // 阈值未校准：写明对比的时间范围，只列数值，不把差值说成“和平时有些不同”。
+        waitForLabel(element(app, "today.period"), contains: "最近 7 天（")
+        XCTAssertFalse(element(app, "today.headline").label.contains("不同"))
+        XCTAssertFalse(element(app, "today.headline").label.contains("差不多"))
         // 不用医学化用语。
         for word in ["异常", "疾病", "诊断"] {
             XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", word)).firstMatch.exists, word)
