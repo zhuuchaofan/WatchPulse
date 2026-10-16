@@ -175,3 +175,15 @@ WatchPulse/
 | 运动历史标签、详情“数据可信度”小节、“本次相对区间”标注 | iOS | 只读标注，不改变列表内容与既有流程 |
 
 `HeartRateZone`（本次相对区间）保持不变并标注口径；`WorkoutHeartRateDetail` 新增 `zoneBasis` / `heartRateEvidence`。Workout Mirroring、运动保存与 Demo 模式代码未改动。
+
+## 10. v0.3 T2：个人运动目标
+
+规则见 [ROADMAP_V02_V10.md](ROADMAP_V02_V10.md) 1.3 T2。目标数值由用户输入，不预设、不推荐、不自动调高；进度只描述完成情况，不做评价或建议。
+
+| 组件 | 位置 | 说明 |
+| --- | --- | --- |
+| `WorkoutGoal`、`WorkoutGoalMetric` | Shared | 每周运动次数 / 总时长 / 距离，可按运动类型筛选；创建与解码时都校验（> 0、次数为整数、距离只用于有距离的类型、防误输入上限） |
+| `WorkoutGoalProgressCalculator` | Shared | 基于 T1 的 `WorkoutAnalysisRecord` 与 `WorkoutVolumeSummary`：只计具备统计资格的记录，疑似重复只计一次并报告，距离缺失不补 0；本周 + 之前 3 个完整自然周，周由注入的 `Calendar`（时区、每周第一天）决定，时区 / 夏令时安全；读取条数达上限时标注“可能不完整” |
+| `WorkoutGoalStore`（`UserDefaults` / 内存实现） | Core | 仅本机；存储数据无法解析时先备份原始数据再从空列表开始，并提示用户，不静默覆盖 |
+| `WorkoutGoalsViewModel` | Core | 目标增删改、暂停 / 恢复；运动记录经 `WorkoutAnalysisLoader` 读取（不读取心率曲线），读取失败时目标仍可管理、进度显示 `--` 而不是 0 |
+| 「目标」Tab（`WorkoutGoalsView`） | iOS | 列表、进度条、说明（疑似重复 / 无距离 / 可能不完整）、新建 / 编辑表单（目标值初始为空）；演示模式目标只存内存 |
