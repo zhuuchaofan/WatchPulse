@@ -95,8 +95,13 @@ final class UserFacingTextTests: XCTestCase {
         for evidence in [complete, partial, notLoaded, none] {
             assertPlain(WorkoutAnalysisPresentation.heartRateSummary(evidence))
         }
-        XCTAssertTrue(WorkoutAnalysisPresentation.heartRateSummary(complete).contains("可以和过去的运动比较"))
+        XCTAssertTrue(WorkoutAnalysisPresentation.heartRateSummary(complete).contains("较充分"))
         XCTAssertTrue(WorkoutAnalysisPresentation.heartRateSummary(partial).contains("仅供参考"))
+        // 可比较只代表覆盖率等达到门槛（约 80%），不能说成“完整”；不可比较的原因也不一定是缺失。
+        for evidence in [complete, partial] {
+            let text = WorkoutAnalysisPresentation.heartRateSummary(evidence)
+            XCTAssertFalse(text.contains("完整"), text)
+        }
         // 没有数据 / 读取失败不能说成“完整”或“可以比较”。
         for evidence in [notLoaded, none] {
             let text = WorkoutAnalysisPresentation.heartRateSummary(evidence)

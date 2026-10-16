@@ -26,15 +26,16 @@ public enum WorkoutAnalysisPresentation {
     }
 
     /// “数据可信度”小节默认显示的一句话结论（通俗说明能做什么、不能做什么）。
+    /// 级别只代表覆盖率等达到了门槛（例如可比较要求覆盖约 80%），不代表记录“完整”；具体原因见详情。
     /// 覆盖率、样本数等技术依据见 `heartRateLines`，放在可展开的详情中。
     public static func heartRateSummary(_ evidence: HeartRateEvidence) -> String {
         switch evidence.usability {
         case .comparable:
-            return "心率记录完整，可以和过去的运动比较。"
+            return "这次心率记录较充分，可以用于和过去的运动比较。"
         case .summary:
-            return "心率记录基本完整，可以看平均心率，但不用于和过去的运动比较。"
+            return "这次心率记录可以用来看平均心率，但还不符合和过去运动比较的条件。"
         case .displayOnly:
-            return "心率记录不完整，或可能混入其他设备的数据。曲线仅供参考，不计入统计和比较。"
+            return "这次心率记录不符合统计和比较的条件，曲线仅供参考。具体原因见下方判断依据。"
         case .unavailable:
             return evidence.reasons.contains(.notLoaded)
                 ? "这次运动的心率数据没有读取成功，暂时无法判断。"

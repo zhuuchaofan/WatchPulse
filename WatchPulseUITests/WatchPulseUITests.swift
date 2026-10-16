@@ -228,6 +228,8 @@ final class WatchPulseUITests: XCTestCase {
         XCTAssertTrue(headline.waitForExistence(timeout: 10))
         // 无论样本是否足够，都要说明对比对象的范围（时间窗与同类运动）。
         waitForLabel(headline, contains: "天内可比的")
+        // iPhone 上没有个人心率区间时，区间比较这一项整体隐藏，不显示无法补救的提示。
+        XCTAssertFalse(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "暂不比较区间分布")).firstMatch.exists)
     }
 
     @MainActor

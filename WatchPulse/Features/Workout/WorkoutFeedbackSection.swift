@@ -59,7 +59,7 @@ struct WorkoutFeedbackSection: View {
 
         if !feedback.zones.rows.isEmpty {
             ZoneFeedbackRows(zones: feedback.zones)
-        } else {
+        } else if WorkoutFeedbackPresentation.showsZoneSection(feedback.zones) {
             Text(WorkoutFeedbackPresentation.zoneSummary(feedback.zones))
                 .font(.caption)
                 .foregroundStyle(.secondary)
