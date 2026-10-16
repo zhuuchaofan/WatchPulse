@@ -77,6 +77,16 @@ final class ScreenshotTests: XCTestCase {
         }
     }
 
+    /// 大字号下按钮可能在屏幕外（懒加载列表），先滑动到可点击。
+    @MainActor
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
+        _ = element.waitForExistence(timeout: 5)
+        for _ in 0..<8 where !(element.exists && element.isHittable) {
+            app.swipeUp()
+        }
+        return element.exists && element.isHittable
+    }
+
     @MainActor
     private func open(_ tab: String, in app: XCUIApplication) {
         let button = app.tabBars.buttons[tab]
@@ -129,11 +139,12 @@ final class ScreenshotTests: XCTestCase {
         for variant in Variant.allCases {
             let app = launch(scenario: "full", variant: variant)
             open("运动", in: app)
+            _ = element(app, "workout.waiting").waitForExistence(timeout: 10)
             let start = element(app, "demo.start.running")
-            guard start.waitForExistence(timeout: 10) else { XCTFail("没有找到模拟开始按钮"); continue }
+            guard reveal(start, in: app) else { XCTFail("\(variant.rawValue)：没有找到模拟开始按钮"); continue }
             start.tap()
             let liveRow = element(app, "workout.liveRow")
-            guard liveRow.waitForExistence(timeout: 10) else { XCTFail("没有出现运动中入口"); continue }
+            guard reveal(liveRow, in: app) else { XCTFail("\(variant.rawValue)：没有出现运动中入口"); continue }
             liveRow.tap()
             _ = element(app, "live.phase").waitForExistence(timeout: 10)
             settle(4)
