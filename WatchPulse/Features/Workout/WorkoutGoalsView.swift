@@ -188,7 +188,8 @@ private struct GoalRow: View {
                         .foregroundStyle(.secondary)
                 }
                 if !previous.isEmpty {
-                    Text("之前几周：" + previous.map { "\(weekLabel($0.week)) \(metric.format($0.value))" }.joined(separator: "，"))
+                    // 目标设定之前的整周只标“设定前”，不显示为未完成。
+                    Text("之前几周：" + previous.map { "\(weekLabel($0.week)) \($0.isBeforeGoalCreated ? "设定前" : metric.format($0.value))" }.joined(separator: "，"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
