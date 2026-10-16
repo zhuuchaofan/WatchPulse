@@ -151,7 +151,10 @@ final class WatchPulseUITests: XCTestCase {
         row.tap()
 
         XCTAssertTrue(element(app, "demoBanner").waitForExistence(timeout: 10), "演示模式必须显示模拟数据标识")
-        XCTAssertTrue(app.staticTexts["数据可信度"].waitForExistence(timeout: 10))
+        // 运动后反馈位于其上方，需要向下滚动。
+        let header = app.staticTexts["数据可信度"]
+        scrollTo(header, in: app)
+        XCTAssertTrue(header.waitForExistence(timeout: 10))
     }
 
     @MainActor

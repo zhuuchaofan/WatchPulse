@@ -33,7 +33,7 @@ struct WorkoutFeedbackSection: View {
         } footer: {
             Text(WorkoutFeedbackPresentation.disclaimer)
         }
-        .accessibilityIdentifier("workoutDetail.feedback")
+        // 不在 Section 上设置 accessibilityIdentifier：它会覆盖每一行自己的标识。
         .task {
             if viewModel.state == .idle {
                 await viewModel.load()
