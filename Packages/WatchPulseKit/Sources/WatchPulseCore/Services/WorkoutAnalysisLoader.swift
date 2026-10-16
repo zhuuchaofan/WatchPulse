@@ -32,10 +32,20 @@ public struct WorkoutAnalysisLoader: Sendable {
     public var dataOrigin: HealthDataOrigin { service.dataOrigin }
     public var isHealthDataAvailable: Bool { service.isHealthDataAvailable }
 
+    /// 为最近的 `maximumHeartRateFetches` 条主记录读取心率。
     public func load(limit: Int) async throws -> WorkoutAnalysisSet {
+        try await load(limit: limit) { $0.entries.map(\.primary) }
+    }
+
+    /// 由 `selectHeartRateTargets` 决定为哪些主记录读取心率（仍受 `maximumHeartRateFetches` 限制），
+    /// 例如运动后反馈只需要本次及更早的同类运动。
+    public func load(
+        limit: Int,
+        selectHeartRateTargets: @Sendable (WorkoutDeduplicationResult) -> [WorkoutRecord]
+    ) async throws -> WorkoutAnalysisSet {
         let workouts = try await service.fetchWorkouts(limit: limit)
         let deduplication = WorkoutDeduplicator.deduplicate(workouts, configuration: configuration.deduplication)
-        let targets = deduplication.entries.prefix(maximumHeartRateFetches).map(\.primary)
+        let targets = Array(selectHeartRateTargets(deduplication).prefix(maximumHeartRateFetches))
         let series = try await fetchHeartRates(for: targets)
         return WorkoutAnalysisBuilder.build(
             deduplication: deduplication,

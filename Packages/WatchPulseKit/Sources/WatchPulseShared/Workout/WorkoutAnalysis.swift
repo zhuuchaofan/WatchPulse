@@ -69,6 +69,8 @@ public struct WorkoutAnalysisRecord: Identifiable, Hashable, Sendable {
     public let origin: HealthDataOrigin
     /// 被合并的确认重复记录的来源，便于追溯。
     public let mergedSources: [WorkoutSourceInfo]
+    /// 被合并的确认重复记录的 ID，用于从任一原始记录找到对应的主记录。
+    public let mergedWorkoutIDs: [UUID]
     public let duplicateStatus: DeduplicatedWorkout.Status
     public let heartRate: HeartRateEvidence
     /// 用户配置了个人区间且存在有效心率时的区间分布；**没有用户确认的配置时为 `nil`，不推算最大心率**。
@@ -91,6 +93,11 @@ public struct WorkoutAnalysisSet: Hashable, Sendable {
     public let origin: HealthDataOrigin
     /// 按开始时间倒序；**包含**被疑似重复排除统计的记录。
     public let records: [WorkoutAnalysisRecord]
+
+    /// 原始运动 ID 对应的分析记录：主记录本身，或合并了该条确认重复记录的主记录。
+    public func record(containing workoutID: UUID) -> WorkoutAnalysisRecord? {
+        records.first { $0.id == workoutID } ?? records.first { $0.mergedWorkoutIDs.contains(workoutID) }
+    }
 
     public var suspectedExcludedFromTotals: Int {
         records.filter { $0.eligibility.blockers.contains(.excludedAsSuspectedDuplicate) }.count
@@ -134,6 +141,7 @@ public enum WorkoutAnalysisBuilder {
                 workout: workout,
                 origin: origin,
                 mergedSources: entry.mergedDuplicates.map(\.source),
+                mergedWorkoutIDs: entry.mergedDuplicates.map(\.id),
                 duplicateStatus: entry.duplicateStatus,
                 heartRate: evidence,
                 personalZones: zones,
